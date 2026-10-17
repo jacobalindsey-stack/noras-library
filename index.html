@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nora's Library</title>
+<meta name="description" content="The games of Nora — a small shelf of worlds to visit.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f6efe1;
+    --ink: #2a1f17;
+    --muted: #7a6650;
+    --rule: #d9c9ad;
+    --spine-1: #6b2d3a;
+    --spine-2: #2f4a3a;
+    --spine-3: #2e3d5c;
+    --spine-4: #4a3266;
+    --spine-5: #1f4f5a;
+    --spine-6: #3a2d1f;
+    --gold: #c9a24a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #17120e;
+      --ink: #efe4cf;
+      --muted: #a8957a;
+      --rule: #3a2f24;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 17px/1.55 "Lora", Georgia, serif;
+    min-height: 100vh;
+    padding: 56px 16px 40px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 40px; }
+  .eyebrow {
+    font: italic 500 1.25rem/1 "Cormorant Garamond", serif;
+    color: var(--muted);
+    letter-spacing: .02em;
+  }
+  h1 {
+    font: 700 clamp(3.5rem, 14vw, 5.5rem)/1 "Cormorant Garamond", serif;
+    margin: 6px 0 16px;
+    letter-spacing: .01em;
+  }
+  .intro { color: var(--muted); font-style: italic; margin: 0; }
+  ul.shelf { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+  .book {
+    display: flex;
+    align-items: stretch;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: transform .15s ease, box-shadow .15s ease;
+    background: color-mix(in srgb, var(--paper) 92%, var(--ink));
+  }
+  a.book:hover, a.book:focus-visible {
+    transform: translateX(6px);
+    box-shadow: -6px 6px 0 var(--rule);
+    outline: none;
+  }
+  .spine { width: 14px; flex: none; position: relative; }
+  .spine::after {
+    content: ""; position: absolute; left: 3px; right: 3px; top: 10px; height: 2px;
+    background: var(--gold); box-shadow: 0 6px 0 var(--gold);
+  }
+  .body { padding: 14px 18px; flex: 1; min-width: 0; }
+  .title { font: 700 1.5rem/1.15 "Cormorant Garamond", serif; display: block; }
+  .sub { color: var(--muted); font-style: italic; font-size: .95rem; display: block; }
+  .cta {
+    align-self: center; padding: 0 18px; flex: none;
+    font: 700 .8rem/1 "Lora", serif; letter-spacing: .12em; color: var(--muted);
+  }
+  a.book:hover .cta { color: var(--ink); }
+  .book.away { opacity: .55; }
+  .book.away .cta { font-style: italic; letter-spacing: .02em; font-weight: 400; }
+  footer {
+    text-align: center; color: var(--muted); font-style: italic;
+    font-size: .9rem; margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--rule);
+  }
+  @media (max-width: 420px) {
+    .cta { padding: 0 12px; font-size: .7rem; }
+    .title { font-size: 1.3rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">The Games of</div>
+    <h1>Nora</h1>
+    <p class="intro">A small shelf of worlds to visit. Pull a book from the shelf and begin.</p>
+  </header>
+
+  <!--
+    To add a game: drop its .html file in this folder and copy one <li> below.
+    Books marked class="away" are off the shelf until their files are restored;
+    swap the <div> for an <a href="..."> and remove "away" to put one back.
+  -->
+  <ul class="shelf">
+    <li>
+      <div class="book away" aria-disabled="true">
+        <span class="spine" style="background:var(--spine-1)"></span>
+        <span class="body"><span class="title">Cat Bakery</span><span class="sub">a cozy baking game</span></span>
+        <span class="cta">being rebound</span>
+      </div>
+    </li>
+    <li>
+      <div class="book away" aria-disabled="true">
+        <span class="spine" style="background:var(--spine-2)"></span>
+        <span class="body"><span class="title">The Long Apprenticeship</span><span class="sub">a tale of patience &amp; craft</span></span>
+        <span class="cta">being rebound</span>
+      </div>
+    </li>
+    <li>
+      <div class="book away" aria-disabled="true">
+        <span class="spine" style="background:var(--spine-3)"></span>
+        <span class="body"><span class="title">Adriatica</span><span class="sub">a voyage across the sea</span></span>
+        <span class="cta">being rebound</span>
+      </div>
+    </li>
+    <li>
+      <div class="book away" aria-disabled="true">
+        <span class="spine" style="background:var(--spine-4)"></span>
+        <span class="body"><span class="title">Mirror of Algol</span><span class="sub">strange &amp; starry mystery</span></span>
+        <span class="cta">being rebound</span>
+      </div>
+    </li>
+    <li>
+      <a class="book" href="https://adriatica2.noralindsey.com/">
+        <span class="spine" style="background:var(--spine-5)"></span>
+        <span class="body"><span class="title">Adriatica II</span><span class="sub">the voyage continues</span></span>
+        <span class="cta">PLAY →</span>
+      </a>
+    </li>
+    <li>
+      <a class="book" href="blackthorn.html">
+        <span class="spine" style="background:var(--spine-6)"></span>
+        <span class="body"><span class="title">Blackthorn Manor</span><span class="sub">a haunted house &amp; a cat named Soot</span></span>
+        <span class="cta">PLAY →</span>
+      </a>
+    </li>
+  </ul>
+
+  <footer>Nora's library · new books arriving as we write them.</footer>
+</div>
+</body>
+</html>
