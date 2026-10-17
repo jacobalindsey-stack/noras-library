@@ -32,9 +32,21 @@ Saves: `catbakery.save.v2`, `wilderlore:save:v1`, `sq_save_v1`.
 Every game is now migrated. Standalone Claude Design closes by December 14, 2026;
 nothing here depends on it any more.
 
+## The front page
+
+`index.html` is the playbill: a velvet curtain, then one numbered act per game,
+each with a cameo emblem in the game's own colors. Every game opens in a new tab.
+The acts are built from `games.js`; `index.html` itself never needs editing to
+add a game.
+
 ## Adding a game
 
-Single-file games: drop the `.html` in the root. Folder builds: give them their
-own folder with `index.html` inside. Then copy a `<li>` in `index.html`.
-To bring back a missing book, add its file under the name above and change its
-`<div class="book away">` into `<a class="book" href="...">`.
+1. Put the game in the site. Single-file games go in the root (`mygame.html`).
+   Folder builds get their own folder with `index.html` inside (`mygame/`).
+2. Open `games.js`, copy one entry, and change it:
+   - `title`, `kind` (the kind of game, e.g. "Cozy bakery sim"), `href`
+   - `ground` and `foil`: two colors taken from the game's own art, a dark
+     background and a gold-ish highlight
+   - `emblem`: a small line drawing inside a 64x64 box, drawn in
+     `currentColor`. Copy an existing one to start from.
+3. Save and push. The game appears as the next act with the next numeral.

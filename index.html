@@ -4,155 +4,294 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Nora's Library</title>
-<meta name="description" content="The games of Nora — a small shelf of worlds to visit.">
+<meta name="description" content="Games made by Nora: witches, cats, moonlit cities, sea voyages and a bakery at dusk.">
+<meta name="theme-color" content="#2a0712">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%235a1229'/%3E%3Cpath d='M16 5l2.6 8.4L27 16l-8.4 2.6L16 27l-2.6-8.4L5 16l8.4-2.6z' fill='%23e0b86a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Jost:wght@500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --paper: #f6efe1;
-    --ink: #2a1f17;
-    --muted: #7a6650;
-    --rule: #d9c9ad;
-    --spine-1: #6b2d3a;
-    --spine-2: #2f4a3a;
-    --spine-3: #2e3d5c;
-    --spine-4: #4a3266;
-    --spine-5: #1f4f5a;
-    --spine-6: #3a2d1f;
-    --gold: #c9a24a;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #17120e;
-      --ink: #efe4cf;
-      --muted: #a8957a;
-      --rule: #3a2f24;
-    }
+    --velvet-deep: #2a0712;
+    --velvet: #6e1730;
+    --gold: #e0b86a;
+    --gold-deep: #b9852f;
+    --paper: #fffaf3;
+    --paper-rule: #ecdcbf;
+    --ink: #3b0f1f;
+    --kind: #8e4a5a;
+    --cream: #f6e2cf;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body {
-    background: var(--paper);
+    background: var(--velvet-deep);
     color: var(--ink);
-    font: 17px/1.55 "Lora", Georgia, serif;
-    min-height: 100vh;
-    padding: 56px 16px 40px;
+    font-family: "DM Serif Display", Georgia, serif;
+    overflow-x: hidden;
   }
-  .wrap { max-width: 640px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 40px; }
-  .eyebrow {
-    font: italic 500 1.25rem/1 "Cormorant Garamond", serif;
-    color: var(--muted);
-    letter-spacing: .02em;
+
+  /* ---------- the curtain ---------- */
+  header {
+    position: relative;
+    padding: 0 16px 150px;
+    background:
+      radial-gradient(ellipse 60% 70% at 50% 42%, rgba(255,206,140,.30), rgba(255,206,140,0) 70%),
+      repeating-linear-gradient(90deg, #4a0c20 0px, #6e1730 26px, #8a2240 34px, #6e1730 44px, #4a0c20 72px);
   }
+  .valance, .sparkles, .fringe { position: absolute; left: 0; pointer-events: none; }
+  .valance { top: 0; width: 100%; height: 96px; }
+  .sparkles { inset: 0; width: 100%; height: 100%; }
+  .fringe { bottom: 0; width: 100%; height: 34px; }
+  .marquee { position: relative; max-width: 1000px; margin: 0 auto; padding-top: 190px; text-align: center; }
   h1 {
-    font: 700 clamp(3.5rem, 14vw, 5.5rem)/1 "Cormorant Garamond", serif;
-    margin: 6px 0 16px;
-    letter-spacing: .01em;
+    margin: 0;
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(60px, 10.5vw, 150px);
+    line-height: .95;
+    background: linear-gradient(180deg, #fff6df 0%, #f2d08a 48%, #c48a35 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 28px rgba(255,200,120,.35)) drop-shadow(0 3px 0 rgba(58,8,24,.6));
   }
-  .intro { color: var(--muted); font-style: italic; margin: 0; }
-  ul.shelf { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
-  .book {
-    display: flex;
-    align-items: stretch;
-    text-decoration: none;
+  .flourish { display: block; margin: 30px auto 0; max-width: 100%; }
+
+  /* ---------- the programme card ---------- */
+  main { position: relative; margin-top: -96px; padding: 0 16px 110px; }
+  .card {
+    position: relative;
+    max-width: 1060px;
+    margin: 0 auto;
+    background: var(--paper);
+    border-radius: 4px;
+    box-shadow: 0 40px 90px rgba(10,0,4,.6), 0 0 0 1px #e6cfae;
+    padding: clamp(28px, 5vw, 64px) clamp(16px, 5vw, 72px);
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 14px;
+    border: 1px solid #d9b877;
+    outline: 1px solid var(--paper-rule);
+    outline-offset: -6px;
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .programme { position: relative; list-style: none; margin: 0; padding: 0; }
+  .programme li + li { border-top: 1px solid var(--paper-rule); }
+
+  /* one centred column: numeral | cameo | title, the whole group balanced in the card */
+  .act {
+    display: grid;
+    grid-template-columns: 76px 156px minmax(0, 400px);
+    column-gap: 40px;
+    justify-content: center;
+    align-items: center;
+    padding: 34px 0;
     color: inherit;
-    border: 1px solid var(--rule);
+    text-decoration: none;
     border-radius: 6px;
-    overflow: hidden;
-    transition: transform .15s ease, box-shadow .15s ease;
-    background: color-mix(in srgb, var(--paper) 92%, var(--ink));
   }
-  a.book:hover, a.book:focus-visible {
-    transform: translateX(6px);
-    box-shadow: -6px 6px 0 var(--rule);
-    outline: none;
+  .numeral { text-align: center; font-size: 46px; line-height: 1; color: var(--gold-deep); }
+  .cameo {
+    width: 156px;
+    height: 200px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 50% 35%, rgba(255,255,255,.10), rgba(255,255,255,0) 60%), var(--ground);
+    box-shadow:
+      inset 0 0 0 6px var(--ground),
+      inset 0 0 0 7px color-mix(in srgb, var(--foil) 60%, transparent),
+      0 0 0 4px var(--paper),
+      0 0 0 5px #d9b877,
+      0 18px 30px -12px rgba(42,7,18,.55),
+      0 0 44px -6px color-mix(in srgb, var(--foil) 55%, transparent);
+    transition: transform .25s ease, box-shadow .25s ease;
   }
-  .spine { width: 14px; flex: none; position: relative; }
-  .spine::after {
-    content: ""; position: absolute; left: 3px; right: 3px; top: 10px; height: 2px;
-    background: var(--gold); box-shadow: 0 6px 0 var(--gold);
+  .cameo svg {
+    width: 78px;
+    height: 78px;
+    color: var(--foil);
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--foil) 40%, transparent));
   }
-  .body { padding: 14px 18px; flex: 1; min-width: 0; }
-  .title { font: 700 1.5rem/1.15 "Cormorant Garamond", serif; display: block; }
-  .sub { color: var(--muted); font-style: italic; font-size: .95rem; display: block; }
-  .cta {
-    align-self: center; padding: 0 18px; flex: none;
-    font: 700 .8rem/1 "Lora", serif; letter-spacing: .12em; color: var(--muted);
+  .title { font-size: clamp(30px, 3.6vw, 46px); line-height: 1.05; color: var(--ink); }
+  .kind {
+    margin-top: 12px;
+    font-family: "Jost", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--kind);
   }
-  a.book:hover .cta { color: var(--ink); }
-  .book.away { opacity: .55; }
-  .book.away .cta { font-style: italic; letter-spacing: .02em; font-weight: 400; }
+  a.act:hover .cameo, a.act:focus-visible .cameo { transform: translateY(-4px) scale(1.03); }
+  a.act:hover .title { color: #7d1a38; }
+  a.act:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 6px; }
+
+  .act.next .numeral { color: #d8c6a8; }
+  .act.next .cameo { background: none; box-shadow: none; border: 2px dashed #d9c3a0; }
+  .act.next .cameo svg { width: 26px; height: 26px; color: #e2cfaa; filter: none; }
+
+  @media (max-width: 720px) {
+    .act { grid-template-columns: 1fr; row-gap: 18px; justify-items: center; text-align: center; }
+    .numeral { font-size: 38px; }
+  }
+
+  /* ---------- about + footlights ---------- */
+  .about { padding: 0 16px 120px; text-align: center; }
+  .about p {
+    max-width: 760px;
+    margin: 0 auto;
+    font-style: italic;
+    font-size: clamp(26px, 3.2vw, 38px);
+    line-height: 1.35;
+    color: var(--cream);
+  }
   footer {
-    text-align: center; color: var(--muted); font-style: italic;
-    font-size: .9rem; margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--rule);
+    position: relative;
+    padding: 46px 16px 40px;
+    background: #1c040c;
+    text-align: center;
+    font-family: "Jost", system-ui, sans-serif;
+    font-size: 15px;
+    letter-spacing: 1px;
+    color: #b98f86;
   }
-  @media (max-width: 420px) {
-    .cta { padding: 0 12px; font-size: .7rem; }
-    .title { font-size: 1.3rem; }
-  }
+  .footlights { position: absolute; left: 0; top: -12px; width: 100%; height: 24px; }
+
+  @media (prefers-reduced-motion: reduce) { .cameo { transition: none; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="eyebrow">The Games of</div>
-    <h1>Nora</h1>
-    <p class="intro">A small shelf of worlds to visit. Pull a book from the shelf and begin.</p>
-  </header>
 
-  <!--
-    To add a game: drop its .html file in this folder and copy one <li> below.
-    Books marked class="away" are off the shelf until their files are restored;
-    swap the <div> for an <a href="..."> and remove "away" to put one back.
-  -->
-  <ul class="shelf">
-    <li>
-      <a class="book" href="catbakery/">
-        <span class="spine" style="background:var(--spine-1)"></span>
-        <span class="body"><span class="title">Cat Bakery</span><span class="sub">a cozy pixel bakery</span></span>
-        <span class="cta">PLAY →</span>
-      </a>
-    </li>
-    <li>
-      <a class="book" href="apprenticeship/">
-        <span class="spine" style="background:var(--spine-2)"></span>
-        <span class="body"><span class="title">The Long Apprenticeship</span><span class="sub">a caravan game in the wilderlands</span></span>
-        <span class="cta">PLAY →</span>
-      </a>
-    </li>
-    <li>
-      <a class="book" href="adriatica/">
-        <span class="spine" style="background:var(--spine-3)"></span>
-        <span class="body"><span class="title">Adriatica</span><span class="sub">Mira Novak &amp; the hidden stones</span></span>
-        <span class="cta">PLAY →</span>
-      </a>
-    </li>
-    <li>
-      <a class="book" href="algol.html">
-        <span class="spine" style="background:var(--spine-4)"></span>
-        <span class="body"><span class="title">Mirror of Algol</span><span class="sub">a moon, its reflection &amp; the way home</span></span>
-        <span class="cta">PLAY →</span>
-      </a>
-    </li>
-    <li>
-      <a class="book" href="adriatica2/">
-        <span class="spine" style="background:var(--spine-5)"></span>
-        <span class="body"><span class="title">Adriatica II</span><span class="sub">the voyage continues</span></span>
-        <span class="cta">PLAY →</span>
-      </a>
-    </li>
-    <li>
-      <a class="book" href="blackthorn.html">
-        <span class="spine" style="background:var(--spine-6)"></span>
-        <span class="body"><span class="title">Blackthorn Manor</span><span class="sub">a witch, a cat &amp; a very long night</span></span>
-        <span class="cta">PLAY →</span>
-      </a>
-    </li>
-  </ul>
+<header>
+  <svg class="valance" viewBox="0 0 1440 96" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 0h1440v40c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0z" fill="#3a0818"/>
+    <path d="M0 40c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0" fill="none" stroke="#e0b86a" stroke-width="3"/>
+    <path d="M0 46c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0" fill="none" stroke="#e0b86a" stroke-width="1" opacity=".5"/>
+    <g fill="#e0b86a"><circle cx="180" cy="44" r="5"/><circle cx="360" cy="44" r="5"/><circle cx="540" cy="44" r="5"/><circle cx="720" cy="44" r="5"/><circle cx="900" cy="44" r="5"/><circle cx="1080" cy="44" r="5"/><circle cx="1260" cy="44" r="5"/></g>
+  </svg>
+  <svg class="sparkles" viewBox="0 0 1440 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <g fill="#ffe2a8">
+      <path d="M420 190l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" opacity=".85"/>
+      <path d="M1030 160l2.4 7 7 2.4-7 2.4-2.4 7-2.4-7-7-2.4 7-2.4z" opacity=".7"/>
+      <path d="M1110 330l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" opacity=".8"/>
+      <path d="M330 380l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" opacity=".6"/>
+      <circle cx="520" cy="130" r="1.6" opacity=".7"/><circle cx="940" cy="120" r="1.4" opacity=".6"/><circle cx="1200" cy="250" r="1.6" opacity=".6"/><circle cx="250" cy="280" r="1.4" opacity=".5"/>
+    </g>
+  </svg>
 
-  <footer>Nora's library · new books arriving as we write them.</footer>
-</div>
+  <div class="marquee">
+    <h1>Nora's Library</h1>
+    <svg class="flourish" width="340" height="44" viewBox="0 0 340 44" aria-hidden="true">
+      <path d="M14 22h118M208 22h118" stroke="#e0b86a" stroke-width="1.4"/>
+      <path d="M170 6c-16 0-26 16-8 16s8 16 8 16s-10-16 8-16s8-16-8-16z" fill="none" stroke="#e0b86a" stroke-width="1.6"/>
+      <path d="M132 22c10-10 20-10 24 0M208 22c-10-10-20-10-24 0" fill="none" stroke="#e0b86a" stroke-width="1.4"/>
+      <circle cx="10" cy="22" r="3" fill="#e0b86a"/><circle cx="330" cy="22" r="3" fill="#e0b86a"/>
+    </svg>
+  </div>
+
+  <svg class="fringe" viewBox="0 0 1440 34" preserveAspectRatio="none" aria-hidden="true">
+    <defs><pattern id="fringe" width="12" height="34" patternUnits="userSpaceOnUse"><rect width="12" height="6" fill="#c9963f"/><path d="M6 6v20" stroke="#e0b86a" stroke-width="2"/><circle cx="6" cy="28" r="3.2" fill="#e0b86a"/></pattern></defs>
+    <rect width="1440" height="34" fill="url(#fringe)"/>
+  </svg>
+</header>
+
+<main>
+  <div class="card">
+    <ol class="programme" id="programme" aria-label="Games">
+      <noscript>
+        <li><a class="act" href="algol.html">Mirror of Algol</a></li>
+        <li><a class="act" href="blackthorn.html">Blackthorn Manor</a></li>
+        <li><a class="act" href="adriatica/">Adriatica</a></li>
+        <li><a class="act" href="adriatica2/">Adriatica II</a></li>
+        <li><a class="act" href="catbakery/">The Cat Bakery</a></li>
+        <li><a class="act" href="apprenticeship/">The Long Apprenticeship</a></li>
+      </noscript>
+    </ol>
+  </div>
+</main>
+
+<section class="about">
+  <p>Fantasy, witches, cats, ballet and books, made into games by Nora.</p>
+</section>
+
+<footer>
+  <svg class="footlights" viewBox="0 0 1440 24" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="footlight"><stop offset="0" stop-color="#fff1c8"/><stop offset=".35" stop-color="#f2c46a"/><stop offset="1" stop-color="#f2c46a" stop-opacity="0"/></radialGradient>
+      <pattern id="lights" width="80" height="24" patternUnits="userSpaceOnUse"><circle cx="40" cy="12" r="12" fill="url(#footlight)"/></pattern>
+    </defs>
+    <rect width="1440" height="24" fill="url(#lights)"/>
+  </svg>
+  © 2026 Nora Lindsey
+</footer>
+
+<script src="games.js"></script>
+<script>
+  // Builds the playbill from games.js. Add a game there; nothing here needs to change.
+  (function () {
+    var games = window.NORA_GAMES || [];
+    var list = document.getElementById('programme');
+    if (!games.length || !list) return;
+
+    function roman(n) {
+      var map = [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+      var out = '';
+      map.forEach(function (p) { while (n >= p[0]) { out += p[1]; n -= p[0]; } });
+      return out;
+    }
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    }
+    function emblem(inner) {
+      return '<svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
+    }
+
+    list.textContent = '';
+    games.forEach(function (g, i) {
+      var li = el('li');
+      var a = el('a', 'act');
+      a.href = g.href;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.setAttribute('aria-label', g.title + ', ' + g.kind + ' (opens in a new tab)');
+
+      var cameo = el('div', 'cameo');
+      cameo.style.setProperty('--ground', g.ground);
+      cameo.style.setProperty('--foil', g.foil);
+      cameo.innerHTML = emblem(g.emblem);
+
+      var text = el('div');
+      text.appendChild(el('div', 'title', g.title));
+      text.appendChild(el('div', 'kind', g.kind));
+
+      a.appendChild(el('div', 'numeral', roman(i + 1)));
+      a.appendChild(cameo);
+      a.appendChild(text);
+      li.appendChild(a);
+      list.appendChild(li);
+    });
+
+    // the empty act at the end: room for the next game
+    var next = el('li');
+    var row = el('div', 'act next');
+    row.setAttribute('aria-hidden', 'true');
+    row.appendChild(el('div', 'numeral', roman(games.length + 1)));
+    var empty = el('div', 'cameo');
+    empty.innerHTML = '<svg viewBox="0 0 26 26"><path d="M13 0l3.2 9.8 9.8 3.2-9.8 3.2-3.2 9.8-3.2-9.8-9.8-3.2 9.8-3.2z" fill="currentColor"/></svg>';
+    row.appendChild(empty);
+    row.appendChild(el('div'));
+    next.appendChild(row);
+    list.appendChild(next);
+  })();
+</script>
 </body>
 </html>
