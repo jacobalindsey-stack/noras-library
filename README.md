@@ -12,7 +12,7 @@ Every push to `main` redeploys the site.
 | Cat Bakery | `catbakery/` | migrated from Claude Design export (deploy build) |
 | The Long Apprenticeship | `apprenticeship/` | migrated from Claude Design export ("Wilderlore") |
 | Adriatica | `adriatica/` | migrated from Claude Design export ("Thirteen Sphinxes", v2.1) |
-| Mirror of Algol | `algol.html` | missing: export from Claude Design and attach |
+| Mirror of Algol | `algol.html` | migrated from Claude Design export (single file) |
 | Adriatica II | `adriatica2/` | migrated from Claude Design export (folder build, 19 MB) |
 | Blackthorn Manor | `blackthorn.html` | migrated from Claude artifact (v1.1.0) |
 
@@ -29,8 +29,8 @@ Saves: `catbakery.save.v2`, `wilderlore:save:v1`, `sq_save_v1`.
 `_redirects` (Cloudflare Pages) sends the old `catbakery.html`,
 `apprenticeship.html` and `adriatica.html` addresses to the new folders.
 
-Standalone Claude Design closes by December 14, 2026. Export the remaining
-games before then.
+Every game is now migrated. Standalone Claude Design closes by December 14, 2026;
+nothing here depends on it any more.
 
 ## Adding a game
 
