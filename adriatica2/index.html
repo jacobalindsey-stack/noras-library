@@ -1,0 +1,3309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Adriatica II — Mira Novak and the Four Voices</title>
+<meta name="description" content="A first-person exploration game on the Dalmatian coast. Look, talk, give, listen.">
+<meta name="theme-color" content="#1a1611">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta property="og:title" content="Adriatica II — Mira Novak and the Four Voices">
+<meta property="og:description" content="The coast has been singing since before there was anybody to hear it. It does not know she is there.">
+<meta property="og:image" content="assets/scenes/28-title.jpg">
+<link rel="icon" href="assets/scenes/28-title.jpg">
+<link rel="apple-touch-icon" href="assets/scenes/28-title.jpg">
+<link rel="preload" as="font" type="font/otf" href="assets/fonts/Musivum-Regular.otf" crossorigin>
+<link rel="preload" as="image" href="assets/scenes/28-title.jpg">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Caveat:wght@400;500&display=swap" rel="stylesheet">
+  <script src="game/engine.js"></script>
+  <script src="game/audio.js"></script>
+  <script src="game/scenes.js"></script>
+  <style>
+    @font-face { font-family: 'Musivum'; src: url('assets/fonts/Musivum-Regular.otf') format('opentype'); font-weight: 400; font-display: swap; }
+    /* iPad / WebKit: the document must not be scrollable or rubber-bandable, or
+       a drag on the picture drifts the whole game and a tap lands somewhere
+       else than where the finger went down. */
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #1a1611;
+      overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    /* No grey flash box on every tap of a hotspot, arrow or verb. */
+    * { -webkit-tap-highlight-color: rgba(0,0,0,0); }
+    /* Long-press on the reading panel opened the Copy / Look Up callout. */
+    #game-root, #game-root * { -webkit-touch-callout: none; }
+    @keyframes visionPulse { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
+    @keyframes notebookBounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+    /* Title screen: light moving through cloud, and the gold catching it. */
+    @keyframes titleRay {
+      0%, 100% { opacity: 0.45; transform: rotate(17deg) translateX(0); }
+      50%      { opacity: 1;    transform: rotate(19.5deg) translateX(2.5%); }
+    }
+    @keyframes titleSheen {
+      0%, 100% { filter: drop-shadow(0 2px 3px rgba(38,26,10,0.55)) drop-shadow(0 0 30px rgba(255,224,160,0.20)); }
+      50%      { filter: drop-shadow(0 2px 3px rgba(38,26,10,0.55)) drop-shadow(0 0 46px rgba(255,230,175,0.42)); }
+    }
+  </style>
+</helmet>
+
+<div id="game-root" style="position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #1a1611; font-family: 'Cormorant Garamond', Georgia, serif; user-select: none; -webkit-user-select: none; touch-action: manipulation; cursor: default;">
+
+  <!-- Scene background -->
+  <div id="scene-bg" style="position: absolute; inset: 0; background-size: cover; background-position: center; transition: opacity 0.4s ease;">
+  </div>
+
+  <!-- Underwater tint overlay -->
+  <div id="underwater-tint" style="position: absolute; inset: 0; background: rgba(20, 80, 100, 0.35); pointer-events: none; opacity: 0; transition: opacity 0.8s ease;">
+  </div>
+
+  <!-- Vision overlay -->
+  <div id="vision-overlay" style="position: absolute; inset: 0; background-size: cover; background-position: center; pointer-events: none; opacity: 0; transition: opacity 1.5s ease; z-index: 47;">
+  </div>
+
+  <!-- Playable vision (3D). Mounts over the paused game; the warm-white dip
+       (z-index 80) covers both its arrival and its teardown. -->
+  <div id="vision-level" style="position: absolute; inset: 0; background: #0d0906; display: none; z-index: 60; overflow: hidden;">
+  </div>
+
+  <!-- Vignette overlay — covers corner numbers -->
+  <div id="vignette" style="position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 50%, rgba(26, 22, 17, 0.55) 100%); z-index: 1;">
+  </div>
+
+  <!-- Close-up plate — a painted still-life at a different scale.
+       How people hand her things, since nobody is drawn in the scenes. -->
+  <div id="plate-overlay" style="position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding: 2.5% 5% 0; box-sizing: border-box; pointer-events: none; opacity: 0; transition: opacity 0.9s ease; z-index: 55;">
+    <div id="plate-frame" style="position: relative; width: 46%; max-width: 620px; min-width: 240px; padding: 18px 18px 20px; box-sizing: border-box; display: flex; flex-direction: column; background: #f2e8d8; border: 1px solid rgba(120, 100, 70, 0.4); box-shadow: 0 18px 60px rgba(20, 16, 12, 0.55), 0 2px 0 rgba(255,255,255,0.5) inset; transform: translateY(-4%) scale(0.97); transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);">
+      <img id="plate-img" alt="" draggable="false" style="display: block; width: 100%; height: auto; min-height: 0; object-fit: contain; background: #e4d8c2;">
+      <div id="plate-caption" style="margin-top: 12px; font-size: 17px; line-height: 1.5; color: #6b5c44; text-align: center; font-style: italic; letter-spacing: 0.02em;">
+      </div>
+      <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+        <div id="plate-more" style="font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: #6f5c40; border: 1.5px solid rgba(122, 102, 72, 0.45); border-radius: 4px; padding: 10px 20px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; opacity: 0; transition: opacity 0.5s ease; pointer-events: auto; background: rgba(122, 102, 72, 0.06);">Continue <span style="font-size: 14px;">&#8250;</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warm white transition overlay -->
+  <div id="transition-overlay" style="position: absolute; inset: 0; background: #f5ece0; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; z-index: 80;">
+  </div>
+
+  <!-- Hotspot areas (dynamically populated) -->
+  <div id="hotspot-layer" style="position: absolute; inset: 0; pointer-events: none; z-index: 55;">
+  </div>
+
+  <!-- Navigation arrows -->
+  <div id="nav-arrows" style="position: absolute; inset: 0; pointer-events: none; z-index: 56;">
+  </div>
+
+  <!-- Settling. Deliberate stillness, with visible progress, so doing
+       nothing never reads as nothing happening. -->
+  <div id="settle-panel" style="position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); display: none; flex-direction: column; align-items: center; gap: 18px; padding: 26px 44px 30px; box-sizing: border-box; background: rgba(24, 19, 14, 0.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(218, 190, 130, 0.28); border-radius: 4px; z-index: 45; pointer-events: none; opacity: 0; transition: opacity 1s ease; max-width: 74%; text-align: center;">
+    <div id="settle-lead" style="flex: 0 0 auto; font-size: 17px; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(226, 198, 138, 0.85); text-shadow: 0 1px 8px rgba(0,0,0,0.7);">I stop and listen…</div>
+    <div id="settle-text" style="font-size: 22px; line-height: 1.55; color: #e8dfd2; font-style: italic; letter-spacing: 0.01em; max-width: 26em; flex: 1 1 auto; min-height: 0; overflow: hidden;">
+    </div>
+    <div style="align-self: stretch; display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 2px;">
+      <div id="settle-up" style="font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(226, 198, 138, 0.62); border: 1.5px solid rgba(218, 190, 130, 0.28); border-radius: 4px; padding: 10px 18px; min-height: 44px; box-sizing: border-box; display: none; align-items: center; cursor: pointer; pointer-events: auto; user-select: none;">Get up</div>
+      <div id="settle-more" style="font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(226, 198, 138, 0.95); border: 1.5px solid rgba(218, 190, 130, 0.55); border-radius: 4px; padding: 10px 20px; min-height: 44px; box-sizing: border-box; display: none; align-items: center; gap: 9px; cursor: pointer; pointer-events: auto; user-select: none; background: rgba(218, 190, 130, 0.1); transition: background 0.2s ease, transform 0.2s ease;">Listen <span style="font-size: 14px;">&#8250;</span></div>
+    </div>
+  </div>
+
+  <!-- Action bar — what this scene will answer to, always on screen. -->
+  <div id="action-bar" style="position: absolute; bottom: calc(18px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 39px; padding: 15px 33px; background: rgba(20, 16, 12, 0.5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(218, 190, 130, 0.16); border-radius: 999px; z-index: 57; pointer-events: none; opacity: 1;">
+  </div>
+
+  <!-- Text panel — formal parchment box, bottom center, full width -->
+  <div id="text-panel" style="position: absolute; bottom: calc(20px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: 92%; max-width: 760px; max-height: 420px; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 0.3s ease; z-index: 50;">
+    <div id="text-panel-inner" style="padding: 28px 44px 32px; background: rgba(245, 236, 224, 0.96); border-radius: 8px; border: 1.5px solid rgba(180, 162, 130, 0.5); box-shadow: 0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.4);">
+      <div id="text-content" style="font-size: 25px; line-height: 1.8; color: #2c2418; letter-spacing: 0.01em; white-space: pre-wrap; text-align: center;">
+      </div>
+      <div style="margin-top: 18px; display: flex; justify-content: flex-end; align-items: center;">
+        <div id="text-more" style="pointer-events: auto; font-size: 17px; letter-spacing: 0.18em; text-transform: uppercase; color: #6f5c40; border: 1.5px solid rgba(122, 102, 72, 0.45); border-radius: 4px; padding: 11px 22px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease; background: rgba(122, 102, 72, 0.06);">
+          <span id="text-more-label">Continue</span><span style="font-size: 15px;">&#8250;</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene entry text — top center, formal box -->
+  <div id="entry-text" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 64%; max-width: 700px; pointer-events: auto; opacity: 0; transition: opacity 0.45s ease; z-index: 59; visibility: hidden;">
+    <div id="entry-text-inner" style="padding: 20px 36px 22px; background: rgba(26, 22, 17, 0.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 8px; border: 1px solid rgba(232, 223, 210, 0.15); box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+      <div id="entry-content" style="font-size: 27px; line-height: 1.7; color: #e8dfd2; font-style: italic; letter-spacing: 0.02em; white-space: pre-wrap; text-align: center; font-weight: 500;">
+      </div>
+      <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+        <div id="entry-more" style="font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(232, 223, 210, 0.92); border: 1.5px solid rgba(232, 223, 210, 0.4); border-radius: 4px; padding: 10px 20px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; pointer-events: auto; background: rgba(232, 223, 210, 0.07); transition: background 0.2s ease, transform 0.2s ease;">Continue <span style="font-size: 14px;">&#8250;</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notebook icon -->
+  <div id="notebook-btn" style="position: absolute; bottom: calc(20px + env(safe-area-inset-bottom)); right: calc(20px + env(safe-area-inset-right)); width: 56px; height: 56px; cursor: pointer; opacity: 0.6; transition: opacity 0.3s; display: flex; align-items: center; justify-content: center; pointer-events: auto; z-index: 62; display: none;" title="Notebook">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#e8dfd2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      <line x1="8" y1="7" x2="16" y2="7"></line>
+      <line x1="8" y1="11" x2="14" y2="11"></line>
+    </svg>
+  </div>
+
+  <!-- Notebook overlay -->
+  <div id="notebook-overlay" style="position: absolute; inset: 0; background: #1a1611; display: none; z-index: 100; overflow-y: auto;">
+    <div style="max-width: 640px; margin: 0 auto; padding: 48px 36px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div style="font-family: 'Caveat', cursive; font-size: 38px; color: #d4c5a9;">Weird Things I've Noticed</div>
+        <div id="notebook-close" style="cursor: pointer; color: #d4c5a9; font-size: 24px; padding: 8px; opacity: 0.7;">✕</div>
+      </div>
+      <div id="notebook-entries" style="font-family: 'Caveat', cursive; font-size: 25px; color: #c4b58f; line-height: 1.8;">
+      </div>
+      <div style="margin-top: 44px; padding-top: 22px; border-top: 1px solid rgba(212, 197, 169, 0.22); display: flex; flex-direction: column; gap: 12px;">
+        <div id="nb-save-status" style="font-family: 'Caveat', cursive; font-size: 20px; color: rgba(196, 181, 143, 0.65); min-height: 24px;">She keeps the book in her bag. It remembers where she left off.</div>
+        <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+          <div id="nb-save" style="cursor: pointer; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 19px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #f0e9de; padding: 13px 30px; border: 2px solid rgba(212, 197, 169, 0.55); border-radius: 5px; transition: all 0.25s ease;">Save</div>
+          <div id="nb-quit" style="cursor: pointer; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 19px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(240, 233, 222, 0.8); padding: 13px 30px; border: 2px solid rgba(212, 197, 169, 0.3); border-radius: 5px; transition: all 0.25s ease;">Save &amp; Close the Book</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page reader (P13) — four clicks. The button never says anything else. -->
+  <div id="reader-overlay" style="position: absolute; inset: 0; background: #14110c; display: none; z-index: 102; align-items: center; justify-content: center; padding: clamp(12px, 3vh, 40px); box-sizing: border-box; opacity: 0; transition: opacity 1.2s ease;">
+    <div style="display: flex; align-items: stretch; gap: clamp(18px, 4vw, 52px); width: 100%; max-width: 1100px; height: 100%; min-height: 0; overflow: hidden; box-sizing: border-box;">
+      <div style="flex: 0 0 auto; align-self: center; height: 100%; max-height: 100%; min-height: 0; aspect-ratio: 1086 / 1448; max-width: 42%; display: flex; padding: clamp(6px, 1.2vh, 14px); background: #f2e8d8; border: 1px solid rgba(120, 100, 70, 0.4); box-shadow: 0 18px 60px rgba(0,0,0,0.6); box-sizing: border-box;">
+        <img id="reader-img" alt="" draggable="false" style="display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain;">
+      </div>
+      <div style="flex: 1 1 auto; min-width: 0; height: 100%; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(14px, 3vh, 34px);">
+        <div id="reader-text" style="flex: 0 1 auto; min-height: 0; overflow-y: auto; font-size: clamp(17px, 3.4vh, 26px); line-height: 1.72; color: #ddd2bf; white-space: pre-wrap; letter-spacing: 0.01em;">
+        </div>
+        <div id="reader-btn" style="flex: 0 0 auto; align-self: flex-end; padding: clamp(10px, 1.6vh, 14px) clamp(22px, 4vw, 32px); min-height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 9px; font-size: clamp(14px, 2.2vh, 17px); letter-spacing: 0.18em; text-transform: uppercase; color: #dabe82; border: 1.5px solid rgba(218, 190, 130, 0.45); border-radius: 4px; cursor: pointer; user-select: none; transition: background 0.25s ease;">Continue <span style="font-size: 14px;">&#8250;</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ending. Warm white, never black. -->
+  <div id="ending-overlay" style="position: absolute; inset: 0; background: #f5ece0; display: none; z-index: 104; align-items: center; justify-content: center; padding: clamp(14px, 3.5vh, 48px); box-sizing: border-box; opacity: 0; transition: opacity 2.4s ease;">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 760px; height: 100%; min-height: 0; overflow: hidden; text-align: center; box-sizing: border-box;">
+      <div id="ending-text" style="flex: 0 1 auto; min-height: 0; overflow-y: auto; font-size: clamp(17px, 3.6vh, 27px); line-height: 1.75; color: #5d5040; white-space: pre-wrap; opacity: 0; transition: opacity 1.6s ease;">
+      </div>
+      <div id="ending-tap-hint" style="margin-top: 18px; opacity: 0; transition: opacity 1s ease;">
+        <div id="ending-continue" style="font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase; color: #8a7458; border: 1.5px solid rgba(138, 116, 88, 0.45); border-radius: 4px; padding: 12px 24px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; background: rgba(138, 116, 88, 0.06);">Continue <span style="font-size: 14px;">&#8250;</span></div>
+      </div>
+      <div id="ending-word" style="flex: 0 0 auto; font-family: 'Musivum', 'Cormorant Garamond', Georgia, serif; margin-top: clamp(18px, 4.5vh, 52px); font-size: clamp(32px, 6.5vh, 58px); letter-spacing: 0.18em; text-transform: uppercase; color: #a08a5e; opacity: 0; transition: opacity 3s ease;">
+      </div>
+      <div id="ending-credits" style="flex: 0 0 auto; margin-top: clamp(20px, 5vh, 64px); font-size: clamp(12px, 1.7vh, 16px); line-height: 1.9; letter-spacing: 0.14em; text-transform: uppercase; color: #9a8a70; opacity: 0; transition: opacity 2s ease;">
+        <div style="font-family: 'Musivum', 'Cormorant Garamond', Georgia, serif; font-size: clamp(19px, 2.8vh, 26px); letter-spacing: 0.12em;">Adriatica</div>
+        <div style="margin-top: 6px;">Mira Novak and the Four Voices</div>
+        <div id="ending-again" style="margin-top: clamp(16px, 3.5vh, 40px); padding: clamp(9px, 1.6vh, 13px) clamp(20px, 4vw, 30px); border: 1px solid rgba(160, 138, 94, 0.4); display: inline-block; cursor: pointer; color: #8a7458; transition: background 0.3s ease;">from the beginning</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chapter card -->
+  <div id="chapter-card" style="position: absolute; inset: 0; background: #f5ece0; display: none; z-index: 90; cursor: pointer;">
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px;">
+      <div id="chapter-title" style="font-family: 'Musivum', 'Cormorant Garamond', Georgia, serif; font-size: 58px; letter-spacing: 0.14em; text-transform: uppercase; color: #6d5f4a; margin-bottom: 28px; text-align: center;"></div>
+      <div id="chapter-subtitle" style="font-size: 29px; line-height: 1.7; color: #3d3225; text-align: center; max-width: 620px; font-style: italic;"></div>
+      <div id="chapter-tap-hint" style="margin-top: 44px; opacity: 0; transition: opacity 0.7s ease;">
+        <div id="chapter-continue" style="font-size: 15px; letter-spacing: 0.18em; text-transform: uppercase; color: #6d5f4a; border: 1.5px solid rgba(109, 95, 74, 0.45); border-radius: 4px; padding: 12px 24px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; background: rgba(109, 95, 74, 0.06);">Continue <span style="font-size: 14px;">&#8250;</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Title screen -->
+  <div id="title-screen" style="position: absolute; inset: 0; z-index: 110; background-image: url('assets/scenes/28-title.jpg'); background-size: cover; background-position: center;">
+    <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(24, 19, 13, 0.86), rgba(25, 20, 14, 0.44) 42%, rgba(26, 22, 17, 0.22));">
+    </div>
+    <!-- Sun through cloud: three slow crepuscular rays, raked from upper left.
+         Sits UNDER the vignette so the corners stay heavy. -->
+    <div style="position: absolute; inset: -20% -10%; pointer-events: none; overflow: hidden; mix-blend-mode: screen;">
+      <div style="position: absolute; top: -30%; left: 6%; width: 15%; height: 170%; transform: rotate(17deg); transform-origin: 50% 0; background: linear-gradient(to bottom, rgba(255,238,198,0.16), rgba(255,232,180,0.06) 45%, rgba(255,228,170,0) 85%); filter: blur(16px); animation: titleRay 19s ease-in-out infinite;"></div>
+      <div style="position: absolute; top: -30%; left: 27%; width: 9%; height: 165%; transform: rotate(14deg); transform-origin: 50% 0; background: linear-gradient(to bottom, rgba(255,244,214,0.12), rgba(255,236,190,0.04) 50%, rgba(255,232,180,0) 88%); filter: blur(12px); animation: titleRay 26s ease-in-out infinite; animation-delay: -7s;"></div>
+      <div style="position: absolute; top: -30%; left: 46%; width: 20%; height: 175%; transform: rotate(20deg); transform-origin: 50% 0; background: linear-gradient(to bottom, rgba(255,240,205,0.08), rgba(255,230,175,0.03) 55%, rgba(255,228,170,0) 90%); filter: blur(22px); animation: titleRay 33s ease-in-out infinite; animation-delay: -15s;"></div>
+    </div>
+    <!-- Heavy corner vignette -->
+    <div style="position: absolute; inset: 0; pointer-events: none; background:
+      radial-gradient(ellipse 75% 65% at center, transparent 42%, rgba(18, 15, 11, 0.25) 82%, rgba(14, 11, 8, 0.41) 100%),
+      radial-gradient(circle at 0% 0%, rgba(12, 10, 7, 0.42), transparent 34%),
+      radial-gradient(circle at 100% 0%, rgba(12, 10, 7, 0.42), transparent 34%),
+      radial-gradient(circle at 0% 100%, rgba(12, 10, 7, 0.45), transparent 38%),
+      radial-gradient(circle at 100% 100%, rgba(12, 10, 7, 0.45), transparent 38%);">
+    </div>
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <!-- Gold tessera gradient across the mosaic face, lit from upper left the
+           way the real thing is; the white glow behind lifts it off the sea. -->
+      <div style="font-family: 'Musivum', 'Cormorant Garamond', Georgia, serif; font-size: 112px; letter-spacing: 0.08em; text-transform: uppercase; background: linear-gradient(168deg, #fffaf0 4%, #f7dfa4 26%, #e0b45f 52%, #c98f37 74%, #f2d391 96%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: #e8c574; filter: drop-shadow(0 2px 3px rgba(38,26,10,0.55)) drop-shadow(0 0 34px rgba(255,224,160,0.28)); animation: titleSheen 14s ease-in-out infinite;">ADRIATICA II</div>
+      <div style="font-size: 26px; letter-spacing: 0.4em; text-transform: uppercase; color: #f6efe2; margin-top: 20px; font-weight: 700; text-shadow: 0 1px 12px rgba(20,14,6,0.85);">Mira Novak and the Four Voices</div>
+      <div id="title-buttons" style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 48px;">
+      </div>
+    </div>
+    <!-- Dev link -->
+    <div id="dev-link" style="position: absolute; bottom: 12px; left: 12px; font-size: 12px; color: rgba(255, 255, 255, 0.55); cursor: pointer; letter-spacing: 0.08em; font-family: monospace; text-shadow: 0 1px 4px rgba(0,0,0,0.7);">DEV</div>
+  </div>
+
+  <!-- Turn-the-tablet notice. The paintings are 16:9 and the reading panel,
+       verb bar and travel arrows all need the width; portrait crops the art to
+       a letterbox and stacks the UI on top of itself. -->
+  <div id="portrait-hint" style="position: absolute; inset: 0; z-index: 130; display: none; align-items: center; justify-content: center; background: #1a1611; padding: 12% 10%; box-sizing: border-box; text-align: center;">
+    <div>
+      <div style="font-size: 46px; line-height: 1; color: rgba(226, 198, 138, 0.9);">⟳</div>
+      <div style="margin-top: 22px; font-size: 21px; line-height: 1.6; color: #e8dfd2; font-style: italic;">Turn the tablet sideways.
+<br>The coast is wider than it is tall.</div>
+      <div style="margin-top: 26px; font-size: 15px; line-height: 1.7; color: rgba(232, 223, 210, 0.5);">Adriatica is made for an iPad or a desktop screen.<br>Her hearing does not fit on a phone.</div>
+    </div>
+  </div>
+
+  <!-- Dev panel -->
+  <div id="dev-panel" style="position: absolute; inset: 0; z-index: 120; background: rgba(26, 22, 17, 0.95); display: none; overflow-y: auto; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);">
+    <div style="max-width: 600px; margin: 0 auto; padding: 40px 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
+        <div style="font-size: 16px; letter-spacing: 0.2em; text-transform: uppercase; color: #dabe82;">Scene Spawner</div>
+        <div id="dev-close" style="cursor: pointer; color: #dabe82; font-size: 20px; padding: 8px; opacity: 0.7;">✕</div>
+      </div>
+      <div id="dev-scenes" style="display: flex; flex-direction: column; gap: 6px;"></div>
+      <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(218, 190, 130, 0.15);">
+        <div id="dev-reset" style="padding: 12px 24px; background: rgba(180, 60, 60, 0.3); border: 1px solid rgba(180, 60, 60, 0.5); border-radius: 6px; color: #e8a0a0; font-size: 14px; cursor: pointer; text-align: center; letter-spacing: 0.1em; text-transform: uppercase;">Reset All Progress</div>
+      </div>
+      <div style="margin-top: 16px;">
+        <div id="dev-flags" style="font-size: 12px; color: rgba(218, 190, 130, 0.4); font-family: monospace; line-height: 1.6;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  state = {
+    started: false,
+    currentScene: null,
+    textVisible: false,
+    textContent: '',
+    entryVisible: false,
+    selectedVerb: null,
+    selectedTarget: null,
+    notebookOpen: false,
+    visionActive: false,
+    chapterCard: null,
+    lastChapter: -1,
+  };
+
+  engine = null;
+  audio = null;
+  entryTimer = null;
+  verbBarTimer = null;
+
+  // Idle clock. The passive 30s timer that fired WAIT on its own is gone —
+  // nothing advances unless she chooses it — so all that remains is the delay
+  // before the game points at the verb she hasn't tried.
+  stillnessTimer = null;
+  idleNudge1 = null;
+  idleNudge2 = null;
+  // No longer a dwell. Listening is decided by her noise floor, not by time.
+  settling = false;
+  fruitless = 0;              // clicks in this scene that changed nothing
+  coachTimer = null;          // deferred coaching line, waiting for a clear screen
+
+  componentDidMount() {
+    this.engine = new GameEngine();
+    this.audio = new AudioEngine();
+    // Earning a flag can open an exit or reveal a hotspot in the room she is
+    // standing in. Those were only evaluated on scene render, so the way on
+    // appeared solely after leaving and coming back — the player was left on
+    // the beach with the hand found and nothing visibly changed. Refresh at
+    // the source so EVERY grant (verb ladder, stillness, reader, vision) does
+    // it, coalesced to one rebuild per frame.
+    const setFlag = this.engine.setFlag.bind(this.engine);
+    this.engine.setFlag = (flag) => {
+      const had = this.engine.hasFlag(flag);
+      const res = setFlag(flag);
+      if (!had) this.refreshOpenings();
+      return res;
+    };
+
+    // Notebook notification — registered ONCE
+    this.engine.on('notebookEntry', () => {
+      const btn = document.getElementById('notebook-btn');
+      if (btn) {
+        btn.style.opacity = '1';
+        btn.style.animation = 'notebookBounce 0.4s ease';
+        setTimeout(() => { btn.style.animation = ''; }, 500);
+      }
+    });
+
+    this._onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (document.getElementById('dev-panel')?.style.display === 'block') this.closeDevPanel();
+      else if (this.state.notebookOpen) this.toggleNotebook();
+      // Escape advances exactly like a tap or the button: one step, guarded.
+      else this.advanceAnyProse();
+    };
+    document.addEventListener('keydown', this._onKey);
+
+    // Wire up UI
+    document.getElementById('notebook-btn')?.addEventListener('click', () => { this.resetStillness(); this.toggleNotebook(); });
+    document.getElementById('notebook-close')?.addEventListener('click', () => this.toggleNotebook());
+    document.getElementById('nb-save')?.addEventListener('click', () => this.saveFromNotebook(false));
+    document.getElementById('nb-quit')?.addEventListener('click', () => this.saveFromNotebook(true));
+    ['nb-save', 'nb-quit'].forEach(id => {
+      const b = document.getElementById(id);
+      if (!b) return;
+      b.addEventListener('mouseenter', () => { b.style.background = 'rgba(212, 197, 169, 0.14)'; b.style.borderColor = 'rgba(226, 198, 138, 0.85)'; });
+      b.addEventListener('mouseleave', () => { b.style.background = 'transparent'; b.style.borderColor = id === 'nb-save' ? 'rgba(212, 197, 169, 0.55)' : 'rgba(212, 197, 169, 0.3)'; });
+    });
+    document.getElementById('game-root')?.addEventListener('click', (e) => this.handleBackgroundClick(e));
+    // The arrival line is meant to stay "until first interaction", but hotspots,
+    // arrows and verbs all stopPropagation, so tapping an object left it up.
+    // Capture phase sees every tap before those handlers can swallow it.
+    document.getElementById('dev-link')?.addEventListener('click', (e) => { e.stopPropagation(); this.openDevPanel(); });
+    document.getElementById('dev-close')?.addEventListener('click', () => this.closeDevPanel());
+    document.getElementById('dev-reset')?.addEventListener('click', () => this.devReset());
+
+    // The title screen is the one thing that must exist no matter what else
+    // here does. A throw in any one boot step used to silently skip everything
+    // scheduled after it in the same block, including this — leaving the title
+    // with no buttons and nothing in the console pointing at why. It goes
+    // first now, and every other step is isolated.
+    this.buildTitleButtons();
+    [
+      ['applyInlineAssets', () => this.applyInlineAssets()],
+      ['syncNotebookVisibility', () => this.syncNotebookVisibility()],
+      ['wireContinueButton', () => this.wireContinueButton()],
+      ['wirePlateButton', () => this.wirePlateButton()],
+      ['wireEntryButton', () => this.wireEntryButton()],
+      ['wireSettleButtons', () => this.wireSettleButtons()],
+      ['wireCeremonialDismiss', () => this.wireCeremonialDismiss()],
+    ].forEach(([name, fn]) => {
+      try { fn(); } catch (e) { console.error('boot step failed: ' + name, e); }
+    });
+
+
+    // First gesture anywhere unlocks audio; if we're still on the title when
+    // it lands, the theme comes up under it.
+    const wake = () => {
+      this.unmuteIOS();
+      // Safari re-suspends the context on tab switches and audio interruptions,
+      // which is why gameplay could go completely silent mid-session. Resume on
+      // every gesture, not just the first one.
+      try {
+        const ctx = this.audio && this.audio.ctx;
+        if (ctx && ctx.state === 'suspended') ctx.resume();
+      } catch (e) {}
+      if (!this.state.started) this.startTitleTheme();
+    };
+    document.addEventListener('pointerdown', wake, { capture: true });
+    document.addEventListener('keydown', wake, { capture: true });
+    this._wakeAudio = wake;
+
+    this._plateToken = 0;
+    this.preloadPlates();
+
+    this.syncViewport();
+    this.syncTextMetrics();
+    this._onWinResize = () => { this.syncViewport(); this.syncTextMetrics(); this.reflow(); };
+    window.addEventListener('resize', this._onWinResize);
+    window.addEventListener('orientationchange', this._onWinResize);
+    // iPad Safari/Edge resize the VISUAL viewport without firing window resize
+    // when the toolbar slides — the game would keep painting under it.
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', this._onWinResize);
+      window.visualViewport.addEventListener('scroll', this._onWinResize);
+    }
+  }
+
+  // The frame is whatever is actually visible. `position: fixed; inset: 0`
+  // resolves against the layout viewport on iOS, which is taller than the
+  // window whenever the browser chrome is showing — so the verb bar and the
+  // down arrow sat underneath Edge's toolbar, unreachable.
+  syncViewport() {
+    const root = document.getElementById('game-root');
+    if (!root) return;
+    const vv = window.visualViewport;
+    const h = Math.round(vv ? vv.height : window.innerHeight);
+    const w = Math.round(vv ? vv.width : window.innerWidth);
+    root.style.height = h + 'px';
+    root.style.width = w + 'px';
+    const hint = document.getElementById('portrait-hint');
+    // Portrait, or a frame too small to lay the game out at all (phones in
+    // landscape land here). Same notice either way: this wants a bigger screen.
+    if (hint) hint.style.display = (h > w * 1.08 || w < 700 || h < 440) ? 'flex' : 'none';
+  }
+
+  // iOS routes a bare AudioContext through the ringer channel, so a tablet on
+  // silent plays a game with no voices in it — and the voices are the game.
+  // A looping silent element moves the whole page onto the media channel.
+  unmuteIOS() {
+    if (this._unmuted) return;
+    this._unmuted = true;
+    try {
+      const el = document.createElement('audio');
+      el.setAttribute('playsinline', '');
+      el.loop = true;
+      el.preload = 'auto';
+      // 0.05s of silence, 8-bit mono WAV.
+      el.src = 'data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAgD4AAIA+AAABAAgAZGF0YRAAAICAgICAgICAgICAgICAgIA=';
+      el.volume = 0.001;
+      const p = el.play();
+      if (p && p.catch) p.catch(() => {});
+      this._silentEl = el;
+    } catch (e) {}
+  }
+
+  preloadPlates() {
+    if (window.__ASSETS) return;
+    if (typeof PLATES === 'undefined') return;
+    const order = ['hand', 'cup', 'plectrum', 'pebble', 'key', 'drawer', 'page'];
+    const queue = order.filter((id) => PLATES[id]).map((id) => PLATES[id].art);
+    this._preloaded = [];
+    const next = () => {
+      if (!queue.length) return;
+      const im = new Image();
+      im.decoding = 'async';
+      if ('fetchPriority' in im) im.fetchPriority = 'low';
+      im.onload = im.onerror = () => setTimeout(next, 350);
+      im.src = this.plateArt(queue.shift());
+      this._preloaded.push(im);
+    };
+    setTimeout(next, 2500);
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.stillnessTimer);
+    clearTimeout(this.idleNudge1);
+    clearTimeout(this.idleNudge2);
+    clearTimeout(this.teachTimer);
+    clearTimeout(this.coachTimer);
+    clearTimeout(this.entryTimer);
+    document.removeEventListener('keydown', this._onKey);
+    if (this._onWinResize) {
+      window.removeEventListener('resize', this._onWinResize);
+      window.removeEventListener('orientationchange', this._onWinResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', this._onWinResize);
+        window.visualViewport.removeEventListener('scroll', this._onWinResize);
+      }
+    }
+    try { this._silentEl?.pause(); } catch (e) {}
+    try { this.audio?.stopAllVoices(0.2); this.audio?.stopAllAmbient(0.2); } catch(e) {}
+  }
+
+  buildTitleButtons() {
+    const container = document.getElementById('title-buttons');
+    if (!container) return;
+    container.innerHTML = '';
+    const hasSave = this.engine.state.currentScene && this.engine.state.currentScene !== 'title';
+    const btnStyle = (primary) => `padding: 12px 38px; min-width: 170px; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 18px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; border-radius: 6px; cursor: pointer; text-align: center; transition: all 0.2s ease; border: 3px solid ${primary ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.65)'}; background: ${primary ? 'rgba(255, 255, 255, 0.12)' : 'transparent'}; color: #ffffff; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);`;
+
+    if (hasSave) {
+      const continueBtn = document.createElement('div');
+      continueBtn.style.cssText = btnStyle(true);
+      continueBtn.textContent = 'Continue';
+      continueBtn.addEventListener('mouseenter', () => { continueBtn.style.background = 'rgba(255, 255, 255, 0.22)'; });
+      continueBtn.addEventListener('mouseleave', () => { continueBtn.style.background = 'rgba(255, 255, 255, 0.12)'; });
+      continueBtn.addEventListener('click', (e) => { e.stopPropagation(); this.startGame(true); });
+      container.appendChild(continueBtn);
+    }
+
+    const newBtn = document.createElement('div');
+    newBtn.style.cssText = btnStyle(false);
+    newBtn.textContent = hasSave ? 'New Game' : 'Begin';
+    newBtn.addEventListener('mouseenter', () => { newBtn.style.background = 'rgba(255, 255, 255, 0.12)'; });
+    newBtn.addEventListener('mouseleave', () => { newBtn.style.background = 'transparent'; });
+    newBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // window.confirm() is SUPPRESSED in a sandboxed frame — it returns false
+      // without showing anything, so this button silently did nothing and the
+      // game could not be entered at all. A browser modal has no business in
+      // this game regardless. Two taps, and the second one is the confirmation.
+      if (!hasSave) { this.startGame(false); return; }
+      if (newBtn._armed) {
+        clearTimeout(newBtn._armTimer);
+        this.engine.resetGame();
+        this.startGame(false);
+        return;
+      }
+      newBtn._armed = true;
+      newBtn.textContent = 'Start over? Tap again';
+      newBtn.style.borderColor = 'rgba(255, 224, 178, 0.95)';
+      newBtn.style.color = '#ffe9c9';
+      clearTimeout(newBtn._armTimer);
+      newBtn._armTimer = setTimeout(() => {
+        newBtn._armed = false;
+        newBtn.textContent = 'New Game';
+        newBtn.style.borderColor = 'rgba(255, 255, 255, 0.65)';
+        newBtn.style.color = '#ffffff';
+      }, 4000);
+    });
+    container.appendChild(newBtn);
+  }
+
+  // --- Dev panel ---
+  openDevPanel() {
+    const panel = document.getElementById('dev-panel');
+    if (!panel) return;
+    panel.style.display = 'block';
+    const container = document.getElementById('dev-scenes');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.entries(CHAPTER_CARDS).forEach(([ch, card]) => {
+      const header = document.createElement('div');
+      header.style.cssText = 'font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(218, 190, 130, 0.5); margin-top: 16px; margin-bottom: 6px;';
+      header.textContent = `Ch ${ch}: ${card.title}`;
+      container.appendChild(header);
+      (CHAPTER_SCENES[ch] || []).forEach(sceneId => {
+        const scene = SCENES[sceneId];
+        if (!scene) return;
+        const btn = document.createElement('div');
+        const visited = this.engine.visitCount(sceneId);
+        btn.style.cssText = `padding: 10px 16px; background: rgba(218, 190, 130, 0.06); border: 1px solid rgba(218, 190, 130, 0.12); border-radius: 4px; color: #d4c5a9; font-size: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s;`;
+        btn.innerHTML = `<span>${scene.name}</span><span style="font-size: 11px; opacity: 0.4; font-family: monospace;">${sceneId}${visited ? ' ✓' + visited : ''}</span>`;
+        btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(218, 190, 130, 0.12)'; });
+        btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(218, 190, 130, 0.06)'; });
+        btn.addEventListener('click', () => { this.devSpawn(sceneId); });
+        container.appendChild(btn);
+      });
+    });
+    // Set-piece triggers — these are otherwise three chapters deep.
+    const setHeader = document.createElement('div');
+    setHeader.style.cssText = 'font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(218, 190, 130, 0.5); margin-top: 22px; margin-bottom: 6px;';
+    setHeader.textContent = 'Set pieces';
+    container.appendChild(setHeader);
+    const pieces = [
+      ['P13 · the notebook', () => { this.closeDevPanel(); this.enterGameView(); setTimeout(() => this.openReader('notebook'), 600); }],
+      ['P14 · the silence', () => {
+        this.closeDevPanel();
+        this.enterGameView();
+        const seq = SCENES['clock-room'].onExit;
+        setTimeout(() => this.runBeats(seq.beats, () => {}), 600);
+      }],
+      ['Ending · Doma', () => { this.closeDevPanel(); this.enterGameView(); setTimeout(() => this.showEnding(ENDINGS['doma']), 600); }],
+      [(this.engine.hasFlag('performanceMode') ? '✓ ' : '') + 'performanceMode', () => {
+        const on = this.engine.hasFlag('performanceMode');
+        this.engine.setFlag('performanceMode', !on);
+        this.openDevPanel();
+      }],
+    ];
+    pieces.forEach(([label, fn]) => {
+      const btn = document.createElement('div');
+      btn.style.cssText = 'padding: 10px 16px; background: rgba(218, 190, 130, 0.06); border: 1px solid rgba(218, 190, 130, 0.12); border-radius: 4px; color: #d4c5a9; font-size: 15px; cursor: pointer; transition: background 0.15s;';
+      btn.textContent = label;
+      btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(218, 190, 130, 0.12)'; });
+      btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(218, 190, 130, 0.06)'; });
+      btn.addEventListener('click', fn);
+      container.appendChild(btn);
+    });
+
+    // Plate check — every frame, so missing art is obvious at a glance.
+    const plateHeader = document.createElement('div');
+    plateHeader.style.cssText = 'font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(218, 190, 130, 0.5); margin-top: 22px; margin-bottom: 6px;';
+    plateHeader.textContent = 'Plates';
+    container.appendChild(plateHeader);
+    const plateRow = document.createElement('div');
+    plateRow.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px;';
+    Object.keys(PLATES).forEach(id => {
+      const chip = document.createElement('div');
+      chip.style.cssText = 'padding: 7px 13px; background: rgba(218, 190, 130, 0.06); border: 1px solid rgba(218, 190, 130, 0.12); border-radius: 4px; color: #d4c5a9; font-size: 13px; font-family: monospace; cursor: pointer;';
+      chip.textContent = id;
+      chip.addEventListener('click', () => { this.closeDevPanel(); this.enterGameView(); setTimeout(() => this.showPlate(id), 500); });
+      plateRow.appendChild(chip);
+    });
+    container.appendChild(plateRow);
+
+    // Show current flags
+    const flagsEl = document.getElementById('dev-flags');
+    if (flagsEl) {
+      const flags = Object.entries(this.engine.state.flags).filter(([,v]) => v).map(([k]) => k);
+      flagsEl.textContent = flags.length ? 'Flags: ' + flags.join(', ') : 'No flags set';
+    }
+  }
+
+  closeDevPanel() {
+    const panel = document.getElementById('dev-panel');
+    if (panel) panel.style.display = 'none';
+  }
+
+  // Seed a chapter's history so the gates and WAITs behave as they would
+  // for a player who got there honestly.
+  devSeed(sceneId) {
+    const chapter = SCENES[sceneId]?.chapter;
+    const prereq = (typeof DEV_PREREQS !== 'undefined') ? DEV_PREREQS[chapter] : null;
+    if (!prereq) return;
+    prereq.flags.forEach(f => this.engine.setFlag(f));
+    prereq.items.forEach(i => this.engine.addItem(i));
+    this.setState({ lastChapter: chapter });
+    // The card guard is a per-chapter save flag now; mark every chapter up to
+    // and including this one as already announced, or a dev jump opens on a
+    // title card for a chapter it just skipped past.
+    for (let c = 0; c <= chapter; c++) this.engine.setFlag('sawCard' + c);
+    this.state.lastChapter = chapter;
+  }
+
+  // Drop the title screen and enter the game view. Anything the dev panel
+  // opens must go through this, or it renders under the title (z-index 110).
+  enterGameView() {
+    const titleEl = document.getElementById('title-screen');
+    if (titleEl && titleEl.style.display !== 'none') {
+      titleEl.style.display = 'none';
+    }
+    // Closing the book to the title hides the game view outright, so every
+    // route back in has to put it back — opacity alone leaves a blank screen.
+    const gameEl = document.getElementById('game-root');
+    if (gameEl && gameEl.style.display === 'none') gameEl.style.display = '';
+    this.audio.init().then(() => this.audio.resume());
+    if (!this.state.started) this.setState({ started: true });
+  }
+
+  devSpawn(sceneId) {
+    this.closeDevPanel();
+    this.devSeed(sceneId);
+    this.enterGameView();
+    this.navigateTo(sceneId);
+  }
+
+  devReset() {
+    // Same suppressed-modal trap as the title button had. Dev-only, so a
+    // two-tap arm on the control itself is confirmation enough.
+    const btn = document.getElementById('dev-reset');
+    if (btn && !btn._armed) {
+      btn._armed = true;
+      btn._label = btn._label || btn.textContent;
+      btn.textContent = 'Tap again to wipe';
+      clearTimeout(btn._armTimer);
+      btn._armTimer = setTimeout(() => { btn._armed = false; btn.textContent = btn._label; }, 4000);
+      return;
+    }
+    if (btn) { clearTimeout(btn._armTimer); btn._armed = false; btn.textContent = btn._label || 'Reset'; }
+    {
+      this.engine.resetGame();
+      this.closeDevPanel();
+      const titleEl = document.getElementById('title-screen');
+      if (titleEl) { titleEl.style.display = ''; titleEl.style.opacity = '1'; }
+      this.buildTitleButtons();
+    }
+  }
+
+  // The title screen had no music of its own — the first sound in the game was
+  // whatever bed the opening scene happened to start. Browsers won't let audio
+  // begin without a gesture, so the theme waits for the player's first touch
+  // and then keeps playing under the title until they choose to go in.
+  startTitleTheme() {
+    if (this._titleThemeOn) return;
+    this._titleThemeOn = true;
+    this.audio.init()
+      .then(() => this.audio.resume())
+      .then(() => {
+        if (!this._titleThemeOn || this.state.started) return;
+        this.audio.playAmbient('title', { type: 'theme', volume: 0.09 });
+      })
+      .catch(() => {});
+  }
+
+  stopTitleTheme() {
+    this._titleThemeOn = false;
+    try { this.audio.stopAmbient('title', 2.5); } catch (e) {}
+  }
+
+  startGame(resume = false) {
+    this.stopTitleTheme();
+    this.audio.init().then(() => this.audio.resume());
+    // Closing the book to the title hides the game view outright; every route
+    // back in has to restore it or the player lands on a blank screen.
+    const gameEl = document.getElementById('game-root');
+    if (gameEl && gameEl.style.display === 'none') gameEl.style.display = '';
+    const titleEl = document.getElementById('title-screen');
+    if (titleEl) {
+      titleEl.style.opacity = '0';
+      titleEl.style.transition = 'opacity 1s ease';
+      setTimeout(() => { titleEl.style.display = 'none'; }, 1000);
+    }
+    this.setState({ started: true });
+    if (resume && this.engine.state.currentScene) {
+      this.navigateTo(this.engine.state.currentScene, true);
+      this.recoverInterrupted();
+    } else {
+      this.navigateTo('kasjuni-day');
+    }
+  }
+
+  // A set piece is a long uninterruptible sequence, and the flags that make
+  // it possible are spent before it plays. Quitting mid-sequence used to
+  // strand the player: the drawer is empty, the pebble is handed over, and
+  // the thing they were owed can never fire again. So on resume, re-offer it.
+  recoverInterrupted() {
+    const e = this.engine;
+    // P13 — she found the notebook but never finished reading it.
+    if (e.hasFlag('foundNotebook') && !e.hasFlag('performanceMode')) {
+      setTimeout(() => this.openReader('notebook'), 3200);
+      return;
+    }
+    // The ending — she handed it on and went under, but never surfaced.
+    // Scene-level WAITs are counted under the '_scene' target.
+    const waited = e.getCounter('lake-michigan', 'wait', '_scene');
+    const lake = SCENES['lake-michigan'];
+    if ((e.hasFlag('handingOn') || e.hasFlag('keptIt')) && waited >= (lake.wait.ladder || []).length) {
+      const ending = ENDINGS[this._endingId()];
+      if (ending) setTimeout(() => this.showEnding(ending), 3200);
+    }
+  }
+
+  navigateTo(sceneId, isResume = false) {
+    const sceneDef = SCENES[sceneId];
+    if (!sceneDef) return;
+    // Chapter cards announce a chapter ONCE, the first time she reaches it.
+    // The old test was "this scene's chapter isn't the last one I saw", which
+    // fires again the moment she walks back — stepping from Omiš down to Split
+    // for a portable clue re-titled the game PROLOGUE mid-act. Seen chapters
+    // are remembered in the save, so a reload can't replay them either.
+    if (sceneDef.chapter !== undefined && !isResume &&
+        !this.engine.hasFlag('sawCard' + sceneDef.chapter)) {
+      const card = CHAPTER_CARDS[sceneDef.chapter];
+      this.engine.setFlag('sawCard' + sceneDef.chapter);
+      // Chapter 0 announces itself like every other chapter. Suppressing it
+      // made the game's own typography arrive late, as an intrusion rather
+      // than a system already in place.
+      if (card) {
+        this.showChapterCard(card, () => this.doNavigate(sceneId, sceneDef));
+        this.setState({ lastChapter: sceneDef.chapter });
+        this.state.lastChapter = sceneDef.chapter;
+        return;
+      }
+      this.setState({ lastChapter: sceneDef.chapter });
+      this.state.lastChapter = sceneDef.chapter;
+    } else if (sceneDef.chapter !== undefined) {
+      // Resuming skips the card, but lastChapter has to catch up or the very
+      // next step replays the card for a chapter she is already halfway through.
+      this.engine.setFlag('sawCard' + sceneDef.chapter);
+      this.setState({ lastChapter: sceneDef.chapter });
+      this.state.lastChapter = sceneDef.chapter;
+    }
+    this.doNavigate(sceneId, sceneDef);
+  }
+
+  doNavigate(sceneId, sceneDef) {
+    // Audio transition dip
+    if (this.audio) this.audio.transitionDip(0.5);
+    // Transition: warm white dip
+    const overlay = document.getElementById('transition-overlay');
+    if (overlay) {
+      overlay.style.transition = 'opacity 0.2s ease';
+      overlay.style.opacity = '1';
+    }
+    this.hideText();
+    this.hideEntry();
+    // A new place gets to introduce itself again.
+    this._entryRetiredFor = null;
+    this.resetStillness();
+    setTimeout(() => {
+      const { isFirstVisit } = this.engine.goToScene(sceneId, sceneDef);
+      this.setState({ currentScene: sceneId });
+      this.renderScene(sceneId, sceneDef, isFirstVisit);
+      // Vignette — heavier on scenes with corner numbers
+      const vignette = document.getElementById('vignette');
+      if (vignette) {
+        // Match on the stem, not the filename: the artwork changed extension
+        // when it was compressed for tablets and this list silently stopped
+        // matching anything, so the heavier vignette never applied.
+        const stem = String(sceneDef.art || '').replace(/\.[a-z0-9]+$/i, '');
+        const heavy = ['01-kasjuni-day','02-underwater','03-kitchen','04-museum','05-marjan-path','06-omis-from-above'].includes(stem);
+        vignette.style.background = heavy
+          ? 'radial-gradient(ellipse at center, transparent 40%, rgba(26, 22, 17, 0.7) 100%), linear-gradient(to top, rgba(26, 22, 17, 0.5) 0%, transparent 12%), linear-gradient(to right, rgba(26, 22, 17, 0.4) 0%, transparent 8%), linear-gradient(to left, rgba(26, 22, 17, 0.4) 0%, transparent 8%)'
+          : 'radial-gradient(ellipse at center, transparent 50%, rgba(26, 22, 17, 0.55) 100%)';
+      }
+      // Underwater tint
+      const uwTint = document.getElementById('underwater-tint');
+      if (uwTint) uwTint.style.opacity = sceneDef.isUnderwater ? '1' : '0';
+      // Audio
+      if (sceneDef.isUnderwater) {
+        this.audio.setUnderwater(true, 0.8);
+      } else {
+        this.audio.setUnderwater(false, 0.5);
+      }
+      this.audio.stopAllAmbient(1);
+      if (sceneDef.ambient) {
+        setTimeout(() => this.audio.playAmbient('scene', sceneDef.ambient), 300);
+      }
+      // Fade in. This used to wait another 100ms before even starting, which
+      // stacked on the swap delay and the line's own fade: arriving somewhere
+      // took a second and a half before there was anything to read.
+      setTimeout(() => {
+        if (overlay) {
+          overlay.style.transition = 'opacity 0.34s ease';
+          overlay.style.opacity = '0';
+        }
+      }, 20);
+    }, 170);
+  }
+
+  renderScene(sceneId, sceneDef, isFirstVisit) {
+    const bg = document.getElementById('scene-bg');
+    if (bg) bg.style.backgroundImage = `url('${this.sceneArt(sceneDef.art)}')`;
+    this.hidePlate();
+    // Each scene starts unarmed: nothing is inspectable until she chooses a verb.
+    this.armedVerb = null;
+    // Effort is per-visit: walking out and back in means she has to work here
+    // again before the book will offer her anything.
+    this._sceneActions = 0;
+    this.renderHotspots(sceneId, sceneDef);
+    this.syncNotebookVisibility();
+    this.renderActionBar(sceneId, sceneDef);
+    this.renderNavArrows(sceneId, sceneDef);
+    // Entry text
+    if (sceneDef.onEnter) {
+      const text = isFirstVisit ? sceneDef.onEnter.first : sceneDef.onEnter.return;
+      if (text) this.showEntry(text);
+    }
+    this.fruitless = 0;
+    this.cancelSettling();
+    this.stillnessTimer = setTimeout(() => this.startStillness(), 1200);
+  }
+
+  // --- Close-up plate ---
+  // Nobody is drawn into the scene paintings. When a person hands her
+  // something, we cut to a painted still-life of the transaction instead.
+  showPlate(plateId) {
+    const plate = (typeof PLATES !== 'undefined') ? PLATES[plateId] : null;
+    if (!plate) return;
+    const overlay = document.getElementById('plate-overlay');
+    const img = document.getElementById('plate-img');
+    const frame = document.getElementById('plate-frame');
+    const cap = document.getElementById('plate-caption');
+    if (!overlay || !img) return;
+    if (cap) {
+      cap.textContent = plate.caption || '';
+      cap.style.display = plate.caption ? 'block' : 'none';
+    }
+    const token = ++this._plateToken;
+    const reveal = () => {
+      if (token !== this._plateToken) return;
+      // A plate almost always arrives with its rung of text, and the two were
+      // landing on top of each other — the card half-covered by the sentence
+      // describing it. Cap the frame to the room above the reading panel.
+      this.capPlate();
+      // The panel is still animating on this frame; re-fit as it settles.
+      requestAnimationFrame(() => this.capPlate());
+      clearTimeout(this._plateCapTimer);
+      this._plateCapTimer = setTimeout(() => this.capPlate(), 420);
+      // The proportional fit needs the picture's real aspect. On the first
+      // plate of a session it hasn't decoded yet, so the fit fell back to full
+      // width and never corrected — the one card that most needs to land well.
+      if (img.decode) img.decode().then(() => this.capPlate()).catch(() => {});
+      else if (!img.complete) img.addEventListener('load', () => this.capPlate(), { once: true });
+      // Belt and braces: anything that changes the panel's size while a card is
+      // up (a new passage, paging, a resize) re-fits the card. Kills the whole
+      // class of "measured a moment too early" races rather than one instance.
+      if (!this._plateRO && window.ResizeObserver) {
+        const panelEl = document.getElementById('text-panel');
+        this._plateRO = new ResizeObserver(() => {
+          const ov = document.getElementById('plate-overlay');
+          if (ov && ov.style.opacity === '1') this.capPlate();
+        });
+        if (panelEl) this._plateRO.observe(panelEl);
+      }
+      // capPlate() above does layout reads and writes, and a transition started
+      // in the same frame as those gets stuck mid-flight — the card stayed at
+      // computed 0 while plateHeld swallowed the next tap. Same guard as every
+      // other overlay: apply with the transition off, then re-arm.
+      const plateTrans = getComputedStyle(overlay).transition;
+      overlay.style.transition = 'none';
+      void overlay.offsetHeight;
+      overlay.style.opacity = '1';
+      requestAnimationFrame(() => { overlay.style.transition = plateTrans; });
+      if (frame) frame.style.transform = 'translateY(-4%) scale(1)';
+      clearTimeout(this._plateTimer);
+      // A plate is something she is looking at closely, so it waits for her.
+      // It used to snatch itself away on a seven-second timer, which is both
+      // the one thing this game promises never to do and the reason the card
+      // felt unusable. It is held until tapped; a short grace stops the very
+      // tap that opened it from closing it again.
+      this.plateHeld = false;
+      this._plateTimer = setTimeout(() => {
+        if (token !== this._plateToken) return;
+        this.plateHeld = true;
+        // The card now waits forever, so this cue is the only thing telling
+        // her she can put it down.
+        const pb = document.getElementById('plate-more');
+        this._setCue(pb, '1', 'opacity 0.6s ease');
+      }, 650);
+    };
+    img.onerror = () => {
+      // Art missing — hold the frame at the right shape rather than nothing.
+      img.removeAttribute('src');
+      img.style.aspectRatio = plate.ratio || '4 / 3';
+      reveal();
+    };
+    img.onload = reveal;
+    img.src = this.plateArt(plate.art);
+    if (img.complete && img.naturalWidth > 0) reveal();
+  }
+
+  // Fit the card into the room actually left over: below a top exit, above the
+  // reading panel, above the verb bar. Cheap enough to re-run whenever any of
+  // those move, which matters because a plate and its rung of text arrive
+  // together — measured mid-animation the panel is still short, and the cap
+  // comes out too generous right before the panel grows up into the card.
+  capPlate() {
+    const overlay = document.getElementById('plate-overlay');
+    const frame = document.getElementById('plate-frame');
+    const host = document.getElementById('game-root');
+    if (!overlay || !frame || !host) return;
+    const hr = host.getBoundingClientRect();
+    const hostH = hr.height;
+    let ceil = hostH * 0.025;
+    let floor = hostH * 0.9;
+    document.querySelectorAll('#nav-arrows > div').forEach(a => {
+      const r = a.getBoundingClientRect();
+      const cx = (r.left + r.right) / 2 - hr.left;
+      if (Math.abs(cx - hr.width / 2) > hr.width * 0.25) return; // side arrow
+      if (r.top - hr.top < hostH * 0.4) ceil = Math.max(ceil, r.bottom - hr.top + 14);
+      else floor = Math.min(floor, r.top - hr.top - 14);
+    });
+    // Ask whether the panel HAS a passage, not whether it is currently opaque:
+    // opacity is mid-transition for the first frames after showText, so an
+    // opacity test says "invisible" exactly when a plate is arriving with it.
+    const panel = document.getElementById('text-panel');
+    const content = document.getElementById('text-content');
+    if (panel && content && content.textContent.trim()) {
+      const pr = panel.getBoundingClientRect();
+      // scrollHeight, not the rect: mid-transition the rect is still short.
+      const settledTop = pr.bottom - Math.max(pr.height, panel.scrollHeight);
+      if (pr.height > 0) floor = Math.min(floor, settledTop - hr.top - 14);
+    }
+    const bar = document.getElementById('action-bar');
+    if (bar) floor = Math.min(floor, bar.getBoundingClientRect().top - hr.top - 12);
+    // The card's band is reserved FIRST and the passage gets what's left. It
+    // used to be the other way round: the panel is centred and sized purely by
+    // its own text, so a passage that fit on one tall page grew upward into the
+    // card until the clamp bottomed out and buried it. Nothing downstream could
+    // recover that, because there was no room left to find.
+    const barTop = bar ? bar.getBoundingClientRect().top - hr.top : hostH;
+    const cardBand = Math.min(Math.round(hostH * 0.42), Math.round(floor - ceil));
+    const band = Math.max(120, cardBand);
+    overlay.style.paddingTop = Math.round(ceil) + 'px';
+    frame.style.maxHeight = band + 'px';
+    // Bottom-anchor the passage below the reserved band so the two can never
+    // compete for the same pixels.
+    if (panel && content && content.textContent.trim()) {
+      const bottomGap = Math.round(hostH - barTop + 12);
+      panel.style.top = 'auto';
+      panel.style.bottom = bottomGap + 'px';
+      panel.style.maxHeight = Math.max(90, Math.round(hostH - (ceil + band + 16) - bottomGap)) + 'px';
+      this.repaginate();
+    }
+    // In a tight scene (top exit AND a long passage) capping height alone just
+    // bottoms out and the card still collides. Shrink the card's WIDTH to the
+    // height it's allowed, so it stays whole and in proportion rather than
+    // cropped — a plate is a picture she is studying, not a banner.
+    const img = document.getElementById('plate-img');
+    const maxW = Math.min(620, hr.width * 0.46);
+    if (img && img.naturalWidth) {
+      const aspect = img.naturalWidth / img.naturalHeight;
+      const cs = getComputedStyle(frame);
+      const padV = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      const padH = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      // Everything in the card that isn't the picture.
+      const chrome = padV + [...frame.children]
+        .filter(c => c.id !== 'plate-img')
+        .reduce((a, c) => a + c.getBoundingClientRect().height +
+          parseFloat(getComputedStyle(c).marginTop || 0), 0);
+      const imgH = band - chrome;
+      const w = Math.max(200, Math.min(maxW, imgH * aspect + padH));
+      frame.style.width = Math.round(w) + 'px';
+    } else {
+      frame.style.width = Math.round(maxW) + 'px';
+    }
+  }
+
+  // Re-flow the current passage into whatever height it now has, keeping the
+  // reader on the page they were on. Guarded: renderTextPage can ask the card
+  // to re-fit, which would otherwise bounce back here.
+  repaginate() {
+    if (this._repaginating || !this._fullText) return;
+    this._repaginating = true;
+    const was = this._pageAt || 0;
+    this._pages = this.paginate(this._fullText);
+    this._pageAt = Math.min(was, this._pages.length - 1);
+    this.renderTextPage();
+    this._repaginating = false;
+  }
+
+  // Hand the passage back the full corridor the scene reserved for it.
+  releaseTextBand() {
+    const panel = document.getElementById('text-panel');
+    if (!panel) return;
+    panel.style.top = '';
+    panel.style.bottom = '';
+    panel.style.maxHeight = '';
+    const def = SCENES[this.state.currentScene];
+    if (def) this.renderNavArrows(this.state.currentScene, def);
+    this.repaginate();
+  }
+
+  nudgePlate() {
+    const btn = document.getElementById('plate-more');
+    if (!btn) return;
+    btn.style.transform = 'scale(1.09)';
+    btn.style.background = 'rgba(122, 102, 72, 0.20)';
+    clearTimeout(this._plateNudge);
+    this._plateNudge = setTimeout(() => {
+      btn.style.transform = 'scale(1)';
+      btn.style.background = 'rgba(122, 102, 72, 0.06)';
+    }, 260);
+  }
+
+  wirePlateButton() {
+    const btn = document.getElementById('plate-more');
+    if (!btn || btn._wired) return;
+    btn._wired = true;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.audio) { try { this.audio.playClick('page'); } catch (e2) {} }
+      this.hidePlate();
+    });
+  }
+
+  hidePlate() {
+    this._plateToken = (this._plateToken || 0) + 1;
+    clearTimeout(this._plateTimer);
+    this.plateHeld = false;
+    const overlay = document.getElementById('plate-overlay');
+    const frame = document.getElementById('plate-frame');
+    const cue = document.getElementById('plate-more');
+    if (cue) { cue.style.transition = 'none'; cue.style.opacity = '0'; }
+    this.releaseTextBand();
+    if (overlay) overlay.style.opacity = '0';
+    if (frame) frame.style.transform = 'translateY(-4%) scale(0.97)';
+  }
+
+  // The place to be still, drawn as a real hotspot with its own cursor and
+  // label. Nine scenes previously had nothing clickable at all.
+  // True when every verb this object still offers has been used up, so the
+  // only thing left to do with it is stay. Gated verbs that can't fire yet
+  // don't count, or the object would never become settle-ready.
+  settleReady(sceneId, hotspot) {
+    const verbs = hotspot.verbs || {};
+    return ['look', 'talk', 'give'].every(v => {
+      const def = verbs[v];
+      if (!def) return true;
+      if (def.gate && !this.engine.hasFlag(def.gate)) return true;
+      if (def.requires && !this.engine.hasItem(def.requires)) return true;
+      const count = this.engine.getCounter(sceneId, v, hotspot.id);
+      const len = def.ladder ? def.ladder.length : 1;
+      return count >= len;
+    });
+  }
+
+  renderStillPlace(sceneId, sceneDef, layer) {
+    const place = sceneDef.wait?.place;
+    if (!place) return;
+    // Folded into an existing object's verb cycle — no rectangle of its own.
+    if (place.settleWith) return;
+    // A place in the picture, revealed the same way every other target is:
+    // by arming the verb it answers to. It used to announce itself with a
+    // standing text label ("The bench") and a tinted rectangle on hover — two
+    // affordance languages in one game, and a label that named furniture the
+    // painting doesn't always contain.
+    const el = document.createElement('div');
+    el.dataset.stillPlace = '1';
+    el.style.cssText = `position: absolute; left: ${place.x}%; top: ${place.y}%; width: ${place.w}%; height: ${place.h}%; pointer-events: auto; cursor: pointer;`;
+    const glow = document.createElement('div');
+    glow.style.cssText = 'position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.32s ease; background: radial-gradient(closest-side circle at 50% 50%, rgba(255,252,240,0.95), rgba(255,248,224,0.7) 30%, rgba(255,240,200,0.36) 55%, rgba(252,230,175,0.1) 78%, rgba(250,226,170,0) 100%);';
+    el.appendChild(glow);
+    el._glow = glow;
+    el._answers = (v) => v === 'wait';
+    el.addEventListener('mouseenter', () => {
+      if (!el._answers(this.armedVerb)) { el.style.cursor = 'default'; return; }
+      glow.style.opacity = '1';
+      el.style.cursor = `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><circle cx='20' cy='20' r='15' fill='none' stroke='%231a1611' stroke-width='3' opacity='0.85'/><circle cx='20' cy='20' r='15' fill='none' stroke='%23dabe82' stroke-width='1.5' opacity='0.75'/></svg>") 20 20, pointer`;
+    });
+    el.addEventListener('mouseleave', () => {
+      glow.style.opacity = el._answers(this.armedVerb) ? '0.82' : '0';
+      el.style.cursor = 'pointer';
+    });
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.consumedByPlate()) return;
+      if (this.clearTextForAction()) return;
+      if (this.settling) return;
+      if (!this._answers_wait()) {
+        // A place is only ever a place to LISTEN from. Aiming any other verb at
+        // it used to pulse the LOOK chip and say nothing — and pulsing LOOK
+        // while LOOK is already armed reads as the game ignoring the tap.
+        if (!this.armedVerb) { this.hintArm(); return; }
+        // Authored per verb. This was built by concatenating the verb name,
+        // which only parsed for GIVE — "Nothing there to look." fires on any
+        // mis-aimed tap at the listening spot, in all 23 scenes, making it one
+        // of the most-read strings in the game.
+        const wrong = {
+          look: "There is nothing there to look at. It is a spot on the ground. She is aware of how this sounds.",
+          talk: "She is not going to talk to a patch of ground. There are limits, and that is one of the few she has left.",
+          give: "Nothing to hand it to. The ground is not owed anything.",
+        };
+        this.showText(wrong[this.armedVerb] || "It is just a place. Places are for stopping in.");
+        return;
+      }
+      this.startSettling(sceneId, sceneDef);
+    });
+    layer.appendChild(el);
+  }
+
+  renderHotspots(sceneId, sceneDef) {
+    const layer = document.getElementById('hotspot-layer');
+    if (!layer) return;
+    layer.innerHTML = '';
+    // The place is exempt from noHotspots: that flag suppresses OBJECTS, and
+    // a scene with no objects is exactly where stillness must stay clickable.
+    this.renderStillPlace(sceneId, sceneDef, layer);
+    if (sceneDef.noHotspots) return;
+    (sceneDef.hotspots || []).forEach(hs => {
+      // Check show/hide conditions
+      if (hs.hideWhen && this.engine.hasFlag(hs.hideWhen)) return;
+      if (hs.showWhen && !this.engine.hasFlag(hs.showWhen)) return;
+      const el = document.createElement('div');
+      el.style.cssText = `position: absolute; left: ${hs.x}%; top: ${hs.y}%; width: ${hs.w}%; height: ${hs.h}%; pointer-events: auto; cursor: pointer;`;
+      el.dataset.hotspotId = hs.id;
+      // The glow is its own layer, inset past the hit box so the light falls
+      // off inside the tap target and never shows a rectangle edge. A box
+      // outline read as UI chrome painted on the gouache; light reads as light.
+      const glow = document.createElement('div');
+      // No blend mode or blur: soft-light over sunlit gouache cancelled out,
+      // and both are unreliable on iPad. The gradient's own falloff is the
+      // soft edge, so what you see is brightness with no rectangle anywhere.
+      // On an iPad outdoors or under anti-glare glass the old center (0.58
+      // alpha at half opacity — net ~0.29) read as barely-there; a player who
+      // hadn't memorized the scene could not find it. Center is now near-white
+      // and near-opaque, falling off hard within the first third so it still
+      // reads as a highlight, not a lit rectangle.
+      glow.style.cssText = 'position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0; transition: opacity 0.32s ease; background: radial-gradient(closest-side circle at 50% 50%, rgba(255,252,240,0.95), rgba(255,248,224,0.7) 30%, rgba(255,240,200,0.36) 55%, rgba(252,230,175,0.1) 78%, rgba(250,226,170,0) 100%);';
+      el.appendChild(glow);
+      el._glow = glow;
+      el._answers = (v) => !!(v && hs.verbs && hs.verbs[v]);
+      el.title = hs.label || '';
+      // When stillness lives ON an object, that object also answers to WAIT —
+      // but only once she's out of things to look at, which is the whole point
+      // of folding it in. No label: arming WAIT is what reveals it.
+      const place = sceneDef.wait?.place;
+      const isSettleHost = place && place.settleWith === hs.id;
+      if (isSettleHost) {
+        const answersVerb = el._answers;
+        // Always answers LISTEN. settleReady() was the old pre-noise-floor
+        // rule — "this object's own ladders are spent" — and as a second gate
+        // it hid the target completely, so arming LISTEN in six scenes (the
+        // tutorial beach and two of the four voices among them) lit nothing at
+        // all and the player got no feedback for the hard part. quietness()
+        // already gates the payoff, and it refuses out loud.
+        el._answers = (v) => v === 'wait' ? true : answersVerb(v);
+      }
+      el.addEventListener('mouseenter', () => {
+        const canSettle = isSettleHost && this.settleReady(sceneId, hs);
+        const armed = el._answers(this.armedVerb);
+        if (armed) {
+          glow.style.opacity = '1';
+          el.style.cursor = `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><circle cx='20' cy='20' r='16' fill='none' stroke='%231a1611' stroke-width='3' opacity='0.9'/><circle cx='20' cy='20' r='16' fill='none' stroke='%23dabe82' stroke-width='1.5' opacity='0.5'/><circle cx='20' cy='20' r='4' fill='%231a1611' opacity='0.9'/></svg>") 20 20, pointer`;
+        } else {
+          el.style.cursor = canSettle ? 'pointer' : 'default';
+        }
+      });
+      el.addEventListener('mouseleave', () => {
+        // Fall back to the armed resting glow rather than going fully dark.
+        glow.style.opacity = el._answers(this.armedVerb) ? '0.82' : '0';
+        el.style.cursor = 'pointer';
+      });
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.consumedByPlate()) return;
+        if (this.clearTextForAction()) return;
+        // Nothing left to do with it but stay — but only under WAIT, like any
+        // other verb-and-target pair. A stray second click shouldn't undo her.
+        if (isSettleHost && this.armedVerb === 'wait') {
+          if (!this.settling) this.startSettling(sceneId, sceneDef);
+          return;
+        }
+        // Verb-first: a verb must be armed, and this object must answer to it.
+        const verb = this.armedVerb;
+        if (!verb) { this.hintArm(); return; }
+        if (!hs.verbs || !hs.verbs[verb]) {
+          // The big one. A wrong-verb tap used to return in silence, so aiming
+          // GIVE at a window did nothing whatsoever — indistinguishable from a
+          // click the game dropped. The glow says which objects answer; this
+          // says so out loud when she tries anyway, and leaves the verb armed
+          // so the next tap is the real attempt.
+          const label = hs.label || 'It';
+          const miss = {
+            look: label + " gave her nothing back. Some things are just the thing they are.",
+            talk: "Talking to " + label.replace(/^The /, 'the ') + " would be a new low, even for this summer.",
+            give: "Nothing she had would mean anything to " + label.replace(/^The /, 'the ') + ".",
+            wait: "Not the spot. She could tell, the way you can tell.",
+          };
+          this.showText(miss[verb] || (label + " does not answer to that."));
+          return;
+        }
+        this.resetStillness();
+        this.runHotspotVerb(sceneId, sceneDef, hs, verb);
+      });
+      layer.appendChild(el);
+    });
+    this.revealArmed();
+  }
+
+  // Re-evaluate what this room offers now. Coalesced so a beat that grants
+  // several flags rebuilds once, and skipped while a vision or the title is up.
+  refreshOpenings() {
+    if (this._refreshQueued) return;
+    this._refreshQueued = true;
+    // setTimeout, not requestAnimationFrame: rAF doesn't fire when the page
+    // isn't painting, which left this flag stuck true and silently killed
+    // every later refresh for the rest of the session.
+    setTimeout(() => {
+      this._refreshQueued = false;
+      const id = this.state.currentScene;
+      const def = SCENES[id];
+      if (!def || !this.state.started) return;
+      // renderNavArrows also re-reserves the panel corridors, so the reading
+      // and settle panels stay clear of an exit that just appeared.
+      this.renderNavArrows(id, def);
+      this.renderHotspots(id, def);
+      // And the verb bar, or a verb that has only just acquired something to
+      // act on (the cave wall, once her eyes adjust) stays dim until she
+      // leaves and comes back.
+      this.renderActionBar(id, def);
+    }, 0);
+  }
+
+  renderNavArrows(sceneId, sceneDef) {
+    const container = document.getElementById('nav-arrows');
+    if (!container) return;
+    container.innerHTML = '';
+    const exits = sceneDef.exits || {};
+    // Edge-proportional zones. A fixed 88px band 96px off the bottom ate the
+    // middle of the picture on short screens and stole clicks from hotspots
+    // and still-places; these hug the frame edge at every size while staying
+    // well over the 44px tap minimum (56-108px on the shortest frames).
+    const vh = 'max(56px, 12%)', vw = 'max(148px, 15%)';
+    const arrowDefs = {
+      left:    { pos: `left: 2%; top: 32%; width: ${vw}; height: 36%;`, arrow: '←' },
+      right:   { pos: `right: 2%; top: 32%; width: ${vw}; height: 36%;`, arrow: '→' },
+      up:      { pos: `top: 5%; left: 42%; width: 16%; height: ${vh};`, arrow: '↑' },
+      down:    { pos: `bottom: max(104px, 18%); left: 42%; width: 16%; height: ${vh};`, arrow: '↓' },
+      // back/forward share edges with left/right — give them non-overlapping bands.
+      back:    { pos: `left: 2%; top: 6%; width: ${vw}; height: 24%;`, arrow: '←' },
+      forward: { pos: `right: 2%; top: 6%; width: ${vw}; height: 24%;`, arrow: '→' },
+    };
+    // Travel always wins a contested click: exits sit above the hotspot layer.
+    // Always visible. Hover/press only brightens them.
+    const restOpacity = '0.85';
+    const t = this.tier();
+    const arrowSize = t === 'compact' ? 48 : (t === 'tablet' ? 58 : 64);
+    const labelSize = t === 'compact' ? 16 : (t === 'tablet' ? 18 : 20);
+    const placed = [];
+    Object.entries(exits).forEach(([dir, rawExit]) => {
+      const def = arrowDefs[dir];
+      if (!def) return;
+      // A routed exit re-points itself as the story advances; null = not open yet.
+      const exit = this.engine.resolveExit(rawExit);
+      if (!exit || !exit.to) return;
+      // Most gated exits stay visible and explain themselves when tapped. One
+      // marked hideUntilOpen isn't offered at all until it's earned — for a
+      // route the scene shouldn't even be advertising yet.
+      if (exit.hideUntilOpen && this.engine.missingGate(exit)) return;
+      const el = document.createElement('div');
+      el.style.cssText = `position: absolute; ${def.pos} pointer-events: auto; z-index: 20; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: ${restOpacity}; transition: opacity 0.3s ease;`;
+      const vertical = dir === 'up' || dir === 'down';
+      el.innerHTML =
+        `<div style="display:flex; flex-direction:column; align-items:center; gap:6px; width: 100%; max-width: 100%; box-sizing: border-box; padding: 0 4px; overflow-wrap: break-word;">` +
+        `<div style="font-size: ${arrowSize}px; line-height: 1; font-weight: 800; color: #fff; transition: color 0.3s;">${def.arrow}</div>` +
+        `<div style="font-size: ${labelSize}px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; white-space: normal; line-height: 1.25; text-align: center; text-wrap: balance; color: #fff; padding: 5px 12px; border-radius: 4px; background: rgba(16, 13, 9, 0.72);">${exit.label || ''}</div>` +
+        '</div>';
+      const glyph = el.firstChild.firstChild;
+      el.title = exit.label || '';
+      el.addEventListener('mouseenter', () => {
+        el.style.opacity = '1';
+        glyph.style.color = 'rgba(226, 198, 138, 1)';
+      });
+      el.addEventListener('mouseleave', () => {
+        el.style.opacity = restOpacity;
+        glyph.style.color = '#ffffff';
+      });
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.consumedByPlate()) return;
+        this.handleNavClick(exit);
+      });
+      container.appendChild(el);
+      placed.push(dir);
+    });
+    this.fitOverlays(placed);
+  }
+
+  // One reserved travel corridor, honored by every overlay. Overlays are
+  // positioned independently against the frame, so without a single shared
+  // rule each new panel re-collides with the exits; this is that rule.
+  fitOverlays(placed) {
+    const TOP = 'calc(5% + max(56px, 12%) + 14px)';        // below the up arrow
+    const BOTTOM = 'calc(max(104px, 18%) + max(56px, 12%) + 44px + env(safe-area-inset-bottom))'; // above down
+    const SIDES = 'calc(100% - 2 * (max(148px, 15%) + 5%))';
+    const hasUp = placed.includes('up');
+    const hasDown = placed.includes('down');
+    const hasSide = ['left', 'right', 'back', 'forward'].some(d => placed.includes(d));
+
+    const entry = document.getElementById('entry-text');
+    if (entry) {
+      entry.style.top = hasUp ? TOP : 'calc(20px + env(safe-area-inset-top))';
+      entry.style.width = hasSide ? SIDES : '64%';
+    }
+
+    const panel = document.getElementById('text-panel');
+    if (panel) {
+      panel.style.width = hasSide ? SIDES : '92%';
+      panel.style.bottom = hasDown ? BOTTOM : 'calc(18px + 84px + 16px + env(safe-area-inset-bottom))';
+      panel.style.maxHeight = hasDown
+        ? 'min(360px, calc(100% - max(104px, 18%) - max(56px, 12%) - 90px))'
+        : 'min(360px, calc(100% - 220px))';
+    }
+
+    // The settle panel is center-anchored; when a down exit exists, re-anchor
+    // it to the corridor's floor so its bottom edge can't reach the arrow.
+    // The settle panel is centred in the band left over between the reserved
+    // top and bottom, and capped to it. Anchoring it to one edge (as this did
+    // before) failed at the other end: bottom-anchored it grew off the top of
+    // the frame, centre-anchored it reached into the up arrow.
+    const settle = document.getElementById('settle-panel');
+    if (settle) {
+      const top = hasUp ? 'calc(5% + max(56px, 12%) + 14px)' : '24px';
+      const bot = hasDown ? BOTTOM : 'calc(18px + 84px + 16px)';
+      settle.style.maxWidth = hasSide ? SIDES : '74%';
+      settle.style.bottom = 'auto';
+      settle.style.top = `calc(${top} + (100% - ${top} - ${bot}) / 2)`;
+      settle.style.transform = 'translate(-50%, -50%)';
+      settle.style.maxHeight = `calc(100% - ${top} - ${bot})`;
+      settle.style.overflow = 'hidden';
+    }
+  }
+
+  // Teach the verb once, out loud, the first time there is somewhere to use
+  // it. Myst teaches by putting you in a room where one thing works; this is
+  // the sentence version of that.
+  // Only once every visible look ladder in this scene is spent. Deferred a beat
+  // so it follows the line she just earned rather than stepping on it.
+  _maybeTeachStillness(sceneId, sceneDef) {
+    if (this.engine.hasFlag('taughtStillness')) return;
+    const looks = (sceneDef.hotspots || []).filter(h =>
+      this.engine._visible(h) && h.verbs && h.verbs.look);
+    if (!looks.length) return;
+    const spent = looks.every(h =>
+      this.engine.getCounter(sceneId, 'look', h.id) >= (h.verbs.look.ladder || []).length);
+    if (!spent) return;
+    clearTimeout(this._teachSoon);
+    this._teachSoon = setTimeout(() => this.teachStillness(sceneId, sceneDef), 900);
+  }
+
+  // A coaching line is the least important text in the game and it was
+  // arriving with the highest priority: a fixed setTimeout that called showText
+  // straight over whatever prose the player was in the middle of. Wait for a
+  // clear screen instead, and give up rather than nag.
+  showWhenIdle(text, sceneId, tries = 0) {
+    clearTimeout(this.coachTimer);
+    if (this.state.currentScene !== sceneId || !this.state.started) return;
+    const busy = this.proseUp() || this.state.notebookOpen || this.state.visionActive;
+    if (busy) {
+      if (tries > 40) return;
+      this.coachTimer = setTimeout(() => this.showWhenIdle(text, sceneId, tries + 1), 1200);
+      return;
+    }
+    this.showText(text);
+  }
+
+  teachStillness(sceneId, sceneDef) {
+    const place = sceneDef.wait?.place;
+    if (!place || this.engine.hasFlag('taughtStillness')) return;
+    this.engine.setFlag('taughtStillness');
+    clearTimeout(this.teachTimer);
+    this.teachTimer = setTimeout(() => {
+      if (this.state.currentScene !== sceneId || this.settling) return;
+      // When stillness is folded into an object, it only offers itself once
+      // she's out of things to look at — so don't name a target she can't
+      // use yet. Teach the rule instead.
+      // Name the verb she actually has. Saying "settle" here taught a fifth
+      // action that isn't on the bar; there are four, and this one is WAIT.
+      const where = place.settleWith
+        ? "LISTEN, once she has looked at everything. Not for long — there is no holding still involved. Either she is quiet enough to hear it or she is not, and looking at things is what makes her quiet enough."
+        : "LISTEN, and pick the spot to do it from. It takes no time at all. What it takes is having nothing left that she is still wondering about.";
+      // NOBODY tells her this. Dida's silence is the plot — if he had already
+      // explained it on a balcony, then telling him in the kitchen is not a
+      // revelation, "somebody has to go first" is incoherent, and the cave
+      // stops meaning anything. She works it out, alone, in scene one, which
+      // is also why she is the one who goes first.
+      this.showWhenIdle(
+        "Nobody tells her this. She works it out on a rock with her ears under the water, the way you work out obvious things: slowly, then all at once, then feeling stupid.\n\n" +
+        "The coast is not singing to her. It does not know she is there. It has been doing this since before there was anybody to do it at, and nothing she does can make it louder.\n\n" +
+        "There is only her end of it.\n\n" +
+        where + "\n\n" +
+        "Duje maintains this is an elaborate excuse for lying down. Duje has never once in his life been quiet enough to check."
+      , sceneId);
+    }, 9000);
+  }
+
+  // Six clicks that told her nothing, in a scene whose answer is stillness.
+  // Say so — in her voice, once, and only claim she is out of questions when
+  // she measurably is. It used to assert "nothing left asking" to a player
+  // sitting on three unopened objects and one over-clicked one.
+  countFruitless(sceneId, sceneDef) {
+    if (!sceneDef.wait || this.settling) return;
+    this.fruitless = (this.fruitless || 0) + 1;
+    if (this.fruitless !== 6 || this.nudgedScene === sceneId) return;
+    this.nudgedScene = sceneId;
+    const quiet = this.engine.quietness(sceneId, sceneDef) >= this.engine.quietNeeded(sceneDef);
+    const place = sceneDef.wait.place;
+    const line = !place
+      ? "She had looked at everything twice. Whatever was here was not going to be got at by poking it."
+      : quiet
+        ? "She had now looked at everything twice, which was the point. There was nothing left in her head that was still asking.\n\n(LISTEN.)"
+        : "Clicking the same thing again was not going to make it say anything new. There was something here she had not properly looked at yet — and until she had, it would go on taking up the whole of her attention.";
+    clearTimeout(this.coachTimer);
+    this.coachTimer = setTimeout(() => this.showWhenIdle(line, sceneId), 2600);
+  }
+
+  // The settle panel is pointer-events:none by design — clicking anywhere
+  // cancels stillness — so an overflowing beat could neither be scrolled nor
+  // read. Fit the type to the band instead: no scrollbar, nothing clipped.
+  setSettleText(text) {
+    const el = document.getElementById('settle-text');
+    if (!el) return;
+    el.textContent = text || '';
+    el.style.fontSize = '';
+    el.style.lineHeight = '';
+    // Let layout settle before measuring, then step down until it fits.
+    // Measure the PANEL, not the text: the text box sizes to its own content,
+    // so comparing it against itself always "fits". The panel is what the
+    // reserved band clamps, so the panel is what can overflow.
+    const panel = document.getElementById('settle-panel');
+    const fit = () => {
+      if (!panel || !panel.clientHeight) return;
+      const sizes = [22, 21, 20, 19, 18, 17, 16, 15];
+      const leading = [1.55, 1.52, 1.5, 1.48, 1.45, 1.42, 1.4, 1.38];
+      for (let i = 0; i < sizes.length; i++) {
+        el.style.fontSize = sizes[i] + 'px';
+        el.style.lineHeight = String(leading[i]);
+        if (el.scrollHeight <= el.clientHeight + 1 &&
+            panel.scrollHeight <= panel.clientHeight + 1) return;
+      }
+    };
+    fit();
+    // The clamp and any late webfont land after this frame; re-fit when they do.
+    requestAnimationFrame(fit);
+    clearTimeout(this._settleFitTimer);
+    this._settleFitTimer = setTimeout(fit, 140);
+  }
+
+  _arcLength(el) {
+    return el ? 2 * Math.PI * Number(el.getAttribute('r') || 0) : 0;
+  }
+
+  // --- Settling: stillness as a place you go, not a thing you guess ---
+  // Myst never asks you to wait; when time matters it gives you a machine
+  // you can watch running. This is that machine. Clicking the place is
+  // deliberate, fast, and visibly in progress. The silent 30s timer stays
+  // as the quieter path for players who genuinely go still.
+  startSettling(sceneId, sceneDef) {
+    const place = sceneDef.wait?.place;
+    if (!place || this.settling) return;
+    this.settling = true;
+    this.resetStillness(false);
+    this.hideText();
+    this.hideEntry();
+    const panel = document.getElementById('settle-panel');
+    const textEl = document.getElementById('settle-text');
+    const sbtn0 = document.getElementById('settle-more');
+    if (sbtn0) sbtn0.style.display = 'none';
+    const sup0 = document.getElementById('settle-up');
+    if (sup0) sup0.style.display = 'none';
+    if (textEl) this.setSettleText(place.text || 'She stayed where she was.');
+    if (panel) {
+      // Apply with the transition off, then re-arm it. A transition started in
+      // the same frame as the display change gets stuck mid-flight here, which
+      // left the panel at computed opacity 0 with its inline opacity set to 1 —
+      // stillness running, nothing on screen.
+      panel.style.display = 'flex';
+      panel.style.transition = 'none';
+      void panel.offsetHeight;
+      panel.style.opacity = '1';
+      requestAnimationFrame(() => { panel.style.transition = 'opacity 1s ease'; });
+    }
+    // No dwell. Listening is an act, not a duration — she either has the quiet
+    // to hear the place or she does not, and that is decided by what she has
+    // already worked out, not by how long the player is willing to sit still.
+    // The 1.1s here is the act itself (eyes closing, room arriving), the same
+    // way a door animation is not a lock.
+    clearTimeout(this.settleInterval);
+    if (this.audio) this.audio.setStillnessLevel(1);
+    this.settleInterval = setTimeout(() => this.offerListen(sceneId, sceneDef), 1100);
+  }
+
+  // Her eyes are shut and the room has arrived. Nothing else happens until she
+  // says so — same rule as every other text surface in the game.
+  offerListen(sceneId, sceneDef) {
+    clearTimeout(this.settleInterval);
+    this.settleInterval = null;
+    const btn = document.getElementById('settle-more');
+    const up = document.getElementById('settle-up');
+    if (!btn) return this.finishSettling(sceneId, sceneDef);
+    this._settleFor = sceneId;
+    btn.style.display = 'flex';
+    if (up) up.style.display = 'flex';
+  }
+
+  wireSettleButtons() {
+    const btn = document.getElementById('settle-more');
+    const up = document.getElementById('settle-up');
+    if (btn && !btn._wired) {
+      btn._wired = true;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.audio) { try { this.audio.playClick('page'); } catch (e2) {} }
+        const id = this._settleFor, def = SCENES[id];
+        if (def) this.finishSettling(id, def);
+      });
+    }
+    if (up && !up._wired) {
+      up._wired = true;
+      up.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.audio) { try { this.audio.playClick('tap'); } catch (e2) {} }
+        this.cancelSettling();
+      });
+    }
+  }
+
+  nudgeSettle() {
+    const btn = document.getElementById('settle-more');
+    if (!btn || btn.style.display === 'none') return;
+    btn.style.transform = 'scale(1.09)';
+    btn.style.background = 'rgba(218, 190, 130, 0.26)';
+    clearTimeout(this._settleNudge);
+    this._settleNudge = setTimeout(() => {
+      btn.style.transform = 'scale(1)';
+      btn.style.background = 'rgba(218, 190, 130, 0.1)';
+    }, 260);
+  }
+
+  finishSettling(sceneId, sceneDef) {
+    clearTimeout(this.settleInterval);
+    this.settleInterval = null;
+    this.settling = false;
+    const sbtn = document.getElementById('settle-more');
+    if (sbtn) sbtn.style.display = 'none';
+    const sup = document.getElementById('settle-up');
+    if (sup) sup.style.display = 'none';
+    const panel = document.getElementById('settle-panel');
+    if (panel) {
+      panel.style.opacity = '0';
+      setTimeout(() => { panel.style.display = 'none'; }, 1000);
+    }
+    if (this.audio) this.audio.setStillnessLevel(0);
+    this.triggerWait();
+    // Some scenes are one unbroken held moment, not a series of separate
+    // decisions. There, once she has chosen to stay, the beats keep arriving on
+    // their own — she never has to re-arm WAIT mid-chord and interrupt the very
+    // thing she is listening to. But never chain past a refusal: if the room
+    // just told her she is too loud, the answer is to get up and look at
+    // something, and re-settling would only repeat the refusal forever.
+    if (sceneDef?.wait?.continuous && !this._lastWaitTooLoud) this.chainSettling(sceneId, sceneDef);
+  }
+
+  // Wait for her to finish reading, then settle again without asking. Any
+  // deliberate move — leaving, opening the notebook — ends the chain.
+  chainSettling(sceneId, sceneDef) {
+    clearInterval(this._chainTimer);
+    const remaining = (sceneDef.wait.ladder || []).length;
+    this._chainTimer = setInterval(() => {
+      if (this.state.currentScene !== sceneId) { clearInterval(this._chainTimer); return; }
+      const done = this.engine.getCounter(sceneId, 'wait', '_scene') >= remaining;
+      if (done) { clearInterval(this._chainTimer); return; }
+      if (this.proseUp() || this.state.notebookOpen) return;
+      // A held plate or a playable vision owns the screen; re-settling under one
+      // would interrupt the beat it belongs to.
+      if (this.state.visionActive || this.plateHeld || this.cardUp) return;
+      if (this._lastWaitTooLoud) { clearInterval(this._chainTimer); return; }
+      clearInterval(this._chainTimer);
+      this.armVerb('wait');
+      this.startSettling(sceneId, sceneDef);
+    }, 700);
+  }
+
+  cancelSettling() {
+    const sbtnC = document.getElementById('settle-more');
+    if (sbtnC) sbtnC.style.display = 'none';
+    const supC = document.getElementById('settle-up');
+    if (supC) supC.style.display = 'none';
+    clearInterval(this._chainTimer);
+    if (!this.settling) return;
+    clearTimeout(this.settleInterval);
+    this.settleInterval = null;
+    this.settling = false;
+    const panel = document.getElementById('settle-panel');
+    if (panel) {
+      panel.style.opacity = '0';
+      setTimeout(() => { panel.style.display = 'none'; }, 1000);
+    }
+    if (this.audio) this.audio.setStillnessLevel(0);
+  }
+
+  // Schedule the idle nudges. WAIT never fires on its own: in seven scenes
+  // stillness is the only way forward, so an idle player has to be SHOWN the
+  // control, never advanced by it.
+  startStillness() {
+    clearTimeout(this.stillnessTimer);
+    this.stillnessTimer = null;
+    clearTimeout(this.idleNudge1);
+    clearTimeout(this.idleNudge2);
+    if (!this.state.started) return;
+    const nudgeScene = this.state.currentScene;
+    const nudgeDef = SCENES[nudgeScene];
+    // Never settle or coach under the arrival line: that is prose disappearing
+    // on a timer, which is the one thing this game must never do.
+    if (!nudgeDef?.wait || this.settling || this.entryBlocking) return;
+    const stillHere = () => this.state.currentScene === nudgeScene &&
+      !this.proseUp() && !this.state.notebookOpen;
+    this.idleNudge1 = setTimeout(() => {
+      if (!stillHere()) return;
+      // Forty seconds of nothing at all, and she has never once picked up a
+      // verb: this is not a player choosing to be still, it is a player who
+      // has not found the controls. Pulsing a chip at them again won't help.
+      if (!this._everArmed && !this.engine.hasFlag('taughtVerbs')) {
+        this.engine.setFlag('taughtVerbs');
+        this.showText(
+          "She had four ways of getting at anything, and it turned out the order mattered.\n\n" +
+          "Pick one — LOOK, TALK, GIVE, LISTEN — and then touch the thing you want to do it to. Whatever will answer lights up faintly when you choose.\n\n" +
+          "Duje says this is how everything works and she is only noticing now because she is thirteen."
+        );
+        return;
+      }
+      const chip = this._verbEls && this._verbEls.wait;
+      if (!chip) return;
+      chip.style.transition = 'text-shadow 1.4s ease, transform 1.4s ease';
+      chip.style.textShadow = '0 0 22px rgba(242, 216, 156, 0.95)';
+      chip.style.transform = 'scale(1.1)';
+      setTimeout(() => { chip.style.textShadow = ''; chip.style.transform = ''; }, 1600);
+    }, 42000);
+    this.idleNudge2 = setTimeout(() => {
+      if (!stillHere() || this.nudgedIdle === nudgeScene) return;
+      this.nudgedIdle = nudgeScene;
+      const place = nudgeDef.wait.place;
+      // The verb on the bar reads LISTEN. This line used to say WAIT — naming a
+      // control that does not exist on screen, at the exact moment the player
+      // is most lost. It is the only place the game tells you what to press.
+      this.showText(place
+        ? "She was not going to get anywhere by standing there thinking about it.\n\n(LISTEN.)"
+        : "She was not going to get anywhere by standing there thinking about it. LISTEN.");
+    }, 96000);
+  }
+
+  // The player did something, so the idle clock starts over. Nothing is banked
+  // and nothing advances on its own — WAIT fires only because she chose it.
+  resetStillness(restart = true) {
+    clearTimeout(this.stillnessTimer);
+    clearTimeout(this.idleNudge1);
+    clearTimeout(this.idleNudge2);
+    this.stillnessTimer = null;
+    if (this.audio) this.audio.setStillnessLevel(0);
+    const sceneId = this.state.currentScene;
+    const sceneDef = sceneId ? SCENES[sceneId] : null;
+    if (restart && sceneDef?.wait && this.state.started) {
+      this.stillnessTimer = setTimeout(() => this.startStillness(), 2000);
+    }
+  }
+
+  triggerWait() {
+    this.resetStillness(false);
+    this._sceneActions = (this._sceneActions || 0) + 1;
+    this.fruitless = 0;
+    const sceneId = this.state.currentScene;
+    const sceneDef = SCENES[sceneId];
+    if (!sceneDef) return;
+    this.hideEntry();
+    const result = this.engine.processVerb('wait', sceneId, sceneDef);
+    this._lastWaitTooLoud = !!(result && result.tooLoud);
+    if (result) {
+      this.showText(result.text, result.delay);
+      this.handleResultActions(result, sceneId, sceneDef);
+    }
+  }
+
+  handleResultActions(result, sceneId, sceneDef) {
+    if (!result) return;
+    // Vision
+    if (result.vision) {
+      const v = (typeof VISIONS !== 'undefined') ? VISIONS[result.vision] : null;
+      if (v && v.level) {
+        // A playable vision mounts full-screen and clears the reading panel to
+        // do it. Both of them fire on the back of the two most important
+        // passages in the game — the first voice under Kašjuni and all four in
+        // the cave — and were deleting them 800ms after they appeared. Let her
+        // finish reading first.
+        this.mountVisionWhenRead(result.vision, (result.delay || 0) + 800);
+      } else {
+        setTimeout(() => this.showVision(result.vision), (result.delay || 0) + 800);
+      }
+    }
+    // Close-up plate — after she has read what it is a picture of.
+    if (result.plate) {
+      this.runWhenRead(() => this.showPlate(result.plate), (result.delay || 0) + 400);
+    }
+    // Sound
+    if (result.sound) {
+      setTimeout(() => {
+        if (result.sound.voice === 'all') {
+          // They are four voices, not a chord button. Enter bottom-up — forest
+          // lays the floor, river and sea fill the middle, and the stone bell
+          // arrives last on top — so the player hears the chord ASSEMBLE.
+          // Starting all four in unison wasted the one moment the whole game
+          // is named after.
+          const order = ['forest', 'river', 'sea', 'stone'];
+          const base = result.sound.fadeIn;
+          this._clearVoiceEntries();
+          order.forEach((v, i) => {
+            this._voiceEntries.push(setTimeout(() => this.audio.playVoice(v, base), i * 1900));
+          });
+          // Underwater the low-pass sits at 300Hz, which erases sea (440) and
+          // stone (659) outright — the four-voice chord was physically two
+          // voices. Open the water as the chord assembles: she has stopped
+          // hearing them through anything and is inside the sound.
+          if (this.audio && sceneDef?.isUnderwater) {
+            this.audio.setUnderwater(false, (order.length * 1.9) + base * 0.5);
+          }
+        } else if (result.sound.voice) {
+          this.audio.playVoice(result.sound.voice, result.sound.fadeIn);
+        }
+      }, (result.delay || 0));
+    }
+    // Background swap
+    if (result.bgSwap) {
+      const bg = document.getElementById('scene-bg');
+      if (bg) bg.style.backgroundImage = `url('${this.sceneArt(result.bgSwap)}')`;
+    }
+    // Flag actions
+    (result.actions || []).forEach(action => {
+      if (action.type === 'flag') this.engine.setFlag(action.flag);
+      if (action.type === 'unlock') {
+        // Re-render nav arrows to show new exits
+        setTimeout(() => this.renderNavArrows(sceneId, sceneDef), 500);
+      }
+      if (action.type === 'message') {
+        // This fired on a fixed 2s timer straight over the payoff passage it was
+        // meant to follow — the player lost the line they had just earned.
+        this.showWhenIdle(action.text, sceneId);
+      }
+      if (action.type === 'goto') {
+        // The world moves on its own — e.g. the workshop empties around her, or
+        // she gets out of the water. Never mid-sentence: a forced move used to
+        // fire on a 4s timer straight over the passage explaining it.
+        this.runWhenRead(() => this.navigateTo(action.to), action.delay || 600);
+      }
+      if (action.type === 'reader') {
+        setTimeout(() => this.openReader(action.id), action.delay || 3000);
+      }
+      if (action.type === 'ending') {
+        // Which ending she gets is her choice, not the scene's: handing it on
+        // and keeping it are both real, and neither is punished.
+        const id = action.id === 'doma' ? this._endingId() : action.id;
+        const ending = (typeof ENDINGS !== 'undefined') ? ENDINGS[id] : null;
+        if (ending) setTimeout(() => this.showEnding(ending), action.delay || 5000);
+      }
+    });
+  }
+
+  handleNavClick(exit) {
+    // Leaving is allowed to just happen — unless there are words on screen,
+    // which she has to finish before she can walk out of the room.
+    if (this.clearTextForAction()) return;
+    this.resetStillness();
+    const missing = this.engine.missingGate(exit);
+    if (missing) {
+      // A door held shut by THREE different unfinished things in three different
+      // places was explaining itself with one line — "the island is not done
+      // with her" — which points nowhere. Name the one that is actually
+      // missing, in her voice, without naming the verb.
+      const by = exit.gateTextBy && exit.gateTextBy[missing];
+      this.showText(by || exit.gateText || "She can't go there yet.");
+      return;
+    }
+    const leaving = SCENES[this.state.currentScene];
+    const go = () => {
+      this._clearVoiceEntries();
+      this.audio.stopAllVoices(2);
+      this.navigateTo(exit.to);
+    };
+    if (leaving && leaving.onExit) this.runExitBeats(leaving, go);
+    else go();
+  }
+
+  // One advance, whatever the player taps. Returns true if the tap was spent.
+  advanceAnyProse() {
+    if (this.plateHeld) { this.hidePlate(); return true; }
+    if (this.state.textVisible) {
+      // The very tap that produced the passage must not also dismiss it.
+      if (this.textTooFresh()) return true;
+      if (this._beatAdvance) { const f = this._beatAdvance; this._beatAdvance = null; f(); return true; }
+      if (this.advanceText()) return true;
+      this.hideText();
+      this.resetStillness();
+      return true;
+    }
+    if (this.entryBlocking) { this.hideEntry(); this.resetStillness(); return true; }
+    if (this.settling) {
+      // Only once the room has actually arrived and offered the choice.
+      const btn = document.getElementById('settle-more');
+      if (btn && btn.style.display !== 'none') {
+        const id = this._settleFor, def = SCENES[id];
+        if (def) { this.finishSettling(id, def); return true; }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  handleBackgroundClick(e) {
+    // A tap on the picture does the same thing the Continue button does. The
+    // button remains the visible affordance and the thing the design points at,
+    // but it is no longer the ONLY way through — a control that ends up dead or
+    // mis-stacked must never be able to trap the player in a room.
+    if (this.advanceAnyProse()) return;
+    // Clicking empty space resets stillness (player is active)
+    this.resetStillness();
+  }
+
+  // highlightHotspots removed — no longer needed with contextual clicking
+
+  // --- Action bar ---
+  // Four verbs, always on screen, lit only when this scene will answer to
+  // them. Rebuilt per scene so it can never fall out of step. WAIT is the one
+  // verb with no object, so it is the one that is tappable.
+  renderActionBar(sceneId, sceneDef) {
+    const bar = document.getElementById('action-bar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    this.styleActionBar();
+    if (!sceneDef) return;
+    // Only hotspots she can actually SEE count. Otherwise the cave lights LOOK
+    // on arrival for a wall that does not exist until her eyes adjust, and a
+    // lit verb that answers nothing is worse than a dim one.
+    const hotspots = (sceneDef.hotspots || []).filter(hs => {
+      if (hs.hideWhen && this.engine.hasFlag(hs.hideWhen)) return false;
+      if (hs.showWhen && !this.engine.hasFlag(hs.showWhen)) return false;
+      return true;
+    });
+    const has = {
+      look: hotspots.some(hs => hs.verbs && hs.verbs.look),
+      talk: hotspots.some(hs => hs.verbs && hs.verbs.talk),
+      give: hotspots.some(hs => hs.verbs && hs.verbs.give),
+      wait: !!sceneDef.wait,
+    };
+    this._verbOn = has;
+    [['look', 'Look'], ['talk', 'Talk'], ['give', 'Give'], ['wait', 'Listen']].forEach(([verb, label]) => {
+      const on = has[verb];
+      const el = document.createElement('div');
+      el.dataset.verb = verb;
+      el.textContent = label;
+      this._verbEls = this._verbEls || {};
+      this._verbEls[verb] = el;
+      this.styleVerb(verb);
+      if (on && verb !== 'wait') {
+        // Object verbs arm; you then click the picture to use them. Click the
+        // lit verb again to disarm.
+        el.style.cursor = 'pointer';
+        el.style.pointerEvents = 'auto';
+        el.title = 'Select, then click the picture';
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          // The verb bar is ALWAYS live. It used to run consumedByText() first,
+          // so tapping LOOK while a passage was up spent the tap dismissing the
+          // passage and left LOOK unarmed — the player had to tap it twice, or
+          // three times inside the fresh-text grace window. Clear the passage
+          // and arm in the same tap.
+          if (this.consumedByPlate()) return;
+          if (this.clearTextForAction()) return;
+          this.armVerb(this.armedVerb === verb ? null : verb);
+        });
+      }
+      if (!on) {
+        // A dimmed verb used to have no listener at all, so tapping TALK on an
+        // empty beach was a genuinely dead tap — the player cannot tell "not
+        // available here" from "the game ignored me." Every tap now gets an
+        // answer, which is the same promise the rest of the game makes.
+        el.style.cursor = 'pointer';
+        el.style.pointerEvents = 'auto';
+        el.title = 'Nothing for this here';
+        const excuse = {
+          look: "She had already looked at everything here that would hold still for it.",
+          talk: "There was nobody here to talk to. She checked, in case.",
+          give: "Nothing in her pockets that anybody here wanted, and nobody here to want it.",
+          wait: "Not somewhere to stop. Some places are just somewhere you are on your way through.",
+        };
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          if (this.consumedByPlate()) return;
+          if (this.clearTextForAction()) return;
+          this.armVerb(null);
+          this.showText(excuse[verb]);
+        });
+      }
+      if (verb === 'wait' && on) {
+        el.style.cursor = 'pointer';
+        el.style.pointerEvents = 'auto';
+        el.title = 'Listen';
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          if (this.consumedByPlate()) return;
+          if (this.clearTextForAction()) return;
+          if (this.settling) return;
+          // WAIT arms like every other verb: the first tap lights the place in
+          // the picture, the second commits. Tapping WAIT again while it is
+          // already armed settles outright, so nobody can be stranded hunting
+          // for a spot they can't find.
+          // Second tap on LISTEN listens on the spot, so nobody is ever stuck
+          // hunting the picture for a place to do it from.
+          if (this.armedVerb === 'wait') { this.startSettling(sceneId, sceneDef); return; }
+          this.armVerb('wait');
+          // If nothing in the picture answers LISTEN, there is nothing to aim
+          // at — so don't leave her holding an armed verb over a dead scene.
+          const layer = document.getElementById('hotspot-layer');
+          const hasTarget = layer && [...layer.children].some(c => c._answers && c._answers('wait'));
+          if (!hasTarget) this.startSettling(sceneId, sceneDef);
+        });
+      }
+      bar.appendChild(el);
+    });
+  }
+
+  // Verb chip styling. Off = dim, on = warm, armed = white + bold + lit.
+  // iPad and up. One artwork set at full weight — the paintings are the game,
+  // and every supported screen is big enough to deserve them.
+  sceneDir() { return 'assets/scenes'; }
+  plateDir() { return 'assets/plates'; }
+
+  // Resolve one artwork file. In the folder build this is just dir/file; a
+  // standalone build has no files to fetch, so window.__ASSETS holds the whole
+  // gallery as data URIs instead, keyed on the bare filename.
+  assetUrl(dir, file) {
+    if (!file) return '';
+    const map = window.__ASSETS;
+    if (map) {
+      const hit = map[file] || map[dir + '/' + file];
+      if (hit) return hit;
+    }
+    return dir + '/' + file;
+  }
+  sceneArt(file) { return this.assetUrl(this.sceneDir(), file); }
+  plateArt(file) { return this.assetUrl(this.plateDir(), file); }
+
+  // Markup-level and CSS-level art references cannot use assetUrl(), so in a
+  // standalone build they are rewritten once, at boot.
+  applyInlineAssets() {
+    const map = window.__ASSETS;
+    if (!map) return;
+    const title = document.getElementById('title-screen');
+    if (title && map['28-title.jpg']) {
+      title.style.backgroundImage = "url('" + map['28-title.jpg'] + "')";
+    }
+    if (map['Musivum-Regular.otf']) {
+      const s = document.createElement('style');
+      s.textContent = "@font-face { font-family: 'Musivum'; src: url('" +
+        map['Musivum-Regular.otf'] + "') format('opentype'); font-weight: 400; font-display: swap; }";
+      document.head.appendChild(s);
+    }
+  }
+
+  // Type and target scale from the frame she is actually looking through. An
+  // iPad mini in landscape is 744px tall and a desktop window can be 1200 —
+  // the same 24px verb bar reads as chunky on one and lost on the other.
+  tier() {
+    const root = document.getElementById('game-root');
+    const h = (root && root.clientHeight) || window.innerHeight || 800;
+    return h < 620 ? 'compact' : (h < 860 ? 'tablet' : 'desktop');
+  }
+
+  // The verb bar sits in the same place everywhere; only its scale moves. Every
+  // target stays well above 44px, because the whole game is four words and a
+  // picture and missing one of the four words is the entire failure mode.
+  styleActionBar() {
+    const bar = document.getElementById('action-bar');
+    if (!bar) return;
+    const t = this.tier();
+    const gap = t === 'compact' ? 28 : (t === 'tablet' ? 39 : 46);
+    const padY = t === 'compact' ? 12 : 15;
+    const padX = t === 'compact' ? 26 : (t === 'tablet' ? 33 : 40);
+    bar.style.left = '50%';
+    bar.style.transform = 'translateX(-50%)';
+    bar.style.boxSizing = 'border-box';
+    bar.style.bottom = 'calc(18px + env(safe-area-inset-bottom))';
+    bar.style.gap = gap + 'px';
+    bar.style.padding = padY + 'px ' + padX + 'px';
+    bar.style.justifyContent = 'center';
+  }
+
+  // Re-shape everything that is tier-dependent. Rotation and window drags cross
+  // the phone/tablet boundary mid-play, and the verb bar and travel arrows are
+  // built once per scene — without this they keep the old device's proportions
+  // until she happens to walk somewhere.
+  reflow() {
+    if (!this.state.started) return;
+    const id = this.state.currentScene;
+    const def = id ? SCENES[id] : null;
+    if (!def) return;
+    this.styleActionBar();
+    ['look', 'talk', 'give', 'wait'].forEach(v => this.styleVerb(v));
+    this.renderNavArrows(id, def);
+    this.repaginate();
+  }
+
+  styleVerb(verb) {
+    const el = this._verbEls && this._verbEls[verb];
+    if (!el) return;
+    const on = this._verbOn && this._verbOn[verb];
+    const armed = this.armedVerb === verb && verb !== 'wait';
+    const t = this.tier();
+    const fs = t === 'compact' ? 20 : (t === 'tablet' ? 24 : 27);
+    el.style.cssText =
+      'font-size: ' + fs + 'px; letter-spacing: 0.2em; min-height: 44px;' +
+      'display: flex; align-items: center; justify-content: center;' +
+      'text-transform: uppercase; white-space: nowrap;' +
+      'transition: color 0.3s ease, text-shadow 0.3s ease, transform 0.2s ease;' +
+      (!on
+        ? 'color: rgba(226, 214, 190, 0.2);'
+        : armed
+          ? 'color: #ffffff; font-weight: 700; text-shadow: 0 0 16px rgba(226, 198, 138, 0.95), 0 1px 6px rgba(0,0,0,0.85); transform: scale(1.06);'
+          : 'color: rgba(226, 198, 138, 0.92); text-shadow: 0 1px 6px rgba(0,0,0,0.85);');
+    // EVERY chip is tappable, dimmed or not — a dimmed verb answers "nothing
+    // for this here" rather than dropping the tap. This must be unconditional:
+    // the cssText assignment above wipes all inline styles, #action-bar is
+    // pointer-events:none, and armVerb() re-styles all four chips — so leaving
+    // it inside `if (on)` meant every dimmed chip went inert the moment the
+    // player armed anything, i.e. for the whole game.
+    el.style.cursor = 'pointer';
+    el.style.pointerEvents = 'auto';
+  }
+
+  armVerb(verb) {
+    this.armedVerb = verb;
+    this._everArmed = true;
+    if (verb && this.audio) { try { this.audio.playClick('arm'); } catch (e) {} }
+    ['look', 'talk', 'give', 'wait'].forEach(v => this.styleVerb(v));
+    this.revealArmed();
+  }
+
+  // Touch has no hover, so arming a verb has to be what shows you where it
+  // applies: every object that answers warms up, staggered so they breathe on
+  // rather than switch on. Objects that don't answer stay dark and silent.
+  revealArmed() {
+    const layer = document.getElementById('hotspot-layer');
+    if (!layer) return;
+    const verb = this.armedVerb;
+    // No transition and no stagger. Both were costing correctness for polish:
+    // a CSS transition on these glows got stuck mid-flight (inline 0.5,
+    // computed 0, forever — the same failure this codebase hit on the settle
+    // panel and reader overlay), and staggering via timers meant any hotspot
+    // rebuild cancelled the pending ones, so two of three objects never lit.
+    // Arming a verb must show what answers it, immediately and every time.
+    [...layer.children].forEach((el) => {
+      const glow = el._glow;
+      if (!glow || !el._answers) return;
+      glow.style.transition = 'none';
+      glow.style.transitionDelay = '0ms';
+      glow.style.opacity = el._answers(verb) ? '0.82' : '0';
+    });
+  }
+
+  _answers_wait() { return this.armedVerb === 'wait'; }
+
+  // Staggered voice entries have to be cancellable, or leaving mid-chord lets
+  // a voice arrive in the next scene.
+  _clearVoiceEntries() {
+    (this._voiceEntries || []).forEach(t => clearTimeout(t));
+    this._voiceEntries = [];
+  }
+
+  // A blind click on the picture with nothing armed: nudge the verbs. Two of
+  // them and the pulse clearly isn't landing, so say the rule out loud, once,
+  // ever. Nothing else in the game teaches that verbs are chosen BEFORE the
+  // thing they act on — a player who doesn't guess it has no game at all.
+  hintArm() {
+    const look = this._verbEls && this._verbEls.look;
+    if (!look) return;
+    look.style.transform = 'scale(1.22)';
+    look.style.textShadow = '0 0 18px rgba(242, 216, 156, 1)';
+    setTimeout(() => this.styleVerb('look'), 300);
+    this._blindTaps = (this._blindTaps || 0) + 1;
+    if (this._blindTaps < 2 || this.engine.hasFlag('taughtVerbs')) return;
+    this.engine.setFlag('taughtVerbs');
+    this.showText(
+      "She had four ways of getting at anything, and it turned out the order mattered.\n\n" +
+      "Pick one — LOOK, TALK, GIVE, LISTEN — and then touch the thing you want to do it to. Whatever will answer lights up faintly when you choose.\n\n" +
+      "Duje says this is how everything works and she is only noticing now because she is thirteen."
+    );
+  }
+
+  runHotspotVerb(sceneId, sceneDef, hs, verb) {
+    this.hideEntry();
+    this._sceneActions = (this._sceneActions || 0) + 1;
+    if (this.audio) { try { this.audio.playClick('tap'); } catch (e) {} }
+    // The stillness lesson lands here, not on arrival: once looking has run
+    // out, which is when LISTEN starts being the thing to do.
+    if (verb === 'look') this._maybeTeachStillness(sceneId, sceneDef);
+    this.resetStillness();
+    const result = this.engine.processVerb(verb, sceneId, sceneDef, hs.id);
+    // Only a click that told her nothing new counts as fruitless. This used to
+    // count every hotspot verb, so six genuine discoveries triggered "she had
+    // looked at everything twice" — which was false, and pointed at LISTEN
+    // while there was still plenty to find.
+    if (!result || result.repeat) this.countFruitless(sceneId, sceneDef);
+    if (result) {
+      this.showText(result.text, result.delay);
+      this.handleResultActions(result, sceneId, sceneDef);
+    }
+  }
+
+  // --- Text panel ---
+  // The panel never scrolls. Long passages are broken at the paragraph breaks
+  // the prose already has, and read as successive pages on click. Splitting on
+  // authored boundaries keeps the writing's rhythm; only a single paragraph
+  // that is too tall on its own falls back to sentence ends.
+  // The panel's cap and the type size both scale with the frame, so the line
+  // budget stays roughly constant from iPhone landscape (390px tall) up to a
+  // desktop window. Computed here rather than in CSS: viewport units in the
+  // template get dropped, and this keeps the cap and _availTextHeight() reading
+  // from one source instead of drifting apart.
+  syncTextMetrics() {
+    const root = document.getElementById('game-root');
+    const panel = document.getElementById('text-panel');
+    const content = document.getElementById('text-content');
+    if (!root || !panel || !content) return;
+    const H = root.clientHeight || window.innerHeight || 540;
+    panel.style.maxHeight = Math.round(H * 0.68) + 'px';
+    content.style.fontSize = Math.round(Math.min(25, Math.max(17, H * 0.046)) * 10) / 10 + 'px';
+    // The entry line sits opposite the panel and was fixed at 27px, which is
+    // oversized on a phone and pushed it into the panel's top edge.
+    const entry = document.getElementById('entry-content');
+    if (entry) {
+      entry.style.fontSize = Math.round(Math.min(27, Math.max(17, H * 0.05)) * 10) / 10 + 'px';
+    }
+  }
+
+  _availTextHeight() {
+    const panel = document.getElementById('text-panel');
+    const inner = document.getElementById('text-panel-inner');
+    const more = document.getElementById('text-more');
+    if (!panel || !inner) return 9999;
+    // Measure the box the browser actually resolved. Reading max-height as a
+    // string breaks the moment it holds a min()/calc() expression, which is
+    // exactly what the exit-corridor logic writes into it.
+    const capExpr = getComputedStyle(panel).maxHeight;
+    let maxH;
+    if (/^[\d.]+px$/.test(capExpr)) {
+      maxH = parseFloat(capExpr);
+    } else {
+      // min()/calc() come back verbatim, so let the browser resolve them on a
+      // throwaway element sized in the panel's own containing block.
+      const t = document.createElement('div');
+      t.style.cssText = `position:absolute;visibility:hidden;left:-9999px;top:0;height:100000px;max-height:${capExpr};`;
+      (panel.parentElement || document.body).appendChild(t);
+      maxH = t.getBoundingClientRect().height;
+      t.remove();
+    }
+    const ics = getComputedStyle(inner);
+    const pad = parseFloat(ics.paddingTop) + parseFloat(ics.paddingBottom);
+    // Reserve the more-indicator's line so adding it can't push text out.
+    const reserve = more ? more.offsetHeight + 14 : 0;
+    return Math.max(90, (isFinite(maxH) ? maxH : 9999) - pad - reserve - 4);
+  }
+
+  _measureText(str) {
+    const content = document.getElementById('text-content');
+    if (!content) return 0;
+    if (!this._textProbe) {
+      const p = document.createElement('div');
+      p.setAttribute('aria-hidden', 'true');
+      p.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;';
+      document.body.appendChild(p);
+      this._textProbe = p;
+    }
+    const cs = getComputedStyle(content);
+    const p = this._textProbe;
+    p.style.width = (content.clientWidth || 660) + 'px';
+    p.style.font = cs.font;
+    p.style.fontSize = cs.fontSize;
+    p.style.fontFamily = cs.fontFamily;
+    p.style.lineHeight = cs.lineHeight;
+    p.style.letterSpacing = cs.letterSpacing;
+    p.style.whiteSpace = cs.whiteSpace;
+    p.style.textAlign = cs.textAlign;
+    p.textContent = str;
+    return p.scrollHeight;
+  }
+
+  // Packs progressively finer units so NOTHING can exceed the box: authored
+  // paragraphs first, then sentences, then words as a last resort. The word
+  // level exists so the invariant holds at any viewport and for any future
+  // prose, rather than depending on how long a sentence happens to be.
+  paginate(text) {
+    if (!text) return [''];
+    const avail = this._availTextHeight();
+    const fits = (s) => this._measureText(s) <= avail;
+    if (fits(text)) return [text];
+
+    const pages = [];
+    const pack = (atoms, glue) => {
+      let cur = '';
+      atoms.forEach((atom) => {
+        const trial = cur ? cur + glue + atom : atom;
+        if (fits(trial)) { cur = trial; return; }
+        if (cur) { pages.push(cur); cur = ''; }
+        if (fits(atom)) { cur = atom; return; }
+        if (glue === '\n\n') {
+          const sentences = (atom.match(/[^.!?]+[.!?]*["'\u201d\u2019]*\s*/g) || [])
+            .map((s) => s.trim()).filter(Boolean);
+          if (sentences.length > 1) { pack(sentences, ' '); return; }
+        }
+        // Word level. Below this there is nothing left to break.
+        let w = '';
+        atom.split(/\s+/).filter(Boolean).forEach((word) => {
+          const t = w ? w + ' ' + word : word;
+          if (!w || fits(t)) { w = t; return; }
+          pages.push(w);
+          w = word;
+        });
+        if (w) cur = w;
+      });
+      if (cur) pages.push(cur);
+    };
+    pack(text.split(/\n\n+/).map((s) => s.trim()).filter(Boolean), '\n\n');
+    return pages.length ? pages : [text];
+  }
+
+  syncContinueLabel() {
+    const label = document.getElementById('text-more-label');
+    const btn = document.getElementById('text-more');
+    if (!label || !btn) return;
+    const more = !!(this._pages && this._pageAt < this._pages.length - 1);
+    label.textContent = this._beatAdvance ? 'Continue' : (more ? 'More' : 'Continue');
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  }
+
+  renderTextPage() {
+    // Paging changes the panel's height, so a held card has to be re-fitted.
+    if (this._pageAt > 0) requestAnimationFrame(() => {
+      const ov = document.getElementById('plate-overlay');
+      if (ov && +getComputedStyle(ov).opacity > 0.02) this.capPlate();
+    });
+    const content = document.getElementById('text-content');
+    if (!content || !this._pages) return;
+    content.textContent = this._pages[this._pageAt] || '';
+    // The button is always there and always says what it will do. It used to be
+    // a row of dots that faded to invisible on the last page, which left the
+    // player with no visible way onward at exactly the wrong moment.
+    this.syncContinueLabel();
+  }
+
+  // Set an affordance cue's opacity so it actually takes. Transitions started
+  // in the same frame as the value change get stuck mid-flight in this runtime,
+  // leaving the element at computed 0 with its inline opacity set.
+  _setCue(el, value, transition) {
+    if (!el) return;
+    el.style.transition = 'none';
+    void el.offsetHeight;
+    el.style.opacity = value;
+    requestAnimationFrame(() => { el.style.transition = transition; });
+  }
+
+  // A held plate eats the next tap wherever it lands. Hotspots and arrows stop
+  // propagation, so without this they would fire a verb or a move underneath a
+  // card the player was still reading.
+  consumedByPlate() {
+    if (!this.plateHeld) return false;
+    this.nudgePlate();
+    return true;
+  }
+
+  // A passage that has only just landed swallows the next click without acting
+  // on it. WAIT ends by closing the settle panel and opening a passage, so a
+  // player still tapping — or tapping to dismiss the panel — was wiping the
+  // line they had waited a full ten seconds to earn.
+  textTooFresh() {
+    return !!(this._textShownAt && Date.now() - this._textShownAt < 700);
+  }
+
+  // ONE input rule, and the whole "my click didn't land" class comes from not
+  // having had one.
+  //
+  // A DELIBERATE target — a verb chip, an exit, an object, the listening spot —
+  // always acts, on the first tap, every time. If a passage is open it is
+  // cleared in that same tap. The player aimed at something specific; the
+  // answer is never "nothing happened."
+  //
+  // The PICTURE and the PANEL are the reading surface: tapping them pages
+  // through a passage, and a just-landed line is protected for 700ms so a
+  // second reflex tap can't wipe a line she worked for. Absorbing a tap is only
+  // ever correct where the player was tapping to read.
+  // RULE: no text ever leaves the screen except by the Continue button.
+  // This used to hide the passage on ANY action — arming a verb, tapping a
+  // hotspot, tapping an arrow — which is why lines vanished before they could
+  // be read. Now a passage BLOCKS: the tap is absorbed, the button is nudged,
+  // and nothing else happens until she chooses to move on.
+  clearTextForAction() {
+    if (!this.proseUp()) return false;
+    // Spend the tap advancing what is on screen instead of dropping it. The
+    // player's tap always does something, and prose is still only ever removed
+    // by a deliberate tap — never by a timer and never as a side effect.
+    this.advanceAnyProse();
+    return true;
+  }
+
+  // True while ANY prose is on screen unacknowledged. Everything that would
+  // replace or erase words consults this.
+  proseUp() {
+    return !!(this.state.textVisible || this.entryBlocking || this.plateHeld ||
+      this.settling || this.cardUp);
+  }
+
+  // Draw the eye to the one control that moves things along.
+  nudgeContinue() {
+    const btn = document.getElementById('text-more');
+    if (!btn) return;
+    btn.style.transform = 'scale(1.09)';
+    btn.style.background = 'rgba(122, 102, 72, 0.20)';
+    btn.style.borderColor = 'rgba(122, 102, 72, 0.85)';
+    clearTimeout(this._nudgeTimer);
+    this._nudgeTimer = setTimeout(() => {
+      btn.style.transform = 'scale(1)';
+      btn.style.background = 'rgba(122, 102, 72, 0.06)';
+      btn.style.borderColor = 'rgba(122, 102, 72, 0.45)';
+    }, 260);
+  }
+
+  wireContinueButton() {
+    const btn = document.getElementById('text-more');
+    if (!btn || btn._wired) return;
+    btn._wired = true;
+    const go = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (this.audio) { try { this.audio.playClick('page'); } catch (e2) {} }
+      // Beats drive the panel directly and park their own resume handler here.
+      if (this._beatAdvance) { const f = this._beatAdvance; this._beatAdvance = null; f(); return; }
+      if (this.advanceText()) return;
+      this.hideText();
+      this.resetStillness();
+    };
+    btn.addEventListener('click', go);
+    btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(122, 102, 72, 0.16)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(122, 102, 72, 0.06)'; });
+  }
+
+  // Reading-surface behaviour only (picture and panel).
+  consumedByText() {
+    if (this.state.textVisible && this.textTooFresh()) return true;
+    return !!(this.state.textVisible && this.advanceText());
+  }
+
+  // True when the click was spent turning a page rather than dismissing.
+  advanceText() {
+    if (!this._pages || this._pageAt >= this._pages.length - 1) return false;
+    this._pageAt++;
+    this.renderTextPage();
+    return true;
+  }
+
+  showText(text, delay = 0) {
+    if (!text) return;
+    const panel = document.getElementById('text-panel');
+    const content = document.getElementById('text-content');
+    if (!panel || !content) return;
+    // Reading is not idling: hold the nudges off while a passage is up.
+    clearTimeout(this.idleNudge1);
+    clearTimeout(this.idleNudge2);
+    const show = () => {
+      // The two boxes can meet on a short frame, and prose owns the screen
+      // when it arrives — every path into showText retires the entry line.
+      this.hideEntry();
+      this._fullText = text;
+      this._textShownAt = Date.now();
+      this._pages = this.paginate(text);
+      this._pageAt = 0;
+      this.renderTextPage();
+      // Apply with transitions off, then re-assert after the state update.
+      // setState re-renders, and the render re-applies this element's static
+      // template style (opacity:0), silently wiping the passage back out —
+      // which is how a gate explanation could set its words and never appear.
+      panel.style.transition = 'none';
+      panel.style.opacity = '1';
+      panel.style.pointerEvents = 'auto';
+      this.setState({ textVisible: true });
+      requestAnimationFrame(() => {
+        panel.style.opacity = '1';
+        panel.style.pointerEvents = 'auto';
+        panel.style.transition = 'opacity 0.35s ease';
+      });
+      // A visible card was sized against whatever the panel was before this
+      // passage; the panel just changed height, so re-fit it.
+      if (+getComputedStyle(document.getElementById('plate-overlay')).opacity > 0.02) {
+        this.capPlate();
+        requestAnimationFrame(() => this.capPlate());
+      }
+    };
+    if (delay > 0) {
+      setTimeout(show, delay);
+    } else {
+      show();
+    }
+    // No stillness timer under an open passage. It used to start settling on a
+    // timer while she was still reading, which swapped the words out from under
+    // her. Stillness resumes when she taps Continue.
+    clearTimeout(this.stillnessTimer);
+  }
+
+  hideText() {
+    const panel = document.getElementById('text-panel');
+    if (panel) {
+      // Same reason as showText: assert now, and again after the re-render.
+      panel.style.transition = 'none';
+      panel.style.opacity = '0';
+      panel.style.pointerEvents = 'none';
+    }
+    const more = document.getElementById('text-more');
+    if (more) { more.style.opacity = '0'; more.style.pointerEvents = 'none'; }
+    this._beatAdvance = null;
+    this._pages = null;
+    this._pageAt = 0;
+    this.setState({ textVisible: false });
+    requestAnimationFrame(() => {
+      if (!panel || this.state.textVisible) return;
+      panel.style.opacity = '0';
+      panel.style.pointerEvents = 'none';
+    });
+  }
+
+  showEntry(text) {
+    if (this._entryRetiredFor && this._entryRetiredFor === this.state.currentScene) return;
+    const el = document.getElementById('entry-text');
+    const content = document.getElementById('entry-content');
+    if (!el || !content) return;
+    content.textContent = text;
+    el.style.visibility = 'visible';
+    el.style.pointerEvents = 'auto';
+    // Apply the value with transitions OFF, then re-arm them next frame. The
+    // arrival is already covered by the warm-white dip, so nothing is lost —
+    // and a transition on this element was observed stuck mid-flight, which
+    // left the line permanently invisible with its opacity set to 1.
+    el.style.transition = 'none';
+    el.style.opacity = '1';
+    requestAnimationFrame(() => { el.style.transition = 'opacity 0.24s ease'; });
+    // NOT setState. Re-rendering re-applies this element's static template
+    // style (opacity:0) and silently wipes the line back out — which is what
+    // made the arrival text and its dismissal behave differently every run.
+    this.entryVisible = true;
+    // The arrival line is prose, so it is acknowledged like prose. Nothing can
+    // take it off the screen except its own button.
+    this.entryBlocking = true;
+    clearTimeout(this.entryTimer);
+  }
+
+  nudgeEntry() {
+    const btn = document.getElementById('entry-more');
+    if (!btn) return;
+    btn.style.transform = 'scale(1.09)';
+    btn.style.background = 'rgba(232, 223, 210, 0.22)';
+    clearTimeout(this._entryNudge);
+    this._entryNudge = setTimeout(() => {
+      btn.style.transform = 'scale(1)';
+      btn.style.background = 'rgba(232, 223, 210, 0.07)';
+    }, 260);
+  }
+
+  wireEntryButton() {
+    const btn = document.getElementById('entry-more');
+    if (!btn || btn._wired) return;
+    btn._wired = true;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.audio) { try { this.audio.playClick('page'); } catch (e2) {} }
+      this.hideEntry();
+      this.resetStillness();
+    });
+  }
+
+  hideEntry() {
+    const el = document.getElementById('entry-text');
+    if (el) {
+      // Dismissing is a response to a tap, so it should feel like one. Driving
+      // this with a style transition was intermittently sitting still for up to
+      // three quarters of a second before it began — the tap looked ignored.
+      // An explicit animation starts on the frame it's asked to.
+      // Dismissing is a response to a tap, so it should feel like one. The
+      // arrival fade is leisurely on purpose; going away should not be.
+      // No transition. A tap must be answered on the frame it happens, and
+      // transitions on this element were observed sticking mid-flight, which
+      // made dismissal feel ignored for up to three quarters of a second.
+      el.style.transition = 'none';
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+    }
+    this.entryVisible = false;
+    this.entryBlocking = false;
+  }
+
+  // --- Vision ---
+  // Anything that takes over the screen waits for the passage that introduces
+  // it. The cup plate was landing 600ms into a four-paragraph GIVE, so a
+  // painting of Nona handing over a cup appeared while the player was still
+  // reading about sardines and a cat.
+  runWhenRead(fn, initial) {
+    const sceneId = this.state.currentScene;
+    let waited = 0;
+    const tick = () => {
+      if (this.state.currentScene !== sceneId) return;
+      if (this.proseUp() && waited < 180000) {
+        waited += 500;
+        clearTimeout(this._readWait);
+        this._readWait = setTimeout(tick, 500);
+        return;
+      }
+      fn();
+    };
+    clearTimeout(this._readWait);
+    this._readWait = setTimeout(tick, initial);
+  }
+
+  mountVisionWhenRead(visionId, initial) {
+    const sceneId = this.state.currentScene;
+    let waited = 0;
+    const tick = () => {
+      if (this.state.currentScene !== sceneId) return;
+      if (this.proseUp() && waited < 120000) {
+        waited += 700;
+        clearTimeout(this._visionWait);
+        this._visionWait = setTimeout(tick, 700);
+        return;
+      }
+      this.showVision(visionId);
+    };
+    clearTimeout(this._visionWait);
+    this._visionWait = setTimeout(tick, initial);
+  }
+
+  // Two ways in. The folder build imports the real modules; a standalone build
+  // has them pre-linked into one source string (a static bundler cannot follow
+  // a dynamic import) and mounts that from a Blob URL. Either way the caller
+  // gets the same two module objects back.
+  async loadVision3D() {
+    if (this._vision3d) return this._vision3d;
+    if (window.__VISION3D_SRC) {
+      const url = URL.createObjectURL(new Blob([window.__VISION3D_SRC], { type: 'text/javascript' }));
+      try {
+        const mod = await import(url);
+        this._vision3d = [mod, mod];
+        return this._vision3d;
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+      }
+    }
+    this._vision3d = await Promise.all([
+      import('./game/vision3d/level.js'),
+      import('./game/vision3d/layouts.js'),
+    ]);
+    return this._vision3d;
+  }
+
+  showVision(visionId) {
+    const vision = VISIONS[visionId];
+    if (!vision) return;
+    // Two visions are playable 3D interludes rather than static plates.
+    if (vision.level) { this.mountVisionLevel(vision); return; }
+    const overlay = document.getElementById('vision-overlay');
+    if (!overlay) return;
+    overlay.style.backgroundImage = `url('${this.sceneArt(vision.art)}')`;
+    const visTrans = getComputedStyle(overlay).transition;
+    overlay.style.transition = 'none';
+    void overlay.offsetHeight;
+    overlay.style.opacity = '1';
+    overlay.style.animation = 'visionPulse 4s ease-in-out infinite';
+    this.setState({ visionActive: true });
+    // Same stuck-transition guard as the settle panel: apply the value with
+    // transitions off, then re-arm, so the vision can never play invisibly.
+    requestAnimationFrame(() => { overlay.style.transition = visTrans; });
+    // Play voices
+    (vision.voices || []).forEach(v => {
+      if (!this.audio.activeVoices[v]) {
+        this.audio.playVoice(v, 4);
+      }
+    });
+    setTimeout(() => {
+      overlay.style.opacity = '0';
+      overlay.style.animation = '';
+      this.setState({ visionActive: false });
+      // Fade out voices after vision
+      setTimeout(() => {
+        (vision.voices || []).forEach(v => this.audio.stopVoice(v, 3));
+      }, 2000);
+    }, vision.duration);
+  }
+
+  // Mount a playable 3D vision over the paused game. Isolated module: state in
+  // (layout + shared AudioContext), a flag out. The four voices keep playing on
+  // the existing synth — nothing here touches or recreates the AudioContext, so
+  // they carry across unbroken. The warm-white dip covers arrival and teardown.
+  async mountVisionLevel(vision) {
+    const container = document.getElementById('vision-level');
+    const dip = document.getElementById('transition-overlay');
+    if (!container) return;
+    this.resetStillness(false);
+    this.hideText();
+    this.setState({ visionActive: true });
+    // Keep the voices this vision is built on singing across the boundary.
+    (vision.voices || []).forEach((v) => {
+      if (this.audio && this.audio.activeVoices && !this.audio.activeVoices[v]) {
+        this.audio.playVoice(v, 4);
+      }
+    });
+    // Dip to warm white, mount behind it, then reveal.
+    if (dip) dip.style.opacity = '1';
+    await new Promise((r) => setTimeout(r, 700));
+    container.style.display = 'block';
+    container.innerHTML = '';
+    try {
+      const [levelMod, layoutMod] = await this.loadVision3D();
+      const layout = layoutMod.LAYOUTS[vision.level];
+      if (!layout) throw new Error('unknown vision layout ' + vision.level);
+      const level = new levelMod.VisionLevel(container, {
+        layout,
+        audioCtx: this.audio ? this.audio.ctx : null,
+        flag: vision.flag,
+        onComplete: (flag) => this.completeVisionLevel(vision, flag),
+      });
+      level.mount();
+      this._visionLevel = level;
+    } catch (e) {
+      // Isolation contract: if the module fails to load, the game still moves
+      // on. Set the flag and continue as though the vision had played.
+      console.error('[vision] level mount failed:', e);
+      this.completeVisionLevel(vision, vision.flag);
+      return;
+    }
+    if (dip) setTimeout(() => { dip.style.opacity = '0'; }, 500);
+  }
+
+  completeVisionLevel(vision, flag) {
+    const dip = document.getElementById('transition-overlay');
+    if (dip) dip.style.opacity = '1';
+    setTimeout(() => {
+      if (this._visionLevel) { try { this._visionLevel.dispose(); } catch (e) {} this._visionLevel = null; }
+      const container = document.getElementById('vision-level');
+      if (container) { container.style.display = 'none'; container.innerHTML = ''; }
+      if (flag && this.engine) this.engine.setFlag(flag);
+      this.setState({ visionActive: false });
+      // Fade the vision's voices back out, as the plate version did.
+      setTimeout(() => {
+        (vision.voices || []).forEach((v) => this.audio && this.audio.stopVoice && this.audio.stopVoice(v, 3));
+      }, 1200);
+      if (dip) setTimeout(() => { dip.style.opacity = '0'; }, 500);
+      this.resetStillness();
+      // Say what just happened. Without this the interlude ends on a dip to
+      // white and the player cannot tell whether they solved it, what it was,
+      // or what it bought them. Click-driven, like every other passage.
+      if (vision.after && vision.after.length) {
+        setTimeout(() => this.runBeats(vision.after, () => {}), 1100);
+      }
+    }, 800);
+  }
+
+  // --- Page reader (P13) ---
+  // Shape B disguised as a button. Four clicks, and the only thing that
+  // changes is what is on the page.
+  openReader(readerId) {
+    const reader = (typeof READERS !== 'undefined') ? READERS[readerId] : null;
+    if (!reader) return;
+    this._reader = reader;
+    this._readerPage = 0;
+    const overlay = document.getElementById('reader-overlay');
+    const btn = document.getElementById('reader-btn');
+    const img = document.getElementById('reader-img');
+    if (!overlay) return;
+    this.resetStillness(false);
+    this.hideText();
+    this.hideEntry();
+    this.hidePlate();
+    if (this.state.notebookOpen) this.toggleNotebook();
+    if (img && reader.art) {
+      img.src = this.plateArt(reader.art);
+      img.onerror = () => img.removeAttribute('src');
+    }
+    overlay.style.display = 'flex';
+    // Flushing layout is not enough: a transition started in the same frame as
+    // the display change gets stuck mid-flight here, leaving the notebook open
+    // at computed opacity 0 with its inline opacity set to 1. Apply the value
+    // with transitions off, then re-arm.
+    const readerTrans = getComputedStyle(overlay).transition;
+    overlay.style.transition = 'none';
+    void overlay.offsetHeight;
+    overlay.style.opacity = '1';
+    requestAnimationFrame(() => { overlay.style.transition = readerTrans; });
+    // The room is still there underneath, just quieter.
+    try { this.audio.duckTo(0.16, 3); } catch (err) {}
+    if (btn && !btn._wired) {
+      btn._wired = true;
+      btn.addEventListener('click', (e) => { e.stopPropagation(); this.advanceReader(); });
+      btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(218, 190, 130, 0.10)'; });
+      btn.addEventListener('mouseleave', () => { btn.style.background = 'transparent'; });
+    }
+    this.setState({ readerOpen: true });
+    this.renderReaderPage();
+  }
+
+  renderReaderPage() {
+    const reader = this._reader;
+    if (!reader) return;
+    const textEl = document.getElementById('reader-text');
+    const page = reader.pages[this._readerPage];
+    if (textEl) {
+      textEl.style.opacity = '0';
+      setTimeout(() => {
+        textEl.textContent = typeof page === 'string' ? page : page.text;
+        textEl.style.transition = 'opacity 0.9s ease';
+        textEl.style.opacity = '1';
+      }, 260);
+    }
+    // Rule: nothing important disappears without a click. This used to
+    // auto-advance after 90s and could turn a page out from under a slow
+    // reader mid-sentence. Advancing is the tap's job now.
+    clearTimeout(this._readerTimer);
+  }
+
+  advanceReader() {
+    const reader = this._reader;
+    if (!reader) return;
+    clearTimeout(this._readerTimer);
+    this._readerPage++;
+    if (this._readerPage < reader.pages.length) {
+      this.renderReaderPage();
+      return;
+    }
+    // Done. The game starts telling her the truth from here.
+    const overlay = document.getElementById('reader-overlay');
+    if (overlay) {
+      overlay.style.opacity = '0';
+      setTimeout(() => { overlay.style.display = 'none'; }, 1200);
+    }
+    this._reader = null;
+    this.setState({ readerOpen: false });
+    try { this.audio.unduck(5); } catch (err) {}
+    const oc = reader.onComplete || {};
+    if (oc.flag) this.engine.setFlag(oc.flag);
+    if (oc.notebook) this.engine.addNotebookEntry(oc.notebook.section, oc.notebook.entry);
+    if (oc.message) setTimeout(() => this.showText(oc.message), 1400);
+    this.resetStillness();
+  }
+
+  // --- Timed beats in the text panel ---
+  // Unskippable by design: the panel gets pointer-events none, so there is
+  // nothing to click. Used by P14, where the last beat is an empty box.
+  runBeats(beats, onDone) {
+    const panel = document.getElementById('text-panel');
+    const content = document.getElementById('text-content');
+    if (!panel || !content) return onDone();
+    this.resetStillness(false);
+    // Beats drive the panel directly, so clear any paged passage first and
+    // again at the end. Otherwise textVisible stays true over a hidden panel
+    // and the next click is silently spent advancing pages nobody can see.
+    this.hideText();
+    let i = 0;
+    const step = () => {
+      if (i >= beats.length) {
+        content.style.minHeight = '';
+        this.hideText();
+        setTimeout(onDone, 500);
+        return;
+      }
+      const beat = beats[i++];
+      const pages = beat.text ? this.paginate(beat.text) : [''];
+      let pi = 0;
+      const showPage = () => {
+        content.textContent = pages[pi];
+        content.style.minHeight = pages[pi] ? '' : '2.6em';
+        panel.style.opacity = '1';
+        panel.style.pointerEvents = 'auto';
+        pi++;
+        const next = pi < pages.length ? showPage : step;
+        if (pages[pi - 1]) {
+          // Words on screen: she moves this along, not a timer.
+          this._beatAdvance = next;
+          this.setState({ textVisible: true });
+          this.state.textVisible = true;
+          this.syncContinueLabel();
+        } else {
+          this._beatTimer = setTimeout(next, beat.hold || 2200);
+        }
+      };
+      showPage();
+    };
+    step();
+  }
+
+  // --- P14 · the silence ---
+  runExitBeats(sceneDef, onDone) {
+    const seq = sceneDef.onExit;
+    if (!seq || (seq.once && this.engine.hasFlag(seq.once))) return onDone();
+    // Mark it only when the sequence has actually played, so quitting
+    // halfway doesn't silently spend it.
+    if (seq.once && !seq.setOnComplete) this.engine.setFlag(seq.once);
+    this.runBeats(seq.beats, () => {
+      if (seq.once && seq.setOnComplete) this.engine.setFlag(seq.once);
+      onDone();
+    });
+  }
+
+  // She handed it on, or she kept it. Both continue the chain; one continues
+  // it through two people instead of one.
+  _endingId() {
+    return this.engine.hasFlag('handingOn') ? 'doma' : 'keeper';
+  }
+
+  // --- The ending ---
+  // She has handed it on and gone under. Warm white, never black.
+  showEnding(ending) {
+    this.resetStillness(false);
+    clearTimeout(this._beatTimer);
+    this.hideText();
+    this.hideEntry();
+    this.hidePlate();
+    if (this.state.notebookOpen) this.toggleNotebook();
+    this.audio.stopAllVoices(8);
+    this.audio.stopAllAmbient(8);
+    const overlay = document.getElementById('ending-overlay');
+    const textEl = document.getElementById('ending-text');
+    const wordEl = document.getElementById('ending-word');
+    const credits = document.getElementById('ending-credits');
+    const again = document.getElementById('ending-again');
+    if (!overlay) return;
+    this.setState({ endingActive: true });
+    overlay.style.display = 'flex';
+    void overlay.offsetHeight;
+    overlay.style.opacity = '1';
+    const beats = ending.beats || [];
+    let i = 0;
+    // Rule: nothing important disappears without a click, and this is the
+    // most important text in the game. Each beat now waits for a tap; the
+    // timer only guards against a beat with literally nothing to read.
+    // Re-entering (dev panel, replay) must not stack a second listener.
+    const advanceEnding = () => {
+      if (!this._ceremonyReady) return;
+      if (this.state.endingActive) step();
+    };
+    this._endingAdvance = advanceEnding;
+    this.wireCeremonialDismiss();
+    const hint = document.getElementById('ending-tap-hint');
+    const step = () => {
+      if (hint && i >= beats.length - 1) hint.style.opacity = '0';
+      if (i >= beats.length) {
+        if (wordEl) {
+          wordEl.textContent = ending.word || '';
+          void wordEl.offsetHeight;
+          wordEl.style.opacity = '1';
+        }
+        setTimeout(() => {
+          if (credits) credits.style.opacity = '1';
+        }, ending.creditsAfter || 7000);
+        return;
+      }
+      const beat = beats[i++];
+      if (textEl) {
+        textEl.style.opacity = '0';
+        setTimeout(() => {
+          textEl.textContent = beat.text || '';
+          textEl.style.opacity = '1';
+          // The last words of the game do not get skipped by a reflex.
+          if (beat.text) this.armCeremonial(hint, Math.min(1800 + beat.text.length * 42, 9000));
+        }, 900);
+      }
+      // A beat with no text (a pure pause/breath) still needs to move on its
+      // own — there is nothing on screen to tap. Anything with words waits.
+      if (!beat.text) this._endTimer = setTimeout(step, beat.hold || 3000);
+    };
+    setTimeout(step, 2200);
+    if (again && !again._wired) {
+      again._wired = true;
+      again.addEventListener('mouseenter', () => { again.style.background = 'rgba(160, 138, 94, 0.12)'; });
+      again.addEventListener('mouseleave', () => { again.style.background = 'transparent'; });
+      again.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearTimeout(this._endTimer);
+        this.engine.resetGame();
+        location.reload();
+      });
+    }
+  }
+
+  // --- Chapter card ---
+  // The card and the ending are full-screen ceremonial moments, so a corner
+  // button would cheapen them — but a reflex tap must not be able to skip
+  // words nobody has read. They hold for a minimum, THEN invite the tap.
+  armCeremonial(hintEl, ms) {
+    this._ceremonyReady = false;
+    if (hintEl) hintEl.style.opacity = '0';
+    clearTimeout(this._ceremonyTimer);
+    this._ceremonyTimer = setTimeout(() => {
+      this._ceremonyReady = true;
+      if (hintEl) hintEl.style.opacity = '1';
+    }, ms);
+  }
+
+  wireCeremonialDismiss() {
+    const card0 = document.getElementById('chapter-card');
+    if (card0 && !card0._tapWired) {
+      card0._tapWired = true;
+      card0.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!this._ceremonyReady) return;
+        this.dismissChapterCard();
+      });
+    }
+    const end0 = document.getElementById('ending-overlay');
+    if (end0 && !end0._tapWired) {
+      end0._tapWired = true;
+      end0.addEventListener('click', (e) => {
+        if (!this._ceremonyReady) return;
+        if (this._endingAdvance) this._endingAdvance();
+      });
+    }
+    const rd = document.getElementById('reader-overlay');
+    if (rd && !rd._tapWired) {
+      rd._tapWired = true;
+      rd.addEventListener('click', (e) => { e.stopPropagation(); this.advanceReader(); });
+    }
+    const cbtn = document.getElementById('chapter-continue');
+    if (cbtn && !cbtn._wired) {
+      cbtn._wired = true;
+      cbtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (!this._ceremonyReady) return;
+        if (this.audio) { try { this.audio.playClick('page'); } catch (e2) {} }
+        this.dismissChapterCard();
+      });
+    }
+    const ebtn = document.getElementById('ending-continue');
+    if (ebtn && !ebtn._wired) {
+      ebtn._wired = true;
+      ebtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (!this._ceremonyReady) return;
+        if (this.audio) { try { this.audio.playClick('page'); } catch (e2) {} }
+        if (this._endingAdvance) this._endingAdvance();
+      });
+    }
+  }
+
+  showChapterCard(card, onDismiss) {
+    const el = document.getElementById('chapter-card');
+    const title = document.getElementById('chapter-title');
+    const sub = document.getElementById('chapter-subtitle');
+    if (!el || !title || !sub) return;
+    title.textContent = card.title;
+    sub.textContent = card.subtitle;
+    el.style.display = 'flex';
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 0.6s ease';
+    setTimeout(() => { el.style.opacity = '1'; }, 50);
+    this.cardUp = true;
+    this.armCeremonial(document.getElementById('chapter-tap-hint'),
+      Math.min(2400 + (card.subtitle || '').length * 55, 7000));
+    this._chapterDismiss = () => {
+      el.style.opacity = '0';
+      this.cardUp = false;
+      setTimeout(() => { el.style.display = 'none'; if (onDismiss) onDismiss(); }, 600);
+      this._chapterDismiss = null;
+    };
+    // Rule: nothing important disappears without a click. A full-screen card
+    // that only leaves on a click needs to SAY so, not time itself out — an
+    // auto-dismiss can fire mid-read on a slow reader. The hint below does
+    // that work now.
+  }
+
+  dismissChapterCard() {
+    if (this._chapterDismiss) this._chapterDismiss();
+  }
+
+  // --- Notebook ---
+  toggleNotebook() {
+    const overlay = document.getElementById('notebook-overlay');
+    if (!overlay) return;
+    const isOpen = overlay.style.display !== 'none';
+    if (isOpen) {
+      overlay.style.display = 'none';
+      this.setState({ notebookOpen: false });
+    } else {
+      this.renderNotebook();
+      overlay.style.display = 'block';
+      this.setState({ notebookOpen: true });
+    }
+  }
+
+  // Save (and optionally leave) from inside the notebook — the book is the menu.
+  saveFromNotebook(alsoQuit) {
+    this.engine._save();
+    const st = document.getElementById('nb-save-status');
+    if (st) {
+      st.textContent = alsoQuit ? 'Saved. Closing the book…' : 'Saved. She can pick it up here again.';
+      st.style.color = 'rgba(226, 198, 138, 0.95)';
+      if (!alsoQuit) setTimeout(() => {
+        st.textContent = 'She keeps the book in her bag. It remembers where she left off.';
+        st.style.color = 'rgba(196, 181, 143, 0.65)';
+      }, 2600);
+    }
+    if (!alsoQuit) return;
+    setTimeout(() => {
+      this.toggleNotebook();
+      this.audio.stopAllVoices(2);
+      this.audio.stopAllAmbient(2);
+      this.setState({ started: false });
+      // Rebuild BEFORE the display flip: if this ever throws, the player is
+      // left on the game rather than on a title screen missing its Continue.
+      this.buildTitleButtons();
+      this._titleThemeOn = false;
+      this.startTitleTheme();
+      const t = document.getElementById('title-screen');
+      const g = document.getElementById('game-root');
+      if (g) g.style.display = 'none';
+      if (t) { t.style.display = 'block'; t.style.opacity = '1'; }
+    }, 800);
+  }
+
+  // The notebook is always reachable in play — never hidden by a scene state.
+  syncNotebookVisibility() {
+    const btn = document.getElementById('notebook-btn');
+    if (!btn) return;
+    // A playable vision is NOT a takeover for this purpose: it runs for minutes
+    // and she has to be able to save and get out from inside it. The page reader
+    // IS a takeover (its own button owns the screen), so it still hides the book.
+    const hide = !this.state.started ||
+      document.getElementById('reader-overlay')?.style.display === 'flex';
+    btn.style.display = hide ? 'none' : 'flex';
+    btn.style.pointerEvents = hide ? 'none' : 'auto';
+    // Must stay above #hotspot-layer (55), or an object overlapping the corner
+    // swallows the tap and the notebook can't be opened in that scene.
+    btn.style.zIndex = '58';
+  }
+
+  renderNotebook() {
+    const container = document.getElementById('notebook-entries');
+    if (!container) return;
+    const nb = this.engine.state.notebook;
+    const has = (f) => this.engine.hasFlag(f);
+    let html = '';
+    // The tally she keeps at the front. The notebook logged what she'd found
+    // but never said where she was in any of it — so a player who put the game
+    // down for a week reopened it with a list of oddments and no thread.
+    // Four voices, in her hand, ticked off as she gets them.
+    const voices = [
+      { flag: 'heardForest', name: 'the low one', where: 'under the water at Kašjuni' },
+      { flag: 'heardRiver', name: 'the held one', where: 'in the side channel at Omiš' },
+      { flag: 'stoneRang', name: 'the bell', where: 'in the empty workshop at Pučišća' },
+      { flag: 'heardSea', name: 'the wind one', where: 'in the streets on Korčula' },
+    ];
+    const heard = voices.filter(v => has(v.flag));
+    const missing = voices.length - heard.length;
+    const spell = ['none', 'one', 'two', 'three', 'four'];
+    // Always shown, including at zero: a brand-new player is exactly the one
+    // who needs to know there are four of these to find.
+    html += `<div style="font-size: 22px; color: #d4c5a9; margin-bottom: 10px;">Places That Are Doing It Right Now (${heard.length} of 4)</div>`;
+    html += '<div style="margin-bottom: 22px; padding: 12px 16px; background: rgba(212, 197, 169, 0.06); border-radius: 6px;">';
+    heard.forEach(v => {
+      html += `<div style="margin: 4px 0;">✓ ${v.name} — ${v.where}</div>`;
+    });
+    // ONE line for the remainder, counted. Emitting it per unheard voice
+    // printed the same sentence three times and read as a rendering fault.
+    if (missing > 0) {
+      html += `<div style="margin: 4px 0; opacity: 0.42;">— ${spell[missing]} I still haven't got</div>`;
+    }
+    if (has('sangWithThem')) html += '<div style="margin: 10px 0 2px;">All four at once. I was there for that.</div>';
+    html += '</div>';
+    // Directly under the tally, NOT after the log. The entry list is the part
+    // that grows, so anything appended below it gets pushed further off-screen
+    // with every discovery — the guidance was ending up 800px down the scroll.
+    // How quiet she is in the room she is actually standing in. This is the
+    // real guidance: not "go here next" but "you are still making too much
+    // noise, and here is roughly how much." She reads it and draws her own
+    // conclusion, which is the whole design.
+    const here = SCENES[this.state.currentScene];
+    if (here && here.wait && this.state.started) {
+      const q = this.engine.quietness(this.state.currentScene, here);
+      const need = this.engine.quietNeeded(here);
+      const pct = Math.max(0, Math.min(100, Math.round((q / need) * 100)));
+      const line = pct >= 100
+        ? "Quiet enough. Whatever is here, I can hear it from where I am standing."
+        : pct >= 70 ? "Nearly. Something in this place I still haven't properly looked at."
+        : pct >= 35 ? "Too much going on in my head to hear anything over it."
+        : "Hopeless. I have only just got here and I am still all noise.";
+      html += '<div style="font-size: 22px; color: #d4c5a9; margin-bottom: 10px;">How quiet I am here</div>';
+      html += '<div style="margin-bottom: 22px; padding: 12px 16px; background: rgba(212, 197, 169, 0.06); border-radius: 6px;">';
+      html += `<div style="height: 6px; border-radius: 3px; background: rgba(212,197,169,0.16); overflow: hidden; margin-bottom: 10px;"><div style="height: 100%; width: ${pct}%; background: rgba(226, 198, 138, 0.7);"></div></div>`;
+      html += line + '</div>';
+    }
+    // Guidance is earned, not issued, and it is about THIS room. Three tests
+    // have to pass: she has heard a voice at all, she has actually worked in
+    // here, and she is close. Otherwise the book stays a record and not a
+    // walkthrough — which is also why there is only ever one line of it.
+    const hint = this._earnedHint();
+    if (hint) {
+      html += '<div style="font-size: 22px; color: #d4c5a9; margin-bottom: 10px;">What I keep thinking about, standing right here</div>';
+      html += `<div style="margin-bottom: 26px; padding: 12px 16px; background: rgba(212, 197, 169, 0.06); border-radius: 6px; border-left: 3px solid rgba(226, 198, 138, 0.45);">${hint}</div>`;
+    }
+    // Weird Things
+    if (nb.weirdThings.length > 0) {
+      nb.weirdThings.forEach(entry => {
+        html += `<div style="margin-bottom: 16px; padding: 12px 16px; background: rgba(212, 197, 169, 0.08); border-radius: 6px; border-left: 3px solid rgba(212, 197, 169, 0.3);">${entry.text}</div>`;
+      });
+    } else {
+      html += '<div style="opacity: 0.5; font-style: italic;">Nothing in here yet. I should look at things properly.</div>';
+    }
+    // Noticed
+    if (nb.noticed.length > 0) {
+      html += '<div style="margin-top: 24px; font-size: 22px; color: #d4c5a9; margin-bottom: 12px;">Things People Said That I Wrote Down</div>';
+      nb.noticed.forEach(entry => {
+        html += `<div style="margin-bottom: 12px; padding: 12px 16px; background: rgba(212, 197, 169, 0.06); border-radius: 6px; font-style: italic;">"${entry.text}"</div>`;
+      });
+    }
+    // Dida says
+    if (nb.didaSays.length > 0) {
+      html += '<div style="margin-top: 24px; font-size: 22px; color: #d4c5a9; margin-bottom: 12px;">Dida Says</div>';
+      nb.didaSays.forEach(entry => {
+        html += `<div style="margin-bottom: 12px; padding: 12px 16px; background: rgba(212, 197, 169, 0.06); border-radius: 6px;">${entry.text}</div>`;
+      });
+    }
+    container.innerHTML = html;
+  }
+
+  // Hints are per-ROOM and have to be earned. The old version searched one
+  // global list for the first unmet flag in the whole game, so a player standing
+  // in a cave on Korčula was told about a cat in Split. Worse, it appeared on
+  // the first open, which turns a diary into a walkthrough.
+  //
+  // Three gates: she has heard a voice at all; she has done real work in THIS
+  // room this visit; and she is measurably close to its answer.
+  _earnedHint() {
+    if (!this.state.started || !this.engine.hasFlag('heardForest')) return '';
+    const id = this.state.currentScene;
+    const def = SCENES[id];
+    if (!def) return '';
+
+    // Effort: has she actually tried things in here, or just walked in and
+    // opened the book? Six real actions is about a minute of honest poking.
+    const effort = this._sceneActions || 0;
+    if (effort < 6) return '';
+
+    // Proximity: how much of this room has she actually exhausted?
+    let rungs = 0, spent = 0;
+    (def.hotspots || []).forEach(hs => {
+      if (hs.hideWhen && this.engine.hasFlag(hs.hideWhen)) return;
+      if (hs.showWhen && !this.engine.hasFlag(hs.showWhen)) return;
+      const L = hs.verbs && hs.verbs.look;
+      if (!L || !L.ladder) return;
+      rungs += L.ladder.length;
+      spent += Math.min(L.ladder.length, this.engine.getCounter(id, 'look', hs.id));
+    });
+    const looked = rungs ? spent / rungs : 1;
+    let quiet = 1;
+    if (def.wait) {
+      quiet = this.engine.quietness(id, def) / (this.engine.quietNeeded(def) || 1);
+    }
+    // "Near the solution" — she has turned over most of what is here, or she is
+    // most of the way to being quiet enough for it.
+    if (looked < 0.6 && quiet < 0.75) return '';
+
+    const has = (f) => this.engine.hasFlag(f);
+    const forHere = (this._roomHints()[id] || []).find(([cond]) => cond);
+    return forHere ? forHere[1] : '';
+  }
+
+  // One room, one obstacle, one line — in her voice, never naming a verb she
+  // has not earned and never naming a place she is not standing in.
+  _roomHints() {
+    const has = (f) => this.engine.hasFlag(f);
+    return {
+      'kasjuni-day': [
+        [!has('foundHand'), "That lump of stone at the waterline. I looked at it twice and I do not think twice was enough."],
+        [!has('understoodRelief') && has('bolted'), "I am not getting back in that water until somebody tells me what that was. Dida. The kitchen. Now."],
+      ],
+      'underwater': [
+        [!has('heardForest'), "It is down here. I keep filling the quiet up with my own heart and my own opinions about the carved hand."],
+        [!has('sawFirstVision'), "Four on the stone. Three holding on, one underneath. If I can hold still long enough to count them the same way down here, something is going to happen."],
+      ],
+      'kitchen': [
+        [!has('sentToMuseum'), "Dida went quiet when I told him. Dida does not go quiet. Give him another go."],
+        [!has('gotCup'), "Nona has planted herself in that doorway with the laundry, and the cat knows something I do not. There is half a tin of sardines involved. I can feel it."],
+        [!has('telling'), "He stopped talking about this when he was younger than I am, and he has left a third cup out on the table, which is not an accident."],
+      ],
+      'museum': [
+        [!has('readPlacard'), "There is a card on that case and I have been ignoring it because cards are boring. Somebody wrote it. Somebody decided what to leave out of it."],
+        [!has('waitedAtRelief'), "I am standing in the quietest room in Split being extremely busy. That cannot be right."],
+        [!has('understoodRelief'), "Go back to the stone. Something in the arrangement of them is the whole point and I have walked past it twice."],
+      ],
+      'canyon': [
+        [!has('foundSideChannel'), "This river is too loud to hear anything over. Which has to mean there is somewhere near here that it is not."],
+      ],
+      'side-channel': [
+        [!has('understoodQuiet'), "The river has not got quieter since I came round that corner. I have moved. That is a completely different thing and I think it matters."],
+        [!has('heardRiver'), "Right place, wrong me. Turn over everything in here, and then stop turning things over."],
+      ],
+      'omis-square': [
+        [!has('tonkoWisdom'), "Something came out of that old man's boot and he has not noticed, and I have. He is not going to fill the gap for me."],
+      ],
+      'pucisca': [
+        [!has('gotPebble'), "There is a seven-year-old at my elbow with something in his fist, doing an extremely casual impression of a person. If I say hello he will bolt."],
+        [!has('stoneRang'), "That workshop up the hill goes quiet at some point in the day. I need to be standing in it when it does."],
+      ],
+      'workshop-busy': [
+        [!has('workshopEmptied'), "Nobody in this room can hear anything, including the room. Two of them have told me when that changes without either of them meaning to."],
+      ],
+      'workshop-empty': [
+        [!has('stoneRang'), "Everyone has gone and the stone is still here. I have never once been in this room when it was not being hit."],
+      ],
+      'blaca-ravine': [
+        [!has('custodianReturned'), "A shut door, a bench, and no bell. Whoever lives behind it comes back at some point, and sitting on a bench is not the same as doing nothing."],
+      ],
+      'clock-room': [
+        [!has('foundNotebook'), "That clock wants something worn smooth by one hand doing one job for forty years. I am carrying exactly that and have been all week."],
+      ],
+      'korcula-street': [
+        [!has('heardSea'), "The wind comes down these streets at the same time every afternoon, so there is no point standing here now. Go away and come back."],
+      ],
+      'cave-mouth': [
+        [!has('sawTheChain'), "Everyone keeps not talking about this cave, which is how I know."],
+      ],
+      'cave-deep': [
+        [!has('eyesAdjusted'), "It is too dark to see anything, and I have just realised that is not a problem, it is the instruction."],
+        [!has('sawTheChain'), "There is something on that wall and my eyes have only just started working. Look at it properly."],
+        [!has('heardAll'), "Four of them, one room, and the only thing standing in the way is me and the amount of noise I am."],
+      ],
+      'kasjuni-dawn': [
+        [!has('sangWithThem'), "All four of them, in the dark, and I just sat there like an audience. Next time I am not only going to listen."],
+      ],
+      'underwater-finale': [
+        [!has('sangWithThem'), "They have been holding this note for three thousand years without anybody joining in. I have a voice. It is not a good one, but it is a voice."],
+      ],
+      'lake-michigan': [
+        [!has('handingOn') && !has('keptIt'), "Vita has been working up to a question for four hundred miles, and there is a stone in my pocket, and I have not decided anything."],
+      ],
+    };
+  }
+
+  renderVals() {
+    return {};
+  }
+}
+
+</script>
+</body>
+</html>
