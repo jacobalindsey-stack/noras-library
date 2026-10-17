@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>Adriatica — Mira Novak and the Hidden Stones</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&amp;family=EB+Garamond:ital@0;1&amp;family=Caveat:wght@400;700&amp;family=Silkscreen:wght@400;700&amp;display=swap" rel="stylesheet">
+  <style>
+    html,body{margin:0;padding:0;height:100%;background:#080605;overflow:hidden;}
+    #stage{--u:1vw;}
+    @keyframes tcGlow{0%,100%{box-shadow:0 calc(var(--u)*.5) calc(var(--u)*2) rgba(0,0,0,.5),0 0 calc(var(--u)*2) rgba(255,206,90,.35);}50%{box-shadow:0 calc(var(--u)*.5) calc(var(--u)*2) rgba(0,0,0,.5),0 0 calc(var(--u)*3.6) rgba(255,206,90,.62);}}
+  </style>
+</helmet>
+
+<div id="stagewrap" style="position:fixed;inset:0;height:100vh;height:100dvh;background:radial-gradient(120% 100% at 50% 30%,#15100b,#080605);display:flex;align-items:center;justify-content:center;">
+  <div id="stage" style="position:relative;aspect-ratio:1498/1050;height:min(100vh,calc(100vw*1050/1498));height:min(100dvh,calc(100vw*1050/1498));width:auto;box-shadow:0 calc(var(--u)*2) calc(var(--u)*8) rgba(0,0,0,.7);">
+
+    <img src="assets/title_bg.png" alt="Moonlit Split, sphinxes and cats" style="position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;">
+
+    <!-- TITLE BLOCK over the parchment -->
+    <div style="position:absolute;left:8%;right:8%;top:34%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;text-align:center;">
+      <div style="font-family: 'Cinzel',serif; font-weight: 600; font-size: calc(var(--u)*1.7); letter-spacing: calc(var(--u)*.62); color: #FFFFFF; text-transform: uppercase">Diocletian’s Palace · Split · Midnight</div>
+      <h1 style="font-family:'Cinzel',serif;font-weight:900;font-size:calc(var(--u)*8.6);line-height:1.02;margin:calc(var(--u)*1.8) 0 0;color:#2a1c0f;letter-spacing:calc(var(--u)*.3);text-shadow:0 calc(var(--u)*.18) 0 #c9b48a,0 calc(var(--u)*.5) calc(var(--u)*1.2) rgba(120,80,30,.35);">ADRIATICA</h1>
+      <div style="font-family:'Cinzel',serif;font-weight:700;font-size:calc(var(--u)*2.5);letter-spacing:calc(var(--u)*.2);color:#4a3418;margin-top:calc(var(--u)*1.2);">Mira Novak and the Hidden Stones</div>
+    </div>
+
+    <!-- BUTTONS over the lower horizon -->
+    <div style="position:absolute;left:0;right:0;top:60%;display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*1.5);">
+      <a id="beginlink" href="play.html?start=1" style="font-family:'Cinzel',serif;font-weight:700;letter-spacing:calc(var(--u)*.35);font-size:calc(var(--u)*2.5);text-transform:uppercase;color:#1c1408;background:linear-gradient(180deg,#f4d98a,#d9a441);padding:calc(var(--u)*1.5) calc(var(--u)*5);border-radius:calc(var(--u)*1);text-decoration:none;border:calc(var(--u)*.18) solid #f0e0b0;animation:tcGlow 3.4s ease-in-out infinite;">Begin the Quest</a>
+      <a id="contlink" href="play.html?continue=1" style="display:none;font-family:'Cinzel',serif;font-weight:600;letter-spacing:calc(var(--u)*.28);font-size:calc(var(--u)*1.75);text-transform:uppercase;color:#f3e6c6;background:rgba(20,14,8,.62);backdrop-filter:blur(2px);padding:calc(var(--u)*.95) calc(var(--u)*3.2);border-radius:calc(var(--u)*.8);text-decoration:none;border:calc(var(--u)*.16) solid rgba(217,164,65,.5);">Continue your journey</a>
+    </div>
+
+    <!-- CREDIT corner -->
+    <div style="position:absolute;left:calc(var(--u)*1.6);bottom:calc(var(--u)*1.4);font-family:'EB Garamond',serif;font-style:italic;font-size:calc(var(--u)*1.25);color:rgba(243,230,198,.6);">A Split midnight tale · for ages 9–12 <span style="font-family:'Silkscreen',monospace;font-style:normal;font-size:calc(var(--u)*.85);color:rgba(243,230,198,.35);margin-left:calc(var(--u)*.8);">v2.1</span></div>
+
+    <!-- DEBUG jump panel -->
+    <div id="dbgbtn" style="position:absolute;right:calc(var(--u)*1.6);bottom:calc(var(--u)*1.4);font-family:'Silkscreen',monospace;font-size:calc(var(--u)*.95);letter-spacing:calc(var(--u)*.08);color:rgba(243,230,198,.4);background:rgba(12,9,6,.35);padding:calc(var(--u)*.5) calc(var(--u)*.9);border-radius:calc(var(--u)*.5);cursor:pointer;border:calc(var(--u)*.1) solid rgba(217,164,65,.18);">DEV</div>
+    <div id="dbgpanel" style="display:none;position:absolute;right:calc(var(--u)*1.6);bottom:calc(var(--u)*4.4);width:calc(var(--u)*30);max-height:calc(var(--u)*54);overflow-y:auto;background:rgba(12,9,6,.92);border:calc(var(--u)*.14) solid rgba(217,164,65,.5);border-radius:calc(var(--u)*.9);padding:calc(var(--u)*1.2);backdrop-filter:blur(3px);">
+      <div style="font-family:'Silkscreen',monospace;font-size:calc(var(--u)*1);color:#d9a441;letter-spacing:calc(var(--u)*.1);margin-bottom:calc(var(--u)*.8);">JUMP IN — EARLIER GOALS PRE-SET</div>
+      <div id="dbglinks" style="display:flex;flex-direction:column;gap:calc(var(--u)*.45);"></div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){
+    const stage = document.getElementById('stage');
+    const setU = () => { const w = stage ? stage.getBoundingClientRect().width : 0;
+      if(w>0) stage.style.setProperty('--u', (w/100) + 'px');
+      else requestAnimationFrame(setU); };
+    setU();
+    this._ro = new ResizeObserver(setU); if(stage) this._ro.observe(stage);
+    window.addEventListener('resize', setU); this._setU = setU;
+    try{
+      if(localStorage.getItem('sq_save_v1')){
+        const c=document.getElementById('contlink'); if(c) c.style.display='inline-block';
+        const b=document.getElementById('beginlink');
+        // Two taps instead of window.confirm(): sandboxed frames (like a Claude
+        // artifact) refuse confirm() dialogs, which left Begin doing nothing.
+        if(b){ const label=b.textContent; let armed=false, t=null;
+          b.onclick=(e)=>{
+            if(!armed){ e.preventDefault(); armed=true; b.textContent='Tap again: erase saved quest';
+              t=setTimeout(()=>{ armed=false; b.textContent=label; }, 4000); return; }
+            clearTimeout(t);
+            try{ localStorage.removeItem('sq_save_v1'); }catch(err){}
+          }; }
+      }
+    }catch(e){}
+    document.title='Adriatica — Mira Novak and the Hidden Stones';
+    // debug jump panel
+    const ENG='play.html';
+    const JUMPS=[
+      ['Opening — Nona\u2019s apartment','?scene=apartment&frags=0&intro=1'],
+      ['Peristyle — bread + Fragment I','?scene=peristyle&frags=0&intro=1'],
+      ['Temple of Jupiter — Fragment II','?scene=temple&frags=1&intro=1'],
+      ['Arch. Museum — Fragment III','?scene=museum&frags=2&intro=1'],
+      ['City Museum — Fragment IV','?scene=citymuseum&frags=3&intro=1'],
+      ['Palace Cellars — Fragment V','?scene=cellar&frags=4&intro=1'],
+      ['Fish Market — Fragment VI','?scene=fishmarket&frags=5&intro=1'],
+      ['Round Hall + Bell Tower — Fragment VII','?scene=cathedral&frags=6&intro=1'],
+      ['Vrtal Garden — Fragment VIII','?scene=garden&frags=7&intro=1'],
+      ['Round Hall — Fragment IX (the Heart)','?scene=cathedral&frags=8&intro=1'],
+      ['Drainage Tunnels — Fragment X','?scene=tunnels&frags=9&intro=1'],
+      ['Vestibule — Fragment XI','?scene=vestibule&frags=10&intro=1'],
+      ['Finale — the Peristyle at midnight','?scene=peristyle&frags=11&intro=1'],
+    ];
+    const panel=document.getElementById('dbgpanel'), btn=document.getElementById('dbgbtn'), links=document.getElementById('dbglinks');
+    if(btn&&panel&&links){
+      links.innerHTML=JUMPS.map(([l,qs])=>`<a href="${ENG}${qs}" style="display:block;font-family:'EB Garamond',serif;font-size:calc(var(--u)*1.35);color:#f3e6c6;text-decoration:none;padding:calc(var(--u)*.5) calc(var(--u)*.7);border-radius:calc(var(--u)*.5);border:1px solid rgba(217,164,65,.22);" onmouseover="this.style.background='rgba(217,164,65,.18)'" onmouseout="this.style.background='none'">${l}</a>`).join('');
+      btn.onclick=()=>{ panel.style.display = panel.style.display==='none' ? 'block':'none'; };
+    }
+  }
+  componentWillUnmount(){ if(this._ro) this._ro.disconnect(); if(this._setU) window.removeEventListener('resize', this._setU); }
+  renderVals(){ return {}; }
+}
+</script>
+</body>
+</html>

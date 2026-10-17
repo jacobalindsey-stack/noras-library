@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>The Cat Bakery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  html, body { margin:0; height:100%; background:#1c1109; overflow:hidden; overscroll-behavior:none; touch-action:manipulation; -webkit-text-size-adjust:100%; }
+  * { -webkit-tap-highlight-color: transparent; }
+  #root { width:100vw; height:100vh; }
+  .stage {
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:#1c1109; overflow:hidden;
+  }
+  .frame {
+    position:relative; transform-origin:center center; flex:0 0 auto;
+    background:#efd9b3; border:4px solid #1c1109; box-shadow:0 0 0 4px #3c2614;
+    overflow:hidden;
+    will-change:transform; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  }
+  /* iOS momentum scrolling + contained overscroll for in-game scroll panels */
+  .frame *::-webkit-scrollbar { width:6px; height:6px; }
+  .frame *::-webkit-scrollbar-thumb { background:#7c5325; }
+  .frame [style*="auto"], .frame [style*="scroll"] { -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+  button { font-family:'Press Start 2P', monospace; touch-action:manipulation; }
+  /* rotate warning only on portrait phones */
+  .rotate-warn { display:none; }
+  @media (max-width: 740px) and (orientation: portrait) {
+    .stage { display:none; }
+    .rotate-warn {
+      display:flex; position:fixed; inset:0; z-index:999; align-items:center; justify-content:center;
+      background:#3c2614; padding:30px;
+    }
+  }
+  /* ---- keyframes (stepped, retro) ---- */
+  @keyframes toastpop { from { transform:translateY(-8px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+  @keyframes steam { 0%{ transform:translateY(0); opacity:.8; } 100%{ transform:translateY(-18px); opacity:0; } }
+  @keyframes confetti { 0%{ transform:translateY(0) rotate(0deg); } 100%{ transform:translateY(580px) rotate(360deg); } }
+  @keyframes nodepulse { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.08); } }
+  @keyframes spin { from{ transform:rotate(0deg);} to{ transform:rotate(360deg);} }
+  /* ---- intro title-screen motion ---- */
+  @keyframes twinkle { 0%,100%{ opacity:.25; } 50%{ opacity:1; } }
+  @keyframes drift { from{ transform:translateX(-30%); } to{ transform:translateX(130vw); } }
+  @keyframes bob { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-7px); } }
+  @keyframes floaty { 0%,100%{ transform:translateY(0) rotate(-4deg); } 50%{ transform:translateY(-14px) rotate(4deg); } }
+  @keyframes fall { 0%{ transform:translateY(-10px) rotate(0deg); opacity:0; } 10%{ opacity:1; } 100%{ transform:translateY(150px) rotate(220deg); opacity:0; } }
+  @keyframes glowpulse { 0%,100%{ opacity:.5; transform:translateX(-50%) scale(1); } 50%{ opacity:.85; transform:translateX(-50%) scale(1.08); } }
+  @keyframes sway { 0%,100%{ transform:rotate(-2.5deg); } 50%{ transform:rotate(2.5deg); } }
+  /* ---- chimney smoke (rise, billow, fade) ---- */
+  @keyframes smokepuff {
+    0%   { transform:translate(-50%,0) scale(.5); opacity:0; }
+    15%  { opacity:.7; }
+    60%  { opacity:.45; }
+    100% { transform:translate(-50%,-94px) scale(2); opacity:0; }
+  }
+  /* ---- glass display-case shine sweep ---- */
+  @keyframes casegleam { 0%{ transform:translateX(-120%) skewX(-18deg); } 100%{ transform:translateX(320%) skewX(-18deg); } }
+  /* ---- ambient floating dust motes ---- */
+  @keyframes mote { 0%{ transform:translateY(0); opacity:0; } 20%{ opacity:.5; } 80%{ opacity:.5; } 100%{ transform:translateY(-26px); opacity:0; } }
+  /* ---- window-light flicker (a touch warmer than twinkle) ---- */
+  @keyframes lampflick { 0%,100%{ opacity:.35; } 45%{ opacity:1; } 70%{ opacity:.7; } }
+  /* ---- finale trophy pop ---- */
+  @keyframes trophybob { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-9px); } }
+  /* Respect reduced-motion: drop the ambient/decorative loops, keep content visible */
+  @media (prefers-reduced-motion: reduce) {
+    .frame [class~="fx-ambient"], .frame .fx-ambient * { animation:none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  /* Lower the ambient-particle budget on phones/tablets (coarse pointer or small screen)
+     so iOS Safari isn't repainting dozens of animated layers inside the scaled stage. */
+  window.LOW_FX = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    || Math.min(window.screen.width, window.screen.height) <= 560;
+</script>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#f2c14e"/>
+    <rect x="30" y="44" width="40" height="34" fill="#e0a44e" stroke="#5a3a1c" stroke-width="3"/>
+    <polygon points="36,44 30,32 44,40" fill="#e0a44e" stroke="#5a3a1c" stroke-width="3"/>
+    <polygon points="64,44 70,32 56,40" fill="#e0a44e" stroke="#5a3a1c" stroke-width="3"/>
+    <circle cx="44" cy="58" r="3.5" fill="#3c2614"/>
+    <circle cx="56" cy="58" r="3.5" fill="#3c2614"/>
+    <circle cx="38" cy="64" r="3" fill="#e07f96"/>
+    <circle cx="62" cy="64" r="3" fill="#e07f96"/>
+    <path d="M47 64 q3 4 6 0" fill="none" stroke="#3c2614" stroke-width="2.5"/>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- embedded sprite data URIs — keeps the bundle fully self-contained (no loose image files) -->
+<script src="sprite-data.js"></script>
+
+<!-- data + state + shared kit -->
+<script type="text/babel" src="sound.jsx"></script>
+<script type="text/babel" src="game-data.jsx"></script>
+<script type="text/babel" src="game-state.jsx"></script>
+<script type="text/babel" src="pastry-art.jsx"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="ui-kit.jsx"></script>
+<script type="text/babel" src="venues.jsx"></script>
+<!-- screens -->
+<script type="text/babel" src="screen-bakery.jsx"></script>
+<script type="text/babel" src="screen-shop.jsx"></script>
+<script type="text/babel" src="screen-customers.jsx"></script>
+<script type="text/babel" src="screen-bake.jsx"></script>
+<script type="text/babel" src="screen-map.jsx"></script>
+<script type="text/babel" src="screen-extras.jsx"></script>
+<script type="text/babel" src="screen-intro.jsx"></script>
+<!-- app entry -->
+<script type="text/babel" src="app.jsx"></script>
+</body>
+</html>
