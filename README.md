@@ -14,7 +14,7 @@ Every push to `main` redeploys the site.
 | Adriatica | `adriatica/` | migrated from Claude Design export ("Thirteen Sphinxes", v2.1) |
 | Mirror of Algol | `algol.html` | migrated from Claude Design export (single file) |
 | Adriatica II | `adriatica2/` | migrated from Claude Design export (folder build, 19 MB) |
-| Blackthorn Manor | `blackthorn.html` | migrated from Claude artifact (v1.1.0) |
+| Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (9281d96) |
 
 Adriatica II also lives at the old subdomain adriatica2.noralindsey.com until
 that is retired. Its folder build loads React and three.js from unpkg and its
