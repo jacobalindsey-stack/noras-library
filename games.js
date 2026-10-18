@@ -7,6 +7,7 @@
    key     short id, letters only
    title   shown on the playbill
    kind    the kind of game, shown under the title
+   platforms  where it plays well, best first: 'PC', 'iPad', 'iPhone'
    href    where the game lives (a file like "game.html" or a folder "game/")
    ground  the cameo's background color (from the game's own art)
    foil    the emblem's gold color (from the game's own art)
@@ -17,6 +18,7 @@ window.NORA_GAMES = [
     key: 'algol',
     title: 'Mirror of Algol',
     kind: 'Retro turn-based RPG',
+    platforms: ['PC', 'iPad', 'iPhone'],
     href: 'algol.html',
     ground: '#0b0640',
     foil: '#e0a86a',
@@ -26,6 +28,7 @@ window.NORA_GAMES = [
     key: 'blackthorn',
     title: 'Blackthorn Manor',
     kind: 'Spellcasting action adventure',
+    platforms: ['PC', 'iPad', 'iPhone'],
     href: 'blackthorn.html',
     ground: '#1c1222',
     foil: '#e8a83a',
@@ -35,6 +38,7 @@ window.NORA_GAMES = [
     key: 'adriatica',
     title: 'Adriatica',
     kind: 'Top-down puzzle adventure',
+    platforms: ['PC', 'iPad', 'iPhone'],
     href: 'adriatica/',
     ground: '#0f263b',
     foil: '#d8b67b',
@@ -44,6 +48,7 @@ window.NORA_GAMES = [
     key: 'adriatica2',
     title: 'Adriatica II',
     kind: 'Point-and-click adventure',
+    platforms: ['iPad', 'PC'],
     href: 'adriatica2/',
     ground: '#1f4a55',
     foil: '#f7d094',
@@ -53,6 +58,7 @@ window.NORA_GAMES = [
     key: 'catbakery',
     title: 'The Cat Bakery',
     kind: 'Cozy bakery sim',
+    platforms: ['PC', 'iPad', 'iPhone'],
     href: 'catbakery/',
     ground: '#2d1a35',
     foil: '#f2c14e',
@@ -62,6 +68,7 @@ window.NORA_GAMES = [
     key: 'apprenticeship',
     title: 'The Long Apprenticeship',
     kind: 'Caravan survival strategy',
+    platforms: ['PC', 'iPad', 'iPhone'],
     href: 'apprenticeship/',
     ground: '#1a1915',
     foil: '#d4a24c',

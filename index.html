@@ -34,7 +34,7 @@
   /* ---------- the curtain ---------- */
   header {
     position: relative;
-    padding: 0 16px 150px;
+    padding: 0 16px clamp(76px, 9vh, 124px);
     background:
       radial-gradient(ellipse 60% 70% at 50% 42%, rgba(255,206,140,.30), rgba(255,206,140,0) 70%),
       repeating-linear-gradient(90deg, #4a0c20 0px, #6e1730 26px, #8a2240 34px, #6e1730 44px, #4a0c20 72px);
@@ -43,12 +43,12 @@
   .valance { top: 0; width: 100%; height: 96px; }
   .sparkles { inset: 0; width: 100%; height: 100%; }
   .fringe { bottom: 0; width: 100%; height: 34px; }
-  .marquee { position: relative; max-width: 1000px; margin: 0 auto; padding-top: 190px; text-align: center; }
+  .marquee { position: relative; max-width: 1000px; margin: 0 auto; padding-top: clamp(64px, 9vh, 130px); text-align: center; }
   h1 {
     margin: 0;
     font-weight: 400;
     font-style: italic;
-    font-size: clamp(60px, 10.5vw, 150px);
+    font-size: clamp(46px, min(8.5vw, 11vh), 120px);
     line-height: .95;
     background: linear-gradient(180deg, #fff6df 0%, #f2d08a 48%, #c48a35 100%);
     -webkit-background-clip: text;
@@ -56,18 +56,18 @@
     color: transparent;
     filter: drop-shadow(0 0 28px rgba(255,200,120,.35)) drop-shadow(0 3px 0 rgba(58,8,24,.6));
   }
-  .flourish { display: block; margin: 30px auto 0; max-width: 100%; }
+  .flourish { display: block; margin: 12px auto 0; width: 280px; max-width: 70%; height: auto; }
 
   /* ---------- the programme card ---------- */
-  main { position: relative; margin-top: -96px; padding: 0 16px 110px; }
+  main { position: relative; margin-top: -72px; padding: 0 12px 72px; }
   .card {
     position: relative;
-    max-width: 1060px;
+    max-width: 1180px;
     margin: 0 auto;
     background: var(--paper);
     border-radius: 4px;
     box-shadow: 0 40px 90px rgba(10,0,4,.6), 0 0 0 1px #e6cfae;
-    padding: clamp(28px, 5vw, 64px) clamp(16px, 5vw, 72px);
+    padding: clamp(22px, 3.2vh, 44px) clamp(12px, 3vw, 44px);
   }
   .card::before {
     content: "";
@@ -79,25 +79,39 @@
     border-radius: 2px;
     pointer-events: none;
   }
-  .programme { position: relative; list-style: none; margin: 0; padding: 0; }
-  .programme li + li { border-top: 1px solid var(--paper-rule); }
-
-  /* one centred column: numeral | cameo | title, the whole group balanced in the card */
-  .act {
-    display: grid;
-    grid-template-columns: 76px 156px minmax(0, 400px);
-    column-gap: 40px;
+  /* the acts: a wrapping grid of tiles, every row centred.
+     ~4 across on a wide desktop, 3 on a laptop, 2 on a phone. */
+  .programme {
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
     justify-content: center;
+    gap: clamp(8px, 1.6vh, 22px) clamp(8px, 1.6vw, 22px);
+    --tile: clamp(150px, 18vw, 230px);
+  }
+  .programme li { width: var(--tile); }
+
+  .act {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    padding: 34px 0;
+    gap: clamp(6px, 1.1vh, 12px);
+    padding: clamp(8px, 1.4vh, 16px) 6px clamp(10px, 1.6vh, 18px);
+    text-align: center;
     color: inherit;
     text-decoration: none;
-    border-radius: 6px;
+    border-radius: 12px;
+    transition: background-color .25s ease;
   }
-  .numeral { text-align: center; font-size: 46px; line-height: 1; color: var(--gold-deep); }
+  .numeral { font-size: clamp(22px, min(2.2vw, 3.4vh), 30px); line-height: 1; color: var(--gold-deep); }
   .cameo {
-    width: 156px;
-    height: 200px;
+    /* sized by screen height as well as width, so two rows fit a laptop screen */
+    width: clamp(84px, min(9vw, 10.5vh), 120px);
+    aspect-ratio: 156 / 200;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -113,41 +127,53 @@
     transition: transform .25s ease, box-shadow .25s ease;
   }
   .cameo svg {
-    width: 78px;
-    height: 78px;
+    width: 52%;
+    height: auto;
     color: var(--foil);
     filter: drop-shadow(0 0 6px color-mix(in srgb, var(--foil) 40%, transparent));
   }
-  .title { font-size: clamp(30px, 3.6vw, 46px); line-height: 1.05; color: var(--ink); }
+  .title { font-size: clamp(19px, 1.9vw, 27px); line-height: 1.1; color: var(--ink); }
   .kind {
-    margin-top: 12px;
+    margin-top: 6px;
     font-family: "Jost", system-ui, sans-serif;
     font-weight: 500;
-    font-size: 14px;
-    letter-spacing: 2.5px;
+    font-size: clamp(10px, .85vw, 12px);
+    line-height: 1.4;
+    letter-spacing: 1.8px;
     text-transform: uppercase;
     color: var(--kind);
   }
+  .platforms {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 10px;
+    font-family: "Jost", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: clamp(11px, .9vw, 12.5px);
+    line-height: 1;
+    color: #9a7a46;
+  }
+  .platforms span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .platforms svg { width: 13px; height: 13px; flex: none; }
+  .platforms .best { color: var(--gold-deep); }
+  a.act:hover, a.act:focus-visible { background-color: rgba(201,150,63,.09); }
   a.act:hover .cameo, a.act:focus-visible .cameo { transform: translateY(-4px) scale(1.03); }
   a.act:hover .title { color: #7d1a38; }
-  a.act:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 6px; }
+  a.act:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 2px; }
 
   .act.next .numeral { color: #d8c6a8; }
   .act.next .cameo { background: none; box-shadow: none; border: 2px dashed #d9c3a0; }
-  .act.next .cameo svg { width: 26px; height: 26px; color: #e2cfaa; filter: none; }
-
-  @media (max-width: 720px) {
-    .act { grid-template-columns: 1fr; row-gap: 18px; justify-items: center; text-align: center; }
-    .numeral { font-size: 38px; }
-  }
+  .act.next .cameo svg { width: 24%; color: #e2cfaa; filter: none; }
 
   /* ---------- about + footlights ---------- */
-  .about { padding: 0 16px 120px; text-align: center; }
+  .about { padding: 0 16px clamp(64px, 9vh, 100px); text-align: center; }
   .about p {
     max-width: 760px;
     margin: 0 auto;
     font-style: italic;
-    font-size: clamp(26px, 3.2vw, 38px);
+    font-size: clamp(22px, 2.4vw, 32px);
     line-height: 1.35;
     color: var(--cream);
   }
@@ -251,6 +277,11 @@
       if (text != null) e.textContent = text;
       return e;
     }
+    var DEVICE_ICONS = {
+      PC: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="8.5" rx="1"/><path d="M5.5 14h5M8 11v3"/></svg>',
+      iPad: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="1.5" width="11" height="13" rx="1.6"/><path d="M7.3 12.3h1.4"/></svg>',
+      iPhone: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="1.5" width="7" height="13" rx="1.6"/><path d="M7.3 12.3h1.4"/></svg>'
+    };
     function emblem(inner) {
       return '<svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
     }
@@ -262,7 +293,9 @@
       a.href = g.href;
       a.target = '_blank';
       a.rel = 'noopener';
-      a.setAttribute('aria-label', g.title + ', ' + g.kind + ' (opens in a new tab)');
+      a.setAttribute('aria-label', g.title + ', ' + g.kind +
+        (g.platforms && g.platforms.length ? ', best on ' + g.platforms.join(', ') : '') +
+        ' (opens in a new tab)');
 
       var cameo = el('div', 'cameo');
       cameo.style.setProperty('--ground', g.ground);
@@ -272,6 +305,19 @@
       var text = el('div');
       text.appendChild(el('div', 'title', g.title));
       text.appendChild(el('div', 'kind', g.kind));
+      if (g.platforms && g.platforms.length) {
+        var plats = el('div', 'platforms');
+        plats.setAttribute('aria-label', 'Plays best on ' + g.platforms[0] +
+          (g.platforms.length > 1 ? '; also ' + g.platforms.slice(1).join(', ') : ''));
+        g.platforms.forEach(function (name, k) {
+          var s = el('span', k === 0 ? 'best' : '');
+          s.setAttribute('aria-hidden', 'true');
+          s.innerHTML = (DEVICE_ICONS[name] || '') ;
+          s.appendChild(document.createTextNode(name));
+          plats.appendChild(s);
+        });
+        text.appendChild(plats);
+      }
 
       a.appendChild(el('div', 'numeral', roman(i + 1)));
       a.appendChild(cameo);

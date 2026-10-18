@@ -23,7 +23,6 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 <div id="boot" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#0d0a14;color:#f4ecd8;font:14px monospace;text-align:center;padding:16px;z-index:5">Loading Blackthorn Manor...<div style="color:#9a8c74;font-size:12px;margin-top:14px;max-width:420px;line-height:1.5">Stuck on this screen? This viewer can't run games (file previews don't run scripts). Open the game in a web browser such as Safari or Chrome instead.</div><div id="booterr" style="color:#9cf;margin-top:10px;font-size:12px;white-space:pre-wrap"></div></div>
 <canvas id="c"></canvas>
 <div id="safe"></div>
-<div id="rotate"><div class="cat">&#128008;&#8203;</div>Please turn your device sideways<small>Soot prefers landscape. (If rotation is locked, unlock it in Control Center.)</small><button id="anyway" style="margin-top:18px;font:bold 14px monospace;padding:10px 16px;background:#45305c;color:#ffe9a8;border:2px solid #ffc75a;border-radius:6px">Play anyway (small)</button></div>
 <script>
 if(window.__stage)__stage("[1] page script ok");
 'use strict';
@@ -3465,7 +3464,7 @@ function roomPath(a, b) {
 }
 /* ---------- touch controls ---------- */
 function layoutTouch() {
-  const pt = Math.max(Disp.ptPx, Game.forcePortrait ? 2.8 : 0), sf = safeLo(), k = OPTS.btn === 0 ? 0.85 : OPTS.btn === 2 ? 1.2 : 1;
+  const pt = Math.max(Disp.ptPx, (Game.forcePortrait && Disp.ch > Disp.cw * 1.05) ? 2.8 : 0), sf = safeLo(), k = OPTS.btn === 0 ? 0.85 : OPTS.btn === 2 ? 1.2 : 1;
   const L = []; const mr = Math.max(6, sf.r + 4), mb = Math.max(6, sf.b + 4);
   const add = (name, dxpt, dypt, rpt, label, icon) => { const r = rpt * k / pt; let x = VW - mr - dxpt / pt * k * 0.0 - (dxpt * 1.0) / pt * 1; x = VW - mr - dxpt / pt; let y = VH - mb - dypt / pt; if (In.leftHanded) x = VW - x; L.push({ name, x, y, r, label, icon }); };
   add('cast', 62, 62, 38, 'CAST', 'cast'); add('act', 142, 38, 30, '', 'act'); add('dash', 128, 118, 28, '', 'dash'); add('cat', 48, 146, 28, '', 'cat');
@@ -3498,7 +3497,7 @@ function drawControls(ctx, sf) {
     const icon = b.icon === 'cast' ? (hasSpell(S.eq) ? Icons['sp_' + S.eq] : null) : b.icon === 'act' ? (Game.actIcon || Icons.hand) : b.icon === 'dash' ? broomIcon() : Icons.paw;
     HiUI.push({ k: 'c', x: b.x, y: b.y, r: b.r, fill: PAD_COL[b.name], down, icon, a: op });
   }
-  if (S.surge >= SURGE_MAX) { const pt = Math.max(Disp.ptPx, Game.forcePortrait ? 2.8 : 0), sf2 = safeLo(); let sx = VW - Math.max(6, sf2.r + 4) - 214 / pt, sy = VH - Math.max(6, sf2.b + 4) - 92 / pt; if (In.leftHanded) sx = VW - sx; const r = 27 / pt; In.buttons.push({ name: 'surge', x: sx, y: sy, r }); HiUI.push({ k: 'c', x: sx, y: sy, r: r * (1 + 0.06 * Math.sin(Game.t * 8)), fill: Math.floor(Game.t * 4) % 2 ? C.fire2 : C.vel1, down: !!(In.hold.surge && In.tc.surge), icon: bigIcon('star'), a: 1 }); }
+  if (S.surge >= SURGE_MAX) { const pt = Math.max(Disp.ptPx, (Game.forcePortrait && Disp.ch > Disp.cw * 1.05) ? 2.8 : 0), sf2 = safeLo(); let sx = VW - Math.max(6, sf2.r + 4) - 214 / pt, sy = VH - Math.max(6, sf2.b + 4) - 92 / pt; if (In.leftHanded) sx = VW - sx; const r = 27 / pt; In.buttons.push({ name: 'surge', x: sx, y: sy, r }); HiUI.push({ k: 'c', x: sx, y: sy, r: r * (1 + 0.06 * Math.sin(Game.t * 8)), fill: Math.floor(Game.t * 4) % 2 ? C.fire2 : C.vel1, down: !!(In.hold.surge && In.tc.surge), icon: bigIcon('star'), a: 1 }); }
   // joystick
   if (In.joy.on) { const j = In.joy; HiUI.push({ k: 'joy', ox: j.ox, oy: j.oy, x: clamp(j.x, j.ox - 28, j.ox + 28), y: clamp(j.y, j.oy - 28, j.oy + 28), knob: true, a: 0.85 }); }
   else if (Game.showStickHint) HiUI.push({ k: 'joy', ox: 52, oy: VH - 50, knob: false, a: 0.45 });
@@ -4705,7 +4704,7 @@ BM.start2 = function () {
   Canvas.el = $('c'); Canvas.ctx = Canvas.el.getContext('2d');
   if (window.__stage) window.__stage('[4] starting...');
   const boot = $('boot'); if (boot) boot.remove();
-  const any = $('anyway'); if (any) any.addEventListener('click', () => { Game.forcePortrait = true; resize(); Aud.unlock(); });
+  Game.forcePortrait = true; // phones play upright too: no turn-your-device screen
   Font.init(); initIcons(); initScreens();
   loadOpts(); resize();
   In.init(Canvas.el);
