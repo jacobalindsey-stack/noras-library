@@ -1,0 +1,11 @@
+// Cloudflare settings for noralindsey.com.
+// The whole site is static files in this folder; there is no build step.
+{
+  "name": "noras-library",
+  "compatibility_date": "2026-10-12",
+  "assets": {
+    "directory": ".",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  }
+}

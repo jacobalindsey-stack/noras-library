@@ -50,3 +50,11 @@ add a game.
    - `emblem`: a small line drawing inside a 64x64 box, drawn in
      `currentColor`. Copy an existing one to start from.
 3. Save and push. The game appears as the next act with the next numeral.
+
+## Cloudflare
+
+The site deploys as a Cloudflare Workers project with static assets, connected
+to this repo: every push to `main` redeploys. `wrangler.jsonc` sets the assets
+folder to the repo root, and `.assetsignore` keeps `.git`, this README and the
+config files out of the published site (Cloudflare rejects any single file over
+25 MiB, and git's own pack files can exceed that).
