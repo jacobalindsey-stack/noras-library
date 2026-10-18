@@ -49,7 +49,15 @@ add a game.
      background and a gold-ish highlight
    - `emblem`: a small line drawing inside a 64x64 box, drawn in
      `currentColor`. Copy an existing one to start from.
+   - `platforms`: where it plays well, best first (`'PC'`, `'iPad'`, `'iPhone'`)
+   - `blurb` and `howto`: the preview's description and its one-line controls
+   - `shots`: two screenshots in `previews/`, gameplay first, then the title
+     screen (JPEG, about 1000 px wide)
 3. Save and push. The game appears as the next act with the next numeral.
+
+Clicking a game opens its preview (screenshots, description, how to play)
+with **Open the game** and **Close**; ctrl/cmd-click still opens the game
+directly.
 
 ## Cloudflare
 

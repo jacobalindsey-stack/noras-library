@@ -8,6 +8,9 @@
    title   shown on the playbill
    kind    the kind of game, shown under the title
    platforms  where it plays well, best first: 'PC', 'iPad', 'iPhone'
+   blurb   two or three sentences for the preview, in the game's own voice
+   howto   one line on controls
+   shots   preview images in previews/: gameplay first, then the title screen
    href    where the game lives (a file like "game.html" or a folder "game/")
    ground  the cameo's background color (from the game's own art)
    foil    the emblem's gold color (from the game's own art)
@@ -19,6 +22,9 @@ window.NORA_GAMES = [
     title: 'Mirror of Algol',
     kind: 'Retro turn-based RPG',
     platforms: ['PC', 'iPad', 'iPhone'],
+    blurb: "Alys wakes on cold tile in Glass Camineet, a city of mirror-stone under one pale moon and its impossible reflection. Everyone knows her name. She remembers nothing but a single word: home. Gather a party, fight turn-based battles, and choose between two very different endings.",
+    howto: "Arrow keys to move, Z to confirm, X to go back. On a touch screen an on-screen pad appears.",
+    shots: ['previews/algol-play.jpg', 'previews/algol-title.jpg'],
     href: 'algol.html',
     ground: '#0b0640',
     foil: '#e0a86a',
@@ -29,6 +35,9 @@ window.NORA_GAMES = [
     title: 'Blackthorn Manor',
     kind: 'Spellcasting action adventure',
     platforms: ['PC', 'iPad', 'iPhone'],
+    blurb: "Juniper Blackthorn just flunked her coven exam, and Spark is the only spell she can cast. On Halloween night her long-vanished great-aunt writes: “Come at once. Bring the cat.” Inside Blackthorn Manor every clock reads 11:59, and has for thirty years. A big adventure, made for many sittings.",
+    howto: "Arrow keys to move, J to cast, K to act, L to dash, I for the cat. A gamepad or the on-screen buttons work too.",
+    shots: ['previews/blackthorn-play.jpg', 'previews/blackthorn-title.jpg'],
     href: 'blackthorn.html',
     ground: '#1c1222',
     foil: '#e8a83a',
@@ -39,6 +48,9 @@ window.NORA_GAMES = [
     title: 'Adriatica',
     kind: 'Top-down puzzle adventure',
     platforms: ['PC', 'iPad', 'iPhone'],
+    blurb: "Midnight in Diocletian’s Palace, Split. With her Nona’s old book and the city’s cats as guides, Mira Novak hunts for thirteen Egyptian sphinx fragments hidden across the old town. A story-rich puzzle quest for ages 9–12.",
+    howto: "Arrow keys or WASD to walk, Space to look and talk, J for Mira’s sketchbook. Tap and drag on a touch screen.",
+    shots: ['previews/adriatica-play.jpg', 'previews/adriatica-title.jpg'],
     href: 'adriatica/',
     ground: '#0f263b',
     foil: '#d8b67b',
@@ -49,6 +61,9 @@ window.NORA_GAMES = [
     title: 'Adriatica II',
     kind: 'Point-and-click adventure',
     platforms: ['iPad', 'PC'],
+    blurb: "Summer on the Croatian coast. Floating off Kašjuni, Mira hears one enormous held note rising from under the sea, and follows four voices to Omiš, Brač and Korčula. A painted point-and-click story with 3D vision puzzles.",
+    howto: "Click or tap: pick a verb, then something in the painting. Best on an iPad held sideways.",
+    shots: ['previews/adriatica2-play.jpg', 'previews/adriatica2-title.jpg'],
     href: 'adriatica2/',
     ground: '#1f4a55',
     foil: '#f7d094',
@@ -59,6 +74,9 @@ window.NORA_GAMES = [
     title: 'The Cat Bakery',
     kind: 'Cozy bakery sim',
     platforms: ['PC', 'iPad', 'iPhone'],
+    blurb: "Bake living cat-pastries, serve a town of cats, and journey toward the legendary Cinnamon Roll Cat. Start in an alley garage and work your way up to grander bakeries.",
+    howto: "Click or tap. On a phone, turn it sideways. Your bakery saves automatically.",
+    shots: ['previews/catbakery-play.jpg', 'previews/catbakery-title.jpg'],
     href: 'catbakery/',
     ground: '#2d1a35',
     foil: '#f2c14e',
@@ -69,6 +87,9 @@ window.NORA_GAMES = [
     title: 'The Long Apprenticeship',
     kind: 'Caravan survival strategy',
     platforms: ['PC', 'iPad', 'iPhone'],
+    blurb: "Every five years the apprentices walk to Halois to be licensed. This year caravans are vanishing, and a quiet thing called the Hollowing dims the Lore wherever it touches. Lead your caravan and its bonded Beasts across six wildlands.",
+    howto: "Click or tap to choose. Three difficulties: Apprentice, Keeper and Grand Keeper.",
+    shots: ['previews/apprenticeship-play.jpg', 'previews/apprenticeship-title.jpg'],
     href: 'apprenticeship/',
     ground: '#1a1915',
     foil: '#d4a24c',

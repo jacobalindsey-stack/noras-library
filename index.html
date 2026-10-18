@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%235a1229'/%3E%3Cpath d='M16 5l2.6 8.4L27 16l-8.4 2.6L16 27l-2.6-8.4L5 16l8.4-2.6z' fill='%23e0b86a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Jost:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Jost:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --velvet-deep: #2a0712;
@@ -189,7 +189,159 @@
   }
   .footlights { position: absolute; left: 0; top: -12px; width: 100%; height: 24px; }
 
-  @media (prefers-reduced-motion: reduce) { .cameo { transition: none; } }
+  /* ---------- the preview: what you're getting into ---------- */
+  html.pv-lock { overflow: hidden; }
+  dialog.preview {
+    padding: 0;
+    border: none;
+    background: transparent;
+    width: min(1040px, 94vw);
+    max-width: none;
+    max-height: 92vh;
+    overflow: visible;
+    color: var(--ink);
+  }
+  dialog.preview::backdrop { background: rgba(20,2,8,.74); backdrop-filter: blur(3px); }
+  .pv {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    max-height: 92vh;
+    overflow: auto;
+    background: var(--paper);
+    border-radius: 6px;
+    box-shadow: 0 40px 100px rgba(10,0,4,.7), 0 0 0 1px #d9b877;
+    animation: pvIn .22s ease-out;
+  }
+  @keyframes pvIn { from { opacity: 0; transform: translateY(14px) scale(.985); } }
+  .pv-media {
+    background: #160309;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+  }
+  .pv-shot {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: contain;
+    background: #000;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgba(217,184,119,.45);
+  }
+  .pv-thumbs { display: flex; gap: 10px; }
+  .pv-thumb {
+    padding: 0;
+    width: 92px;
+    border: 1px solid rgba(217,184,119,.3);
+    border-radius: 3px;
+    background: #000;
+    cursor: pointer;
+    opacity: .6;
+    transition: opacity .2s, border-color .2s;
+  }
+  .pv-thumb img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 2px; }
+  .pv-thumb[aria-pressed="true"] { opacity: 1; border-color: var(--gold); }
+  .pv-thumb:hover { opacity: 1; }
+  .pv-thumb:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  .pv-thumb-label {
+    margin-left: auto;
+    align-self: center;
+    font-family: "Jost", system-ui, sans-serif;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #b99a6a;
+  }
+  .pv-info {
+    position: relative;
+    padding: 32px 30px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+  }
+  .pv-num { font-size: 26px; line-height: 1; color: var(--gold-deep); }
+  .pv-info h2 { margin: 0; font-weight: 400; font-size: clamp(28px, 3vw, 38px); line-height: 1.05; padding-right: 36px; }
+  .pv-info .platforms { justify-content: flex-start; margin-top: 2px; }
+  .pv-blurb {
+    margin: 6px 0 0;
+    font-family: "Jost", system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #4a2a33;
+  }
+  .pv-howto {
+    margin: 2px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--paper-rule);
+    font-family: "Jost", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #6a4a52;
+  }
+  .pv-howto b { display: block; margin-bottom: 2px; font-weight: 500; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--kind); }
+  .pv-actions { margin-top: auto; padding-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .pv-open, .pv-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 0 22px;
+    border-radius: 999px;
+    font-family: "Jost", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .pv-open {
+    flex: 1 1 auto;
+    color: #fff3ea;
+    background: radial-gradient(circle at 40% 30%, #a8284e, #6e1430);
+    border: 1px solid #d9b877;
+    box-shadow: 0 10px 22px -10px rgba(110,20,48,.8);
+  }
+  .pv-open:hover { color: #fff; background: radial-gradient(circle at 40% 30%, #b8325a, #7d1a38); }
+  .pv-open svg { width: 16px; height: 16px; }
+  .pv-close { color: var(--ink); background: transparent; border: 1px solid #c9ad80; }
+  .pv-close:hover { background: rgba(201,150,63,.1); }
+  .pv-x {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #8a6a72;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pv-x:hover { color: var(--ink); border-color: #e3cfae; }
+  .pv-open:focus-visible, .pv-close:focus-visible, .pv-x:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 3px; }
+
+  /* phones and narrow windows: the preview slides up from the bottom as one column */
+  @media (max-width: 760px) {
+    dialog.preview { width: 100%; max-height: 94vh; margin: auto 0 0; }
+    .pv { grid-template-columns: 1fr; max-height: 94vh; border-radius: 16px 16px 0 0; animation-name: pvUp; }
+    @keyframes pvUp { from { transform: translateY(40px); opacity: 0; } }
+    .pv-media { padding: 14px 14px 10px; }
+    .pv-thumb { width: 72px; }
+    .pv-info { padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); }
+    .pv-actions { position: sticky; bottom: 0; background: var(--paper); padding-bottom: 4px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { .cameo { transition: none; } .pv { animation: none; } }
 </style>
 </head>
 <body>
@@ -257,6 +409,32 @@
   © 2026 Nora Lindsey
 </footer>
 
+<dialog class="preview" id="preview" aria-labelledby="pv-title">
+  <div class="pv">
+    <div class="pv-media">
+      <img class="pv-shot" id="pv-shot" alt="">
+      <div class="pv-thumbs" id="pv-thumbs" role="group" aria-label="Screenshots"></div>
+    </div>
+    <div class="pv-info">
+      <button type="button" class="pv-x" id="pv-x" aria-label="Close preview">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <div class="pv-num" id="pv-num"></div>
+      <h2 id="pv-title"></h2>
+      <div class="kind" id="pv-kind"></div>
+      <div class="platforms" id="pv-plat"></div>
+      <p class="pv-blurb" id="pv-blurb"></p>
+      <p class="pv-howto"><b>How to play</b><span id="pv-howto"></span></p>
+      <div class="pv-actions">
+        <a class="pv-open" id="pv-open" target="_blank" rel="noopener">Open the game
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7M13 3L4 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <button type="button" class="pv-close" id="pv-close">Close</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
 <script src="games.js"></script>
 <script>
   // Builds the playbill from games.js. Add a game there; nothing here needs to change.
@@ -286,6 +464,72 @@
       return '<svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
     }
 
+    // ---------- preview dialog ----------
+    var dlg = document.getElementById('preview');
+    var canPreview = !!(dlg && typeof dlg.showModal === 'function');
+    var $ = function (id) { return document.getElementById(id); };
+
+    function showShot(g, k) {
+      var shot = $('pv-shot');
+      shot.src = g.shots[k];
+      shot.alt = g.title + (k === 0 ? ' in play' : ', title screen');
+      [].forEach.call($('pv-thumbs').querySelectorAll('.pv-thumb'), function (b, n) {
+        b.setAttribute('aria-pressed', n === k ? 'true' : 'false');
+      });
+      $('pv-thumbs').lastChild.textContent = k === 0 ? 'In play' : 'Title screen';
+    }
+
+    function openPreview(g, i) {
+      $('pv-num').textContent = roman(i + 1);
+      $('pv-title').textContent = g.title;
+      $('pv-kind').textContent = g.kind;
+      $('pv-blurb').textContent = g.blurb || '';
+      $('pv-howto').textContent = g.howto || '';
+      $('pv-open').href = g.href;
+      $('pv-open').setAttribute('aria-label', 'Open ' + g.title + ' in a new tab');
+
+      var plat = $('pv-plat');
+      plat.textContent = '';
+      (g.platforms || []).forEach(function (name, k) {
+        var s = el('span', k === 0 ? 'best' : '');
+        s.innerHTML = DEVICE_ICONS[name] || '';
+        s.appendChild(document.createTextNode(k === 0 ? 'Best on ' + name : name));
+        plat.appendChild(s);
+      });
+
+      var thumbs = $('pv-thumbs');
+      thumbs.textContent = '';
+      var shots = g.shots || [];
+      $('pv-shot').hidden = !shots.length;
+      shots.forEach(function (src, k) {
+        var b = el('button', 'pv-thumb');
+        b.type = 'button';
+        b.setAttribute('aria-label', k === 0 ? 'Show the game in play' : 'Show the title screen');
+        var im = el('img');
+        im.src = src;
+        im.alt = '';
+        b.appendChild(im);
+        b.addEventListener('click', function () { showShot(g, k); });
+        thumbs.appendChild(b);
+      });
+      thumbs.appendChild(el('span', 'pv-thumb-label'));
+      thumbs.hidden = shots.length < 2;
+      if (shots.length) showShot(g, 0);
+
+      document.documentElement.classList.add('pv-lock');
+      dlg.showModal();
+      $('pv-open').focus();
+    }
+
+    function closePreview() { if (dlg.open) dlg.close(); }
+    if (canPreview) {
+      dlg.addEventListener('close', function () { document.documentElement.classList.remove('pv-lock'); });
+      dlg.addEventListener('click', function (e) { if (e.target === dlg) closePreview(); }); // click outside the card
+      $('pv-x').addEventListener('click', closePreview);
+      $('pv-close').addEventListener('click', closePreview);
+      $('pv-open').addEventListener('click', function () { setTimeout(closePreview, 0); });
+    }
+
     list.textContent = '';
     games.forEach(function (g, i) {
       var li = el('li');
@@ -295,7 +539,16 @@
       a.rel = 'noopener';
       a.setAttribute('aria-label', g.title + ', ' + g.kind +
         (g.platforms && g.platforms.length ? ', best on ' + g.platforms.join(', ') : '') +
-        ' (opens in a new tab)');
+        (canPreview ? ', opens a preview' : ' (opens in a new tab)'));
+      if (canPreview) {
+        a.setAttribute('aria-haspopup', 'dialog');
+        a.addEventListener('click', function (e) {
+          // ctrl/cmd/shift/middle-click still go straight to the game
+          if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+          e.preventDefault();
+          openPreview(g, i);
+        });
+      }
 
       var cameo = el('div', 'cameo');
       cameo.style.setProperty('--ground', g.ground);
