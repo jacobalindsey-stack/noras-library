@@ -48,7 +48,7 @@
     margin: 0;
     font-weight: 400;
     font-style: italic;
-    font-size: clamp(46px, min(8.5vw, 11vh), 120px);
+    font-size: clamp(38px, min(8.5vw, 11vh), 120px);
     line-height: .95;
     background: linear-gradient(180deg, #fff6df 0%, #f2d08a 48%, #c48a35 100%);
     -webkit-background-clip: text;
@@ -90,7 +90,7 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: clamp(8px, 1.6vh, 22px) clamp(8px, 1.6vw, 22px);
-    --tile: clamp(150px, 18vw, 230px);
+    --tile: clamp(124px, 18vw, 230px);
   }
   .programme li { width: var(--tile); }
 
@@ -132,7 +132,7 @@
     color: var(--foil);
     filter: drop-shadow(0 0 6px color-mix(in srgb, var(--foil) 40%, transparent));
   }
-  .title { font-size: clamp(19px, 1.9vw, 27px); line-height: 1.1; color: var(--ink); }
+  .title { font-size: clamp(17px, 1.9vw, 27px); line-height: 1.1; color: var(--ink); }
   .kind {
     margin-top: 6px;
     font-family: "Jost", system-ui, sans-serif;
@@ -330,15 +330,72 @@
   .pv-x:hover { color: var(--ink); border-color: #e3cfae; }
   .pv-open:focus-visible, .pv-close:focus-visible, .pv-x:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 3px; }
 
-  /* phones and narrow windows: the preview slides up from the bottom as one column */
+  /* phones: the title sits clear of the valance swags (96px tall) */
   @media (max-width: 760px) {
-    dialog.preview { width: 100%; max-height: 94vh; margin: auto 0 0; }
-    .pv { grid-template-columns: 1fr; max-height: 94vh; border-radius: 16px 16px 0 0; animation-name: pvUp; }
+    .marquee { padding-top: 108px; }
+    header { padding-bottom: 92px; }
+  }
+
+  /* phones and narrow windows: the preview slides up from the bottom as one column */
+  /* Sized to the *visible* screen (dvh): iPhone's vh counts the space behind
+     Safari's toolbars, which pushed the sheet off-screen and made it scroll oddly.
+     The screenshot stays put, only the text scrolls (if it must), the buttons stay
+     pinned at the bottom, and scrolling never leaks through to the page behind. */
+  @media (max-width: 760px) {
+    dialog.preview { width: 100%; max-height: 92vh; max-height: 92dvh; margin: auto 0 0; }
+    .pv {
+      display: flex;
+      flex-direction: column;
+      max-height: 92vh;
+      max-height: 92dvh;
+      overflow: hidden;
+      border-radius: 18px 18px 0 0;
+      animation-name: pvUp;
+    }
     @keyframes pvUp { from { transform: translateY(40px); opacity: 0; } }
-    .pv-media { padding: 14px 14px 10px; }
-    .pv-thumb { width: 72px; }
-    .pv-info { padding: 20px 18px calc(18px + env(safe-area-inset-bottom)); }
-    .pv-actions { position: sticky; bottom: 0; background: var(--paper); padding-bottom: 4px; }
+    .pv-media { flex: none; padding: 12px 12px 8px; gap: 8px; }
+    .pv-shot { max-height: 30vh; max-height: 30dvh; }
+    .pv-thumb { width: 60px; }
+    .pv-thumb-label { font-size: 11px; }
+    .pv-info {
+      position: static;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 18px 0;
+      gap: 8px;
+    }
+    .pv-num { font-size: 22px; }
+    .pv-info h2 { font-size: 28px; padding-right: 0; }
+    .pv-blurb { margin-top: 2px; font-size: 15px; line-height: 1.5; }
+    .pv-howto { font-size: 13px; padding-top: 10px; }
+    .pv-actions {
+      position: sticky;
+      bottom: 0;
+      margin: 4px -18px 0;
+      padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+      background: var(--paper);
+      box-shadow: 0 -10px 16px -12px rgba(59,15,31,.35);
+    }
+    .pv-actions { flex-wrap: nowrap; }
+    .pv-open, .pv-close { min-height: 48px; padding: 0 16px; font-size: 14px; letter-spacing: 1px; white-space: nowrap; }
+    .pv-close { flex: none; }
+    /* the close ✕ rides on the screenshot so it is always within reach */
+    .pv-x {
+      top: 18px;
+      right: 18px;
+      color: #fff3ea;
+      background: rgba(20,3,9,.62);
+      border-color: rgba(217,184,119,.5);
+    }
+    .pv-x:hover { color: #fff; border-color: var(--gold); }
+  }
+  /* very short screens (small phones, landscape): drop the thumbnails */
+  @media (max-width: 760px) and (max-height: 700px) {
+    .pv-thumbs { display: none; }
+    .pv-shot { max-height: 26vh; max-height: 26dvh; }
   }
 
   @media (prefers-reduced-motion: reduce) { .cameo { transition: none; } .pv { animation: none; } }
@@ -347,7 +404,7 @@
 <body>
 
 <header>
-  <svg class="valance" viewBox="0 0 1440 96" preserveAspectRatio="none" aria-hidden="true">
+  <svg class="valance" viewBox="0 0 1440 96" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
     <path d="M0 0h1440v40c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0c-40 52-140 52-180 0z" fill="#3a0818"/>
     <path d="M0 40c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0" fill="none" stroke="#e0b86a" stroke-width="3"/>
     <path d="M0 46c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0c40 52 140 52 180 0" fill="none" stroke="#e0b86a" stroke-width="1" opacity=".5"/>
@@ -373,7 +430,7 @@
     </svg>
   </div>
 
-  <svg class="fringe" viewBox="0 0 1440 34" preserveAspectRatio="none" aria-hidden="true">
+  <svg class="fringe" viewBox="0 0 1440 34" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
     <defs><pattern id="fringe" width="12" height="34" patternUnits="userSpaceOnUse"><rect width="12" height="6" fill="#c9963f"/><path d="M6 6v20" stroke="#e0b86a" stroke-width="2"/><circle cx="6" cy="28" r="3.2" fill="#e0b86a"/></pattern></defs>
     <rect width="1440" height="34" fill="url(#fringe)"/>
   </svg>
