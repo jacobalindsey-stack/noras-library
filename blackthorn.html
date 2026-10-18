@@ -3318,6 +3318,7 @@ const HiUI = {
     if (e.ring) { this.path(c, X - s * 0.2, by - s * 0.2, W + s * 0.4, bh + s * 0.4, r + s * 0.2); c.lineWidth = Math.max(2, s * 0.8); c.strokeStyle = e.ring; c.stroke(); }
     const cy = by + bh / 2;
     if (e.dot) { c.beginPath(); c.arc(X + W - 3.2 * s, by + 3.2 * s, 1.4 * s, 0, TAU); c.fillStyle = e.dot; c.fill(); }
+    if (e.vicon && typeof VIcon !== 'undefined') VIcon.draw(c, e.vicon, X + W / 2, cy, Math.min(W, bh) * 0.74, e.ring ? 'rgba(255,199,90,.95)' : null);
     if (e.icon) this.icon(c, e.icon, X + W / 2 + (e.label ? -W / 2 + e.icon.width * s : 0), cy, s);
     if (e.glyph) this.glyph(c, e.glyph, X + W / 2, cy, Math.min(W, bh) * 0.32, e.col || C.bone0);
     if (e.label) { const pad = Math.max(3 * s, r * 0.6), ix = e.icon ? e.icon.width * s * 1.6 : 0; this.label(c, e, X + W / 2 + ix / 2, cy, W - pad * 2 - ix, s); }
@@ -3754,7 +3755,7 @@ function drawRecap(ctx, dt) {
   uiBegin(); if (btn(ctx, 'go', VW / 2 - 40, VH - 38, 80, 16, 'Continue') || (Game.recapT > 0.5 && In.edge.cast)) Game.afterRecap(); uiEnd();
 }
 /* ---------- SPELLBOOK ---------- */
-const TABS = [{ n: 'Spells', i: 'sp_spark' }, { n: 'Songs', i: 'note' }, { n: 'Haunt', i: 'star' }, { n: 'Map', i: 'arrow' }, { n: 'Keeps', i: 'key' }, { n: 'Ghosts', i: 'skull' }, { n: 'Restore', i: 'heart' }, { n: 'Options', i: 'hand' }];
+const TABS = [{ n: 'Spells', i: 'sp_spark', v: 'spark' }, { n: 'Songs', i: 'note', v: 'note' }, { n: 'Haunt', i: 'star', v: 'candle' }, { n: 'Map', i: 'arrow', v: 'map' }, { n: 'Keeps', i: 'key', v: 'key' }, { n: 'Ghosts', i: 'skull', v: 'ghost' }, { n: 'Restore', i: 'heart', v: 'heart' }, { n: 'Options', i: 'hand', v: 'gear' }];
 function openBook(tab) { if (Game.state !== 'play' || Game.cutscene) return; Game.state = 'book'; if (tab !== undefined) Ui.tab = tab; Ui.turn = 0; Aud.sfx('page'); }
 function closeBook() { Game.state = 'play'; Aud.sfx('page'); saveOpts(); saveSoon(); }
 const INKC = C.ink2;
@@ -3768,7 +3769,7 @@ function drawBook(ctx, dt) {
   const th = TABS.length > 8 ? 19 : 22;
   for (let i = 0; i < TABS.length; i++) {
     const ty = 6 + i * (th + 2), tx = VW - 36, sel = Ui.tab === i;
-    HiUI.push({ k: 'r', x: tx + (sel ? 0 : 3), y: ty, w: 30 - (sel ? 0 : 3), h: th, icon: Icons[TABS[i].i] || Icons.star, fill: sel ? C.vel1 : C.vel0, ring: sel ? C.fire1 : null, round: 5, down: In.heldIn(tx, ty, 30, th) });
+    HiUI.push({ k: 'r', x: tx + (sel ? 0 : 3), y: ty, w: 30 - (sel ? 0 : 3), h: th, icon: TABS[i].v ? null : (Icons[TABS[i].i] || Icons.star), vicon: TABS[i].v, fill: sel ? C.vel1 : C.vel0, ring: sel ? C.fire1 : null, round: 5, down: In.heldIn(tx, ty, 30, th) });
     if (In.tapIn(tx, ty, 30, th) && Ui.tab !== i) { Ui.tab = i; Ui.turn = 0.22; Aud.sfx('page'); }
   }
   if (In.swipe) { Ui.tab = clamp(Ui.tab + In.swipe, 0, TABS.length - 1); Ui.turn = 0.22; Aud.sfx('page'); }
@@ -5242,7 +5243,7 @@ function bookBadges(B) {
     if (btn(ctx, 'rushgo', rx + 4, ey + 12, pw - 8, 15, 'Start the Encore!')) Encore.start();
   } else wrapInk(ctx, 'Finish the story to unlock the ENCORE.', rx + 6, ey + 4, pw - 12, C.ink3, 8);
 }
-TABS.push({ n: 'Badges', i: 'medal' });
+TABS.push({ n: 'Badges', i: 'medal', v: 'medal' });
 
 /* ===== TITLE SCREEN ART: moonlit manor, storm, flying witch, 3D logo ===== */
 const TF = { t: 0, seen: -9, vw: 0, L: null, bolt: null, boltNext: 1.0, flash: 0, shakeT: 0, fly: null, flyNext: 3.2, bats: [], batNext: 6, wisps: [], splash: [], ghostT: 7, rng: null };
@@ -5478,6 +5479,103 @@ function openHints() {
     } else if (c === 2) { if (step && step.room) guideTo(step.room, step.at); else toast('Soot just purrs. Explore anywhere you like!', 3); }
   });
 }
+
+/* ===== VECTOR ICONS: smooth, high-res icons for the book's tab buttons (drawn on the HiUI layer, not the pixel screen) ===== */
+// Each icon is drawn in a 24x24 box centred on 0,0, then cached per size so it costs one drawImage a frame.
+const VIcon = (() => {
+  const OUT = '#1a0f22', cache = {};
+  const lg = (c, y0, y1, a, b, m) => { const g = c.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, a); if (m) g.addColorStop(0.5, m); g.addColorStop(1, b); return g; };
+  const rg = (c, x, y, r, a, b) => { const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, a); g.addColorStop(1, b); return g; };
+  // outline first (half of it shows outside), then the gradient body
+  function shape(c, build, fill, rule, lw) { c.beginPath(); build(c); c.lineJoin = 'round'; c.lineCap = 'round'; c.lineWidth = lw || 2.8; c.strokeStyle = OUT; c.stroke(); c.fillStyle = fill; c.fill(rule || 'nonzero'); }
+  function gloss(c, build, a) { c.save(); c.beginPath(); build(c); c.fillStyle = 'rgba(255,255,255,' + (a || 0.55) + ')'; c.fill(); c.restore(); }
+  const star = (c, x, y, ro, ri, n, rot) => { for (let i = 0; i < n * 2; i++) { const r = i % 2 ? ri : ro, a = rot + i * Math.PI / n; c[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * r, y + Math.sin(a) * r); } c.closePath(); };
+  const D = {
+    spark(c) {
+      shape(c, p => { star(p, 0, 0, 11.5, 3.2, 4, -Math.PI / 2); }, rg(c, 0, 0, 11, '#fffbe8', '#ff9a3a'));
+      shape(c, p => { star(p, 7.5, -7.5, 4, 1.2, 4, -Math.PI / 2); }, rg(c, 7.5, -7.5, 4, '#ffffff', '#ffc75a'), 0, 2);
+      shape(c, p => { star(p, -7.5, 7.5, 3, 1, 4, -Math.PI / 2); }, rg(c, -7.5, 7.5, 3, '#ffffff', '#ffc75a'), 0, 2);
+      gloss(c, p => p.arc(0, 0, 2.2, 0, TAU), 0.9);
+    },
+    note(c) {
+      const body = p => {
+        p.ellipse(-5.5, 7, 4.2, 3.1, -0.45, 0, TAU); p.moveTo(10, 4.5); p.ellipse(6, 5, 4.2, 3.1, -0.45, 0, TAU);
+        p.moveTo(-2.2, 6.5); p.lineTo(-2.2, -7.5); p.lineTo(9.6, -10.5); p.lineTo(9.6, 4.5); p.lineTo(7.8, 4.5); p.lineTo(7.8, -6.2); p.lineTo(-0.4, -4.1); p.lineTo(-0.4, 6.5); p.closePath();
+      };
+      shape(c, body, lg(c, -11, 10, '#ffffff', '#c9b6e6'));
+      gloss(c, p => p.ellipse(-6.6, 5.9, 1.6, 0.9, -0.45, 0, TAU), 0.8); gloss(c, p => p.ellipse(4.9, 3.9, 1.6, 0.9, -0.45, 0, TAU), 0.8);
+    },
+    candle(c) {
+      shape(c, p => p.ellipse(0, 10, 9, 2.6, 0, 0, TAU), lg(c, 7, 13, '#ffd27a', '#a8621e'));
+      shape(c, p => { p.moveTo(-5, -1); p.lineTo(5, -1); p.lineTo(5, 9.5); p.lineTo(-5, 9.5); p.closePath(); }, lg(c, -1, 10, '#fff6e0', '#d9c4a0'));
+      shape(c, p => { p.moveTo(-5, -1); p.lineTo(5, -1); p.lineTo(5, 1); p.quadraticCurveTo(3.5, 1.5, 3.5, 4.5); p.quadraticCurveTo(2.5, 6, 2.2, 3); p.quadraticCurveTo(0, 1.5, -2, 2.5); p.quadraticCurveTo(-3.2, 5.5, -4, 2); p.lineTo(-5, 1.6); p.closePath(); }, '#ffffff', 0, 0.01);
+      c.strokeStyle = OUT; c.lineWidth = 1.6; c.beginPath(); c.moveTo(0, -1); c.lineTo(0, -3.5); c.stroke();
+      shape(c, p => { p.moveTo(0, -12); p.bezierCurveTo(4.5, -7, 3.8, -2.6, 0, -2.6); p.bezierCurveTo(-3.8, -2.6, -4.5, -7, 0, -12); }, lg(c, -12, -2.6, '#ffe9a8', '#ff6a2a', '#ffc75a'), 0, 2.2);
+      gloss(c, p => p.ellipse(0, -5, 1.3, 2.2, 0, 0, TAU), 0.85);
+    },
+    map(c) {
+      const outline = p => { p.moveTo(-11.5, -8); p.lineTo(-4, -10.5); p.lineTo(4, -8); p.lineTo(11.5, -10.5); p.lineTo(11.5, 8); p.lineTo(4, 10.5); p.lineTo(-4, 8); p.lineTo(-11.5, 10.5); p.closePath(); };
+      shape(c, outline, lg(c, -10, 10, '#fff4d8', '#d8bf8a'));
+      c.save(); c.beginPath(); outline(c); c.clip();
+      c.fillStyle = 'rgba(120,80,40,.22)'; c.beginPath(); c.moveTo(-4, -10.5); c.lineTo(4, -8); c.lineTo(4, 10.5); c.lineTo(-4, 8); c.closePath(); c.fill();
+      c.restore();
+      c.strokeStyle = 'rgba(60,35,20,.6)'; c.lineWidth = 1; c.beginPath(); c.moveTo(-4, -10.5); c.lineTo(-4, 8); c.moveTo(4, -8); c.lineTo(4, 10.5); c.stroke();
+      c.strokeStyle = '#c2455a'; c.lineWidth = 1.6; c.setLineDash([2, 2]); c.beginPath(); c.moveTo(-8.5, 6); c.quadraticCurveTo(-5, -4, 0, 1); c.quadraticCurveTo(4, 5, 6.5, -3); c.stroke(); c.setLineDash([]);
+      c.strokeStyle = '#8e2a3c'; c.lineWidth = 2.2; c.beginPath(); c.moveTo(5, -6.5); c.lineTo(9, -2.5); c.moveTo(9, -6.5); c.lineTo(5, -2.5); c.stroke();
+    },
+    key(c) {
+      const k = p => {
+        p.arc(-5.5, 0, 6, 0, TAU); p.moveTo(-3, 0); p.arc(-5.5, 0, 2.6, 0, TAU, true);
+        p.moveTo(0, -2); p.lineTo(11.5, -2); p.lineTo(11.5, 6); p.lineTo(8.5, 6); p.lineTo(8.5, 2); p.lineTo(7, 2); p.lineTo(7, 5); p.lineTo(4.5, 5); p.lineTo(4.5, 2); p.lineTo(0, 2); p.closePath();
+      };
+      shape(c, k, lg(c, -6, 6, '#fff0b0', '#c47a18', '#ffc75a'), 'evenodd');
+      gloss(c, p => { p.ellipse(-7.5, -3.3, 2.2, 1, -0.6, 0, TAU); }, 0.75); gloss(c, p => p.rect(1, -1.4, 9.5, 0.9), 0.6);
+    },
+    ghost(c) {
+      const g = p => { p.moveTo(-9, 10); p.lineTo(-9, -1); p.arc(0, -1, 9, Math.PI, 0); p.lineTo(9, 10); p.quadraticCurveTo(7.5, 7, 6, 10); p.quadraticCurveTo(4.5, 7, 3, 10); p.quadraticCurveTo(1.5, 7, 0, 10); p.quadraticCurveTo(-1.5, 7, -3, 10); p.quadraticCurveTo(-4.5, 7, -6, 10); p.quadraticCurveTo(-7.5, 7, -9, 10); p.closePath(); };
+      shape(c, g, lg(c, -10, 10, '#ffffff', '#8ff0c8', '#e4fff4'));
+      c.fillStyle = OUT; c.beginPath(); c.ellipse(-3.4, -1.5, 1.9, 2.6, 0, 0, TAU); c.ellipse(3.4, -1.5, 1.9, 2.6, 0, 0, TAU); c.fill();
+      c.fillStyle = '#fff'; c.beginPath(); c.arc(-2.8, -2.5, 0.8, 0, TAU); c.arc(4, -2.5, 0.8, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(255,120,150,.55)'; c.beginPath(); c.ellipse(-6, 2.3, 1.7, 1, 0, 0, TAU); c.ellipse(6, 2.3, 1.7, 1, 0, 0, TAU); c.fill();
+      c.strokeStyle = OUT; c.lineWidth = 1.2; c.beginPath(); c.arc(0, 2.4, 1.6, 0.2, Math.PI - 0.2); c.stroke();
+      gloss(c, p => p.ellipse(-4.5, -7, 2.6, 1.3, -0.5, 0, TAU), 0.8);
+    },
+    heart(c) {
+      const h = p => { p.moveTo(0, 10.5); p.bezierCurveTo(-6, 6, -11.5, 2, -11.5, -3.5); p.bezierCurveTo(-11.5, -8, -8, -10.5, -5.5, -10.5); p.bezierCurveTo(-3, -10.5, -1, -9, 0, -6.5); p.bezierCurveTo(1, -9, 3, -10.5, 5.5, -10.5); p.bezierCurveTo(8, -10.5, 11.5, -8, 11.5, -3.5); p.bezierCurveTo(11.5, 2, 6, 6, 0, 10.5); p.closePath(); };
+      shape(c, h, lg(c, -10, 10, '#ff8fa0', '#a8203c', '#e8445e'));
+      gloss(c, p => p.ellipse(-5.5, -5.5, 3.2, 2, -0.6, 0, TAU), 0.75); gloss(c, p => p.arc(-1.5, -7.6, 0.9, 0, TAU), 0.7);
+    },
+    gear(c) {
+      const g = p => { const n = 8; for (let i = 0; i < n * 4; i++) { const a = (i / (n * 4)) * TAU - Math.PI / 2 - TAU / (n * 8), r = (i % 4 === 1 || i % 4 === 2) ? 11 : 8; p[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } p.closePath(); p.moveTo(3.6, 0); p.arc(0, 0, 3.6, 0, TAU, true); };
+      shape(c, g, lg(c, -11, 11, '#ffffff', '#8a80a0', '#d8d2e6'), 'evenodd');
+      c.strokeStyle = 'rgba(26,15,34,.35)'; c.lineWidth = 1; c.beginPath(); c.arc(0, 0, 6, 0, TAU); c.stroke();
+      gloss(c, p => p.ellipse(-3.5, -5.5, 2.4, 1.1, -0.5, 0, TAU), 0.7);
+    },
+    medal(c) {
+      shape(c, p => { p.moveTo(-7.5, -11.5); p.lineTo(-2.5, -11.5); p.lineTo(2, -1); p.lineTo(-2.5, 0); p.closePath(); }, lg(c, -12, 0, '#ff6a7e', '#8e2a3c'), 0, 2.2);
+      shape(c, p => { p.moveTo(7.5, -11.5); p.lineTo(2.5, -11.5); p.lineTo(-2, -1); p.lineTo(2.5, 0); p.closePath(); }, lg(c, -12, 0, '#8fc0ff', '#3f5f8a'), 0, 2.2);
+      shape(c, p => p.arc(0, 4, 7.5, 0, TAU), rg(c, -2, 2, 9, '#fff4b8', '#d08a1c'));
+      shape(c, p => star(p, 0, 4.3, 4.6, 1.9, 5, -Math.PI / 2), lg(c, 0, 9, '#ffffff', '#ffd27a'), 0, 1.4);
+      gloss(c, p => p.ellipse(-3.6, 0.6, 1.8, 0.9, -0.6, 0, TAU), 0.7);
+    }
+  };
+  function bakeIcon(k, px) {
+    const pad = Math.ceil(px * 0.2), cv = mk(px + pad * 2, px + pad * 2), c = cv.getContext('2d');
+    c.translate(cv.width / 2, cv.height / 2); c.scale(px / 24, px / 24); D[k](c); return cv;
+  }
+  return {
+    has: k => !!D[k],
+    // draws icon k centred at cx,cy, sz screen pixels tall; glow is a colour (selected tab) or falsy for a soft drop shadow
+    draw(c, k, cx, cy, sz, glow) {
+      const px = Math.max(8, Math.round(sz)), key = k + '|' + px; let img = cache[key];
+      if (!img) img = cache[key] = bakeIcon(k, px);
+      c.save(); c.imageSmoothingEnabled = true;
+      if (glow) { c.shadowColor = glow; c.shadowBlur = px * 0.45; } else { c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = px * 0.08; c.shadowOffsetY = px * 0.06; }
+      c.drawImage(img, Math.round(cx - img.width / 2), Math.round(cy - img.height / 2));
+      c.restore();
+    }
+  };
+})();
 
 </script>
 <script>
