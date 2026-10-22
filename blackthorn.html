@@ -31,7 +31,7 @@ if (window.__stage) window.__stage('[2] game code parsing...');
    BLACKTHORN MANOR  —  Part 1: Core + Act I
    ===================================================================== */
 /* ===== CONFIG ===== */
-const GAME_VERSION = '1.2.0', SCHEMA_VERSION = 1, TS = 16, VH = 224;
+const GAME_VERSION = '1.2.1', SCHEMA_VERSION = 1, TS = 16, VH = 224;
 let VW = 320;
 const SCR_W = 20, SCR_H = 14;
 const TAU = Math.PI * 2;
@@ -1681,7 +1681,7 @@ function updatePlayer(dt) {
     p.vy = mag ? approach(p.vy, ty, acc * dt) : approach(p.vy, 0, dec * dt);
   }
   if (p.air > 0) { p.air -= dt; const k = 1 - p.air / p.airMax; p.z = Math.sin(clamp(k, 0, 1) * Math.PI) * (p.tiny ? 14 : 10); if (p.air <= 0) { p.z = 0; if (!hopAssist()) landCheck(); } } else p.z = 0;
-  if (mag > 0 && p.castT <= 0 && p.dashT <= 0) p.dir = dirFromVec(In.mx, In.my, p.dir);
+  if (mag > 0 && p.castT <= 0 && p.dashT <= 0) { p.dir = dirFromVec(In.mx, In.my, p.dir); if (mag > 0.35) p.axDir = p.dir; }
   moveEnt(p, p.vx * dt, p.vy * dt, p.hw, p.hh, 'p');
   const moving = Math.abs(p.vx) + Math.abs(p.vy) > 6;
   p.anim = moving ? p.anim + dt * 10 : 0; p.idle = moving || p.castT > 0 ? 0 : p.idle + dt;
@@ -2197,12 +2197,15 @@ function weave(id) { if (!S.weave[id]) { S.weave[id] = 1; toast('Weaving: ' + (W
 
 function aimDir(range, cone) {
   let vx = DX[P.dir], vy = DY[P.dir];
-  if (P.ax !== undefined && (P.ax || P.ay) && dirFromVec(P.ax, P.ay, P.dir) === P.dir) { vx = P.ax; vy = P.ay; }
+  // the 8-way aim only counts while she still faces the way it was pushed (a door, a cutscene or a bot turning her resets it)
+  if (P.ax !== undefined && (P.ax || P.ay) && P.axDir === P.dir && dirFromVec(P.ax, P.ay, P.dir) === P.dir) { vx = P.ax; vy = P.ay; }
   const tol = Math.min(cone || 0.42, vx && vy ? 0.5 : 9);
   const look = (x, y) => { const dx = x - P.x, dy = y - (P.y - 6), d = Math.hypot(dx, dy); if (d < 10 || d > range) return null; const a = Math.acos(clamp((dx * vx + dy * vy) / d, -1, 1)); return a < tol ? { a, d, v: [dx / d, dy / d] } : null; };
   let foe = null, prop = null;
   // bolts travel and collide on the ground plane, so aim at the feet; a foe she cannot see (a shade in the dark) does not pull the bolt
-  for (const e of R.en) { if (e.def.friendly || e.def.hazard || e.def.vis && !e.def.vis(e)) continue; const t = look(e.x, e.y - 6); if (t && (!foe || t.a < foe.a)) foe = t; }
+  // Frost is for bridges over water: fish swimming in it must not drag the bolt off course
+  const wet = e => { const c = surfaceAt(e.x, e.y); return c === '~' || c === 'w'; };
+  for (const e of R.en) { if (e.def.friendly || e.def.hazard || e.def.vis && !e.def.vis(e) || S.eq === 'frost' && wet(e)) continue; const t = look(e.x, e.y - 6); if (t && (!foe || t.a < foe.a)) foe = t; }
   for (const p of R.props) if (!p.gone && p.def.aim && p.def.aim(p)) { const hb = p.def.hitBox ? p.def.hitBox(p) : null; const t = hb ? look(hb[0] + hb[2] / 2, hb[1] + hb[3] / 2) : look(p.cx, p.cy - 8); if (t && (!prop || t.a < prop.a)) prop = t; }
   // whatever is closest to straight ahead wins, but something this spell is meant for (an unlit candle for Spark, the fan for Gust)
   // gets a head start over a foe, unless the foe is right on top of her
@@ -2332,7 +2335,7 @@ SPELLFN.frost = (a, rank, ch) => {
   aimDirCache = a;
   bolt({ vx: a.x * 160, vy: a.y * 160, spell: 'frost', rank, col: C.moon3, light: 18, life: 0.4, r: 3,
     trail(q) { hazardFreeze(q.x, q.y, 6); freezeTile(Math.floor(q.x / TS), Math.floor(q.y / TS)); if (rank >= 2) { for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) freezeTile(Math.floor((q.x + dx * 12) / TS), Math.floor((q.y + dy * 12) / TS)); } if (Math.random() < 0.6) part(q.x, q.y, { col: C.moon3, s: 1, life: 0.3, z: 6, add: true }); },
-    onEnemy(q, e) { freezeEnemy(e); if (rank >= 2) for (const o of R.en) if (o !== e && dist(o.x, o.y, e.x, e.y) < 30) freezeEnemy(o); return true; },
+    onEnemy(q, e) { freezeEnemy(e); if (rank >= 2) for (const o of R.en) if (o !== e && dist(o.x, o.y, e.x, e.y) < 30) freezeEnemy(o); const c = surfaceAt(e.x, e.y); return c === '~' || c === 'w' ? 'pass' : true; },
     onEnd(q) { burst(q.x, q.y, 6, C.moon3, { spd: 30, add: true }); } });
 };
 function freezeTile(tx, ty) {
@@ -4182,7 +4185,7 @@ DB.items.winding_key = { name: 'Winding Key', desc: "One of Old Tock's eight clo
     if (!hasSpell('veilsight')) return { room: 'parlor', hint: 'Gather Wisps! Rattle furniture, pop pots. Your new page needs ink.' };
     if (!S.flags.boss_maitre) return { room: 'dining', at: [19, 7], hint: 'Cast Veilsight near the north wall of the Foyer. Something is sealed in the Dining Hall.' };
     if (!S.flags['gate:key'] && S.keys > 0) return { room: 'foyer', at: [37, 10], hint: 'Use that brass key on the east door, girl.' };
-    if (!S.flags.pantry_switch) return { room: 'pantry', at: [13, 5], hint: rsOf('pantry').v ? 'The kitchen wing! The pantry has a cat-flap. Soot is small, you know.' : 'The kitchen wing is past the Servants\' Corridor. Its floor has a gap, but old boards are hidden there. Veilsight shows them!' };
+    if (!S.flags.pantry_switch) return { room: 'pantry', at: [13, 5], hint: rsOf('pantry').v ? 'The kitchen wing! The pantry has a cat-flap. Stand by it and ' + catHow() + ': Soot slips through and flips the switch inside.' : 'The kitchen wing is past the Servants\' Corridor. Its floor has a gap, but old boards are hidden there. Veilsight shows them!' };
     if (!S.spells.frost) return { room: 'icehouse', at: [9, 4], hint: 'Past the scullery is the Ice House. Something cold is kept there.' };
     if (!hasSpell('frost')) return { room: 'icehouse', hint: 'Your Frost page needs ink. Gather Wisps!' };
     if (!S.flags.boss_marrow) return { room: 'greatkitchen', at: [20, 8], hint: 'Freeze the steam wall in the pantry. Madame Marrow has my Winding Key.' };
@@ -5473,6 +5476,7 @@ const AIM_HINT = {
 };
 // how to pick a spell, in words that match the controls being used
 function castHow(id) { const n = SPELL_NAME[id] || id; if (S.eq === id) return n + ' is ready.'; return In.mode === 'touch' ? 'Tap the arrows beside your spell until ' + n + ' shows.' : 'Press Q or E until ' + n + ' shows.'; }
+function catHow() { return In.mode === 'touch' ? 'tap the CAT button' : 'press I'; }
 function roomHints() {
   const out = [], later = [], d = DB.rooms[R.id] || {}, has = s => hasSpell(s);
   if (R.boss && BOSS_TIP[R.boss.type]) { out.push(BOSS_TIP[R.boss.type]); out.push(S.surge >= SURGE_MAX ? 'Your Witch Surge is full: unleash it to stun the boss!' : 'Every hit fills your Witch Surge meter. When it glows, unleash it!'); return out; }
@@ -5491,7 +5495,7 @@ function roomHints() {
     const eq = S.eq; S.eq = h[0]; let want = false; try { want = p.def.aim(p); } catch (e) { } S.eq = eq;
     if (want) { seenType[p.type] = 1; if (has(h[0])) out.push(h[1]); else later.push('Something here needs a spell you have not learned yet.'); }
   }
-  if (R.props.some(p => !p.gone && p.def.catflap)) out.push('A cat-flap! Stand near it and press the CAT button: Soot slips through.');
+  if (R.props.some(p => !p.gone && p.def.catflap)) out.push('A cat-flap! Stand near it and ' + catHow() + ': Soot slips through. Steer him with the arrows and use ACTION on things inside.');
   if (R.props.some(p => !p.gone && p.def.mirror) && has('mirror')) out.push('A tall mirror. Mirror Step takes you through it.');
   let water = 0, pit = 0, ghost = 0; for (let y = 0; y < R.h; y++) for (let x = 0; x < R.w; x++) { const c = R.g[y][x]; if (c === '~') water++; else if (c === '_') pit++; else if (c === 'x') ghost++; }
   if (water) out.push(has('frost') ? 'Deep water? Frost freezes a path across it.' : 'Deep water... a cold spell would help. Keep exploring!');
@@ -7860,6 +7864,8 @@ Game.updateMusic = function (sync) {
       paint(x, p) { const on = S.flags[p.flag]; rect(x, C.ink1, 3, 20, 10, 5); rect(x, C.ink3, 3, 20, 10, 1); rect(x, '#8b93a6', on ? 10 : 6, 7, 2, 14); rect(x, C.vel2, on ? 9 : 5, 4, 4, 4); for (let i = 0; i < 5; i++) rect(x, '#c8d0de', 1 + (i & 1), 2 + i * 4, 2, 3); },
       fx(ctx, p, t) { if (!S.flags[p.flag] && Math.floor(t * 2) % 2) { ctx.fillStyle = C.fire0; ctx.fillRect(Math.round(p.cx), Math.round(p.y - 12), 1, 1); } },
       light() { return 14; },
+      // a pulled lever's bridge is rebuilt whenever the room loads, so it can never go missing while the lever reads 'pulled'
+      onLoad(p) { if (S.flags[p.flag]) for (const [x, y] of p.bridge || []) setTile(x, y, 'k'); },
       aim(p) { return S.eq === 'beckon' && !S.flags[p.flag]; },
       interact(p) { floatText(p.cx, p.y, S.flags[p.flag] ? 'Pulled.' : 'A heavy chain lever. It is out of reach... unless something could reach FOR you.', C.bone1); return true; },
       onSpell(p, spell) {
@@ -9522,7 +9528,7 @@ Game.updateMusic = function (sync) {
       return { room: 'clockface', at: [20, 8], hint: 'Ossery waits on the Clock Face. Fight him to say goodbye, girl.' };
     }
     if (!seen('cellar_stairs')) return { room: 'foyer', at: [35, 12], hint: 'Below stairs, girl. The cellar stair by the mirror fell into a pit. Bloom will bridge it to the trapdoor.' };
-    if (!S.flags.crypt_bar) return { room: 'crypt', at: [12, 8], hint: 'The Crypt door is barred from the far side. That crack in the wall is just cat-sized.' };
+    if (!S.flags.crypt_bar) return { room: 'crypt', at: [12, 8], get hint() { return 'The Crypt door is barred from the far side. That crack in the wall is just cat-sized: stand by it and ' + catHow() + ', then lift the bar with Soot.'; } };
     if (!S.flags.cis_bridge) return { room: 'cistern', at: [5, 8], hint: 'The Cistern: ring the glass, freeze the water, see the hidden path, reach the far lever. Four spells, one after another.' };
     return { room: 'examiner_hall', at: [20, 7], hint: 'The Examiner\'s Hall. Whatever waits there knows every spell you know. Weave them together, girl.' };
   }
