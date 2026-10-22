@@ -1410,7 +1410,7 @@ function loadRoom(id, arrive) {
   if (arrive && arrive.from) { let cand = room.doors.filter(dd => dd.to === arrive.from); if (arrive.toDoor) { const c2 = cand.filter(dd => dd.id === arrive.toDoor); if (c2.length) cand = c2; } arrive = cand[0] ? { door: cand[0], first: arrive.first } : null; }
   assignLoot(room, d);
   R.room = room; R.id = id; R.rs = rsOf(id); R.w = room.w; R.h = room.h; R.pw = room.pw; R.ph = room.ph; R.g = room.g; R.props = room.props; R.doors = room.doors;
-  R.style = room.style; R.dark = room.dark; R.en = []; R.items = []; R.proj = []; R.npcs = []; R.fx = []; R.boss = null; R.veil = null; R.hazards = []; R.gearAt = null; R.catSight = 0; R.road = null; R.hHand = null; R.drops = null; R.shock = null; R.echo = null; R.darkBoost = 0; R.calmUntil = 0; R.tint = d.tint || null; R.t = 0; R.rain = !!d.rain || (!!S.flags.rain && !!room.style.outdoor); R.fogAlways = !!d.fog; R.outdoors = !!room.style.outdoor; R.fog = 0;
+  R.style = room.style; R.dark = room.dark; R.en = []; R.items = []; R.proj = []; R.npcs = []; R.fx = []; R.boss = null; R.bossLock = false; R.veil = null; R.hazards = []; R.gearAt = null; R.catSight = 0; R.road = null; R.hHand = null; R.drops = null; R.shock = null; R.echo = null; R.darkBoost = 0; R.calmUntil = 0; R.tint = d.tint || null; R.t = 0; R.rain = !!d.rain || (!!S.flags.rain && !!room.style.outdoor); R.fogAlways = !!d.fog; R.outdoors = !!room.style.outdoor; R.fog = 0;
   applyRoomState(room);
   for (const p of R.props) p.def.onLoad && p.def.onLoad(p);
   rebuildSolids();
@@ -3677,7 +3677,6 @@ function drawTitle(ctx, dt) {
     T(ctx, 'x', VW - 22, VH - 31, C.fire1);
   }
   const sx = Lay.mode === 'side' ? VW + Lay.r - 8 : VW;
-  if (Lay.mode === 'side') drawSideArt(dt);
   fsButton(ctx, 'fstitle', DEV_BUTTON ? sx - 54 : sx - 24, 4, 18, 13);
   if (DEV_BUTTON && btn(ctx, 'devbtn', sx - 33, 4, 29, 13, 'DEV', { nofocus: true, fill: C.ink2, col: C.ecto1, fs: 6.5 })) { Game.openDev(false); return; }
   if (In.anyTap() || In.edge.cast) { In.taps.length = 0; Game.state = 'files'; Ui.slots = null; Save.summaries().then(s => { Ui.slots = s; }); Aud.sfx('confirm'); Aud.unlock(); }
@@ -4511,6 +4510,7 @@ function readSafe() {
   const s = $('safe'); if (!s) return; const cs = getComputedStyle(s);
   Disp.safe = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
 }
+function isPregame() { return typeof Game !== 'undefined' && ['title', 'files', 'name'].includes(Game.state); }
 function resize() {
   const dpr = window.devicePixelRatio || 1, cw = window.innerWidth || document.documentElement.clientWidth || 800, ch = window.innerHeight || document.documentElement.clientHeight || 600;
   Disp.dpr = dpr; Disp.cw = cw; Disp.ch = ch;
@@ -4520,7 +4520,13 @@ function resize() {
   const W = Canvas.el.width, H = Canvas.el.height;
   const coarse = (navigator.maxTouchPoints > 0) && !!(window.matchMedia && matchMedia('(pointer:coarse)').matches);
   let s, vw, L = { mode: 'over', l: 0, r: 0, t: 0, b: 0 };
-  if (coarse && ch > cw * 1.05) {
+  // the opening screens (title, files, naming) are full screen and centred; the panels arrive when the game starts
+  const pre = isPregame();
+  if (pre) {
+    s = Math.max(1, Math.floor(H / VH)); let fw = Math.floor(W / s);
+    if (fw < 256) { s = Math.max(1, Math.floor(W / 256)); fw = Math.floor(W / s); }
+    vw = clamp(fw, 256, 420);
+  } else if (coarse && ch > cw * 1.05) {
     // held upright: the game on top, the controls underneath
     s = Math.max(1, Math.floor(W / 256)); while (s > 1 && Math.floor(H / s) - VH < 170) s--;
     vw = clamp(Math.floor(W / s), 256, 352); const st = Math.ceil(Disp.safe.t * dpr / s);
@@ -4537,7 +4543,7 @@ function resize() {
     } else if (fw - 256 >= 80) { vw = clamp(fw - 92, 256, 320); L = { mode: 'side', l: 0, r: Math.min(92, fw - vw), t: 0, b: 0 }; }
     else vw = clamp(fw, 256, 352);
   }
-  L.fw = L.l + vw + L.r; L.fh = L.t + VH + L.b;
+  L.fw = L.l + vw + L.r; L.fh = L.t + VH + L.b; L.pre = pre;
   const changed = vw !== VW || !Scr.lo; Object.assign(Lay, L);
   if (changed) { VW = vw; initScreens(); if (R.room && P) snapCamera(); }
   if (!Scr.ui || Scr.ui.width !== Lay.fw || Scr.ui.height !== Lay.fh) { Scr.ui = mk(Lay.fw, Lay.fh); Scr.uctx = Scr.ui.getContext('2d'); Scr.uctx.imageSmoothingEnabled = false; Scr.frameBg = null; }
@@ -4706,11 +4712,12 @@ function frame(ts) {
   while (acc >= DT && n < 5) { if (n > 0) { In.taps = []; In.edge = {}; In.raw = {}; } step(DT); acc -= DT; n++; }
   if (n > 1) { In.edge = keepEdge; In.raw = keepRaw; In.taps = keepTaps; }
   if (acc > DT * 5) acc = 0;
+  if (isPregame() !== !!Lay.pre) resize();
   const ctx = Scr.ctx; ctx.imageSmoothingEnabled = false;
   HiUI.q.length = 0; HiUI.fade = 0; FS.last = FS.rects; FS.rects = [];
   beginUiLayer();
   sceneRender(ctx, dtr);
-  if (Lay.mode === 'side' && ['files', 'name', 'recap', 'credits', 'encore', 'gameover', 'dev'].includes(Game.state)) drawSideArt(dtr);
+  if (Lay.mode === 'side' && ['recap', 'credits', 'encore', 'gameover', 'dev'].includes(Game.state)) drawSideArt(dtr);
   blit();
   In.frameEnd();
 }
@@ -5628,8 +5635,8 @@ function drawPanelHUD() {
   y += hudMenu(u, c.x, y, c.w) + 2; Panel.infoBottom = y;
   if (!touch && Lay.mode === 'side') {
     Panel.spellY = y;
-    const ly = Math.max(y + 46, VH - 52);
-    ['J cast K act', 'L dash I cat', 'Q/E spells', 'H help M mute', 'Enter book'].forEach((l, i) => T(u, fitStr(l, c.w), c.x, ly + i * 10, C.bone2, { shadow: false }));
+    const ly = Math.max(y + 18 + 36, VH - 42);
+    ['J cast K act', 'L dash I cat', 'Q/E spells', 'H help M mute'].forEach((l, i) => T(u, fitStr(l, c.w), c.x, ly + i * 10, C.bone2, { shadow: false }));
   }
   if (Aud.muted) T(u, 'MUTED (M)', c.x, (Lay.mode === 'side' && !touch ? VH - 62 : y), C.vel2);
 }
