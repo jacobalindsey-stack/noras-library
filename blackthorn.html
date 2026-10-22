@@ -31,7 +31,7 @@ if (window.__stage) window.__stage('[2] game code parsing...');
    BLACKTHORN MANOR  —  Part 1: Core + Act I
    ===================================================================== */
 /* ===== CONFIG ===== */
-const GAME_VERSION = '1.2.1', SCHEMA_VERSION = 1, TS = 16, VH = 224;
+const GAME_VERSION = '1.2.3', SCHEMA_VERSION = 1, TS = 16, VH = 224;
 let VW = 320;
 const SCR_W = 20, SCR_H = 14;
 const TAU = Math.PI * 2;
@@ -110,7 +110,7 @@ const Disp = { ox: 0, oy: 0, scale: 3, dpr: 1, cw: 0, ch: 0, ptPx: 3.5, safe: { 
 const Lay = { mode: 'over', l: 0, r: 0, t: 0, b: 0, fw: 256, fh: 224 };
 const KEYMAP = {
   KeyJ: 'cast', KeyZ: 'cast', KeyK: 'act', KeyX: 'act', Space: 'act', KeyL: 'dash', KeyC: 'dash', KeyI: 'cat', KeyV: 'cat',
-  KeyQ: 'prev', KeyE: 'next', Enter: 'book', Escape: 'book', Tab: 'map', KeyG: 'guide', KeyR: 'song', KeyU: 'surge', KeyH: 'hint', ShiftLeft: 'surge', ShiftRight: 'surge', KeyM: 'mute', KeyF: 'full',
+  KeyQ: 'prev', KeyE: 'next', Enter: 'book', Escape: 'book', Tab: 'map', KeyG: 'guide', KeyR: 'song', KeyU: 'surge', KeyH: 'hint', KeyM: 'mute', KeyF: 'full',
   ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', Backquote: 'debug'
 };
 const In = {
@@ -201,7 +201,9 @@ const In = {
     let gp = null; for (const g of gps) if (g && g.connected) { gp = g; break; }
     if (!gp) { this.pd = {}; this.padAx = 0; this.padAy = 0; return; }
     const b = i => gp.buttons[i] && gp.buttons[i].pressed;
-    const m = { cast: b(0), act: b(1), dash: b(2), cat: b(3), prev: b(4), next: b(5), book: b(9), map: b(8), surge: b(6) || b(7), up: b(12), down: b(13), left: b(14), right: b(15) };
+    // analog triggers only count when squeezed most of the way (a resting or drifting trigger must not fire the Surge)
+    const trig = i => { const x = gp.buttons[i]; return !!x && (typeof x.value === 'number' ? x.value > 0.75 : x.pressed); };
+    const m = { cast: b(0), act: b(1), dash: b(2), cat: b(3), prev: b(4), next: b(5), book: b(9), map: b(8), surge: trig(6) || trig(7), up: b(12), down: b(13), left: b(14), right: b(15) };
     let any = false; for (const k in m) if (m[k]) any = true;
     const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
     if (Math.hypot(ax, ay) > 0.3) { any = true; this.padAx = ax; this.padAy = ay; } else { this.padAx = 0; this.padAy = 0; }
@@ -4619,8 +4621,19 @@ function stepPlay(dt) {
   Juice.step(dt);
   if (S.gift && R.id === 'foyer') { const k = S.gift; S.gift = null; const bed = R.props.find(p => p.type === 'catbed'); if (bed) { if (k === 'wisps') spawnWisps(bed.cx, bed.cy, 25); else if (k === 'mp') { spawnPickup('mp', bed.cx, bed.cy); spawnPickup('mp', bed.cx + 6, bed.cy); } else spawnPickup('heart', bed.cx, bed.cy); toast("Soot's daily gift!"); } }
 }
+// Freeze log: if play stands still for more than 1.5s outside talk and menus, or a frame takes over half a second,
+// note why and where (kept in this browser, shown in the dev menu's Freezes tab)
+const Stall = { why: '', t: 0, logged: false, list: (() => { try { return JSON.parse(localStorage.getItem('bm.stalls') || '[]'); } catch (e) { return []; } })(),
+  add(e) { e.at = new Date().toLocaleTimeString(); e.v = GAME_VERSION; this.list.unshift(e); this.list.length = Math.min(this.list.length, 12); try { localStorage.setItem('bm.stalls', JSON.stringify(this.list)); } catch (err) { } },
+  tick(dt) {
+    if (Game.state !== 'play' || !R.room) { this.why = ''; this.t = 0; this.logged = false; return; }
+    const why = Fx.hitstop > 0 ? 'hitstop' : Game.fade ? 'fade' : Game.trans ? 'door slide' : fightFrozen() ? 'boss card' : Game.cutscene ? 'cutscene' : P.frozen ? 'Juniper frozen' : (P.state !== 'walk' && P.state !== 'hurt') ? 'Juniper ' + P.state : '';
+    if (why && why === this.why) { this.t += dt; if (this.t > 1.5 && !this.logged) { this.logged = true; this.add({ room: R.id, why, secs: 1.5 }); } else if (this.logged && this.list[0]) this.list[0].secs = Math.round(this.t * 10) / 10; }
+    else { this.why = why; this.t = 0; this.logged = false; }
+  } };
 function step(dt) {
   if (Game.portrait || Game.hidden) return;
+  Stall.tick(dt);
   Game.t += dt; fightTick(dt);
   if (Toasts.length) { const t0 = Toasts[0]; t0.age += dt * (Toasts.length > 2 ? 2 : 1); if (t0.age >= t0.t) Toasts.shift(); }
   if (Game.saveIcon > 0) Game.saveIcon -= dt;
@@ -4712,7 +4725,7 @@ function drawCredits(ctx, dt) { if (BM.drawCredits) { BM.drawCredits(ctx, dt); r
 let lastTs = 0, acc = 0, fpsT = 0, fpsN = 0;
 function frame(ts) {
   requestAnimationFrame(frame);
-  if (!lastTs) lastTs = ts; let dtr = Math.min(0.1, (ts - lastTs) / 1000); lastTs = ts;
+  if (!lastTs) lastTs = ts; const gap = ts - lastTs; if (gap > 500 && gap < 20000 && Game.state === 'play' && document.visibilityState === 'visible' && R.room) Stall.add({ room: R.id, why: 'slow frame', secs: Math.round(gap / 100) / 10 }); let dtr = Math.min(0.1, gap / 1000); lastTs = ts;
   fpsT += dtr; fpsN++; if (fpsT >= 0.5) { Game.fps = fpsN / fpsT; fpsT = 0; fpsN = 0; }
   if (Game.portrait || Game.hidden) { return; }
   acc += dtr; In.update();
@@ -4873,8 +4886,15 @@ function drawDev(ctx, dt) {
   TK(ctx, 'DEV MENU', 8, 5, C.ecto1, 1);
   T(ctx, DV.live ? 'Game paused.' : 'Debug only: own hidden save', VW - 8, 6, C.bone2, { align: 'r' });
   uiBegin();
-  ['Checkpoints', 'Rooms'].forEach((n, i) => { if (btn(ctx, 'dvt' + i, 8 + i * 72, 18, 68, 14, n, { sel: DV.tab === i })) { DV.tab = i; DV.page = 0; } });
-  if (!DV.live && DV.save && DV.save.data) { const nm = DB.rooms[DV.save.data.cur.room] ? DB.rooms[DV.save.data.cur.room].name : '?'; if (btn(ctx, 'dvcont', 156, 18, VW - 164, 14, 'Continue: ' + nm, { fill: C.grn1 })) { Game.continueGame(DEV_SLOT, DV.save.data); uiEnd(); return; } }
+  [['Checkpoints', 8, 78], ['Rooms', 88, 46], ['Freezes', 136, 54]].forEach(([n, bx, bw], i) => { if (btn(ctx, 'dvt' + i, bx, 18, bw, 14, n, { sel: DV.tab === i })) { DV.tab = i; DV.page = 0; } });
+  if (DV.tab === 2) {
+    const L = Stall.list; T(ctx, L.length ? 'Times the game stood still (newest first):' : 'No freezes recorded. If one happens, it will show here.', 8, 38, C.bone1);
+    L.slice(0, 7).forEach((e, i) => { const c = i ? C.bone2 : C.fire0; T(ctx, fitStr(e.at + '  ' + (DB.rooms[e.room] ? DB.rooms[e.room].name : e.room), VW - 16), 8, 50 + i * 20, c); T(ctx, fitStr('   ' + e.why + ' for ' + e.secs + 's  (v' + e.v + ')', VW - 16), 8, 59 + i * 20, c); });
+    if (L.length && btn(ctx, 'dvclr', VW - 60, VH - 34, 52, 14, 'Clear')) { Stall.list.length = 0; try { localStorage.removeItem('bm.stalls'); } catch (e) { } }
+    if (btn(ctx, 'dvback2', 8, VH - 18, 60, 14, 'Back') || In.back()) { DV.tab = 0; }
+    uiEnd(); return;
+  }
+  if (!DV.live && DV.save && DV.save.data) { const nm = DB.rooms[DV.save.data.cur.room] ? DB.rooms[DV.save.data.cur.room].name : '?'; if (btn(ctx, 'dvcont', 196, 18, VW - 204, 14, 'Continue: ' + nm, { fill: C.grn1 })) { Game.continueGame(DEV_SLOT, DV.save.data); uiEnd(); return; } }
   const botY = VH - 18, liveY = VH - 35, listEnd = (DV.live ? liveY : botY) - 18;
   let top = 37, cols = 2, items = [];
   if (DV.tab === 0) {
@@ -4984,7 +5004,7 @@ const BOSS_EPITHET = {
 const Fight = { cur: null, card: null, win: null };
 function fightStart(e) {
   Fight.cur = { e, en: R.en, type: e.type, room: R.id, t: 0, hurt: 0, hp0: S.hp, name: (e.def.name || 'Boss').toUpperCase() };
-  Fight.card = { t: 0, name: Fight.cur.name, sub: BOSS_EPITHET[e.type] || '', col: e.def.cardCol || C.vel2, hold: S.flags['bc_' + e.type] ? 0.7 : 1.5 };
+  Fight.card = { t: 0, name: Fight.cur.name, sub: BOSS_EPITHET[e.type] || '', col: e.def.cardCol || C.vel2, hold: S.flags['bc_' + e.type] ? 0.4 : 0.9 };
   S.flags['bc_' + e.type] = 1;
   Fight.win = null; Aud.sfx('bosscard');
 }
