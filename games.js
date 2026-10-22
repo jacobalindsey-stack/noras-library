@@ -15,6 +15,11 @@
    ground  the cameo's background color (from the game's own art)
    foil    the emblem's gold color (from the game's own art)
    emblem  the inside of a 64x64 SVG drawn in currentColor
+
+   A game that isn't out yet: add  comingSoon: true , leave out href and
+   shots, and give it a  note  (shown as "From the workshop") instead of
+   howto. It takes the next numeral with a "Coming soon" tag, and its preview
+   has no Open button. When it's ready, remove comingSoon and add the rest.
    ===================================================================== */
 window.NORA_GAMES = [
   {
@@ -107,5 +112,17 @@ window.NORA_GAMES = [
     ground: '#120a24',
     foil: '#ff9a3a',
     emblem: '<path d="M32 24c-15 0-25 8-25 18s10 16 25 16 25-6 25-16-10-18-25-18z"/><path d="M32 24c0-4 1-6 4-8"/><path d="M21 38l4-6 4 6zM35 38l4-6 4 6z" fill="currentColor" stroke="none"/><path d="M22 46q10 6 20 0"/><path d="M6 15Q30 -1 58 13"/><path d="M50 4l2 4 4 2-4 2-2 4-2-4-4-2 4-2z" fill="currentColor" stroke="none"/>'
+  },
+  {
+    key: 'blackthorn2',
+    title: 'Blackthorn Manor II',
+    kind: '3D platformer',
+    comingSoon: true,
+    platforms: ['PC', 'iPad'],
+    blurb: "The party's over and every ghost has crossed the Lantern Road, except Wick, the smallest ghost in the house, who slept through it. He has until sunrise to climb the manor and catch up.",
+    note: "Wick comes straight from one of Nora's own drawings: a bedsheet ghost with pink cheeks, glowing in a window.",
+    ground: '#1d2340',
+    foil: '#f0b45a',
+    emblem: '<path d="M19 58V30a13 13 0 0 1 26 0v28l-4.3-3.5-4.4 3.5-4.3-3.5-4.4 3.5-4.3-3.5z"/><ellipse cx="27" cy="32" rx="2" ry="3" fill="currentColor" stroke="none"/><ellipse cx="37" cy="32" rx="2" ry="3" fill="currentColor" stroke="none"/><path d="M23.5 38.5h2.5M38 38.5h2.5"/><path d="M19 45l-4-3M45 44l4-5"/><path d="M52 4v3M49 7h6v9h-6zM50 16h4"/>'
   }
 ];

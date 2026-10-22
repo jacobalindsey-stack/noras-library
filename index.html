@@ -163,6 +163,26 @@
   a.act:hover .title { color: #7d1a38; }
   a.act:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 2px; }
 
+  /* a game that isn't out yet: same tile, a gold "Coming soon" tag, no link */
+  button.act { width: 100%; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  button.act:hover, button.act:focus-visible { background-color: rgba(201,150,63,.09); }
+  button.act:hover .cameo, button.act:focus-visible .cameo { transform: translateY(-4px) scale(1.03); }
+  button.act:focus-visible { outline: 2px solid var(--gold-deep); outline-offset: 2px; }
+  .pv [hidden] { display: none !important; }
+  .soon-tag {
+    margin-top: 9px;
+    display: inline-block;
+    padding: 4px 11px 3px;
+    border: 1px solid var(--gold-deep);
+    border-radius: 999px;
+    font-family: "Jost", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: clamp(10px, .85vw, 11.5px);
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--gold-deep);
+    background: rgba(201,150,63,.08);
+  }
   .act.next .numeral { color: #d8c6a8; }
   .act.next .cameo { background: none; box-shadow: none; border: 2px dashed #d9c3a0; }
   .act.next .cameo svg { width: 24%; color: #e2cfaa; filter: none; }
@@ -230,6 +250,34 @@
     background: #000;
     border-radius: 3px;
     box-shadow: 0 0 0 1px rgba(217,184,119,.45);
+  }
+  .pv-poster {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+    background: radial-gradient(ellipse at 50% 40%, rgba(255,255,255,.08), rgba(255,255,255,0) 60%), var(--ground);
+    box-shadow: 0 0 0 1px rgba(217,184,119,.45), inset 0 0 60px rgba(0,0,0,.35);
+  }
+  .pv-poster svg { width: 30%; height: auto; color: var(--foil); filter: drop-shadow(0 0 14px color-mix(in srgb, var(--foil) 50%, transparent)); }
+  .pv-soon {
+    flex: 1 1 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0 22px;
+    border-radius: 999px;
+    border: 1px dashed var(--gold-deep);
+    font-family: "Jost", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold-deep);
+    background: rgba(201,150,63,.08);
   }
   .pv-thumbs { display: flex; gap: 10px; }
   .pv-thumb {
@@ -471,6 +519,7 @@
   <div class="pv">
     <div class="pv-media">
       <img class="pv-shot" id="pv-shot" alt="">
+      <div class="pv-poster" id="pv-poster" hidden></div>
       <div class="pv-thumbs" id="pv-thumbs" role="group" aria-label="Screenshots"></div>
     </div>
     <div class="pv-info">
@@ -482,8 +531,9 @@
       <div class="kind" id="pv-kind"></div>
       <div class="platforms" id="pv-plat"></div>
       <p class="pv-blurb" id="pv-blurb"></p>
-      <p class="pv-howto"><b>How to play</b><span id="pv-howto"></span></p>
+      <p class="pv-howto" id="pv-howto-row"><b id="pv-howto-label">How to play</b><span id="pv-howto"></span></p>
       <div class="pv-actions">
+        <span class="pv-soon" id="pv-soon" hidden>Coming soon</span>
         <a class="pv-open" id="pv-open" target="_blank" rel="noopener">Open the game
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7M13 3L4 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
@@ -542,9 +592,17 @@
       $('pv-title').textContent = g.title;
       $('pv-kind').textContent = g.kind;
       $('pv-blurb').textContent = g.blurb || '';
-      $('pv-howto').textContent = g.howto || '';
-      $('pv-open').href = g.href;
-      $('pv-open').setAttribute('aria-label', 'Open ' + g.title + ' in a new tab');
+      var line = g.howto || g.note || '';
+      $('pv-howto-label').textContent = g.howto ? 'How to play' : 'From the workshop';
+      $('pv-howto').textContent = line;
+      $('pv-howto-row').hidden = !line;
+      var soon = !!g.comingSoon;
+      $('pv-soon').hidden = !soon;
+      $('pv-open').hidden = soon;
+      if (!soon) {
+        $('pv-open').href = g.href;
+        $('pv-open').setAttribute('aria-label', 'Open ' + g.title + ' in a new tab');
+      }
 
       var plat = $('pv-plat');
       plat.textContent = '';
@@ -574,9 +632,18 @@
       thumbs.hidden = shots.length < 2;
       if (shots.length) showShot(g, 0);
 
+      // no screenshots yet (a coming-soon game): show its emblem large instead
+      var poster = $('pv-poster');
+      poster.hidden = !!shots.length;
+      if (!shots.length) {
+        poster.style.setProperty('--ground', g.ground);
+        poster.style.setProperty('--foil', g.foil);
+        poster.innerHTML = emblem(g.emblem);
+      }
+
       document.documentElement.classList.add('pv-lock');
       dlg.showModal();
-      $('pv-open').focus();
+      (soon ? $('pv-close') : $('pv-open')).focus();
     }
 
     function closePreview() { if (dlg.open) dlg.close(); }
@@ -591,14 +658,25 @@
     list.textContent = '';
     games.forEach(function (g, i) {
       var li = el('li');
-      var a = el('a', 'act');
+      var soon = !!g.comingSoon;
+      // a coming-soon game is a button that opens its preview (no game to link to yet)
+      var a = el(soon ? (canPreview ? 'button' : 'div') : 'a', soon ? 'act soon' : 'act');
+      if (soon) {
+        if (canPreview) {
+          a.type = 'button';
+          a.setAttribute('aria-haspopup', 'dialog');
+          a.setAttribute('aria-label', g.title + ', ' + g.kind + ', coming soon, opens a preview');
+          a.addEventListener('click', function () { openPreview(g, i); });
+        }
+      } else {
       a.href = g.href;
       a.target = '_blank';
       a.rel = 'noopener';
       a.setAttribute('aria-label', g.title + ', ' + g.kind +
         (g.platforms && g.platforms.length ? ', best on ' + g.platforms.join(', ') : '') +
         (canPreview ? ', opens a preview' : ' (opens in a new tab)'));
-      if (canPreview) {
+      }
+      if (canPreview && !soon) {
         a.setAttribute('aria-haspopup', 'dialog');
         a.addEventListener('click', function (e) {
           // ctrl/cmd/shift/middle-click still go straight to the game
@@ -616,7 +694,9 @@
       var text = el('div');
       text.appendChild(el('div', 'title', g.title));
       text.appendChild(el('div', 'kind', g.kind));
-      if (g.platforms && g.platforms.length) {
+      if (soon) {
+        text.appendChild(el('div', 'soon-tag', 'Coming soon'));
+      } else if (g.platforms && g.platforms.length) {
         var plats = el('div', 'platforms');
         plats.setAttribute('aria-label', 'Plays best on ' + g.platforms[0] +
           (g.platforms.length > 1 ? '; also ' + g.platforms.slice(1).join(', ') : ''));
@@ -637,7 +717,8 @@
       list.appendChild(li);
     });
 
-    // the empty act at the end: room for the next game
+    // the empty act at the end: room for the next game (unless one is already coming soon)
+    if (games.some(function (g) { return g.comingSoon; })) return;
     var next = el('li');
     var row = el('div', 'act next');
     row.setAttribute('aria-hidden', 'true');

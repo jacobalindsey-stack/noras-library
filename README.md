@@ -15,6 +15,7 @@ Every push to `main` redeploys the site.
 | Mirror of Algol | `algol.html` | migrated from Claude Design export (single file) |
 | Adriatica II | `adriatica2/` | migrated from Claude Design export (folder build, 19 MB) |
 | Pumpkin Slash | `pumpkinslash.html` | single file, attached Oct 18 2026 (three.js r128 from cdnjs, jsdelivr/unpkg fallbacks) |
+| Blackthorn Manor II | coming soon | the Last Lantern; in progress on the `claude/affectionate-ramanujan-3ld4ce` branch of reimagined-chainsaw (`blackthorn2/`) |
 | Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (cfd48f4, v1.2.0) |
 
 Adriatica II also lives at the old subdomain adriatica2.noralindsey.com until
@@ -55,6 +56,11 @@ add a game.
    - `shots`: two screenshots in `previews/`, gameplay first, then the title
      screen (JPEG, about 1000 px wide)
 3. Save and push. The game appears as the next act with the next numeral.
+
+A game that isn't out yet gets `comingSoon: true` (no `href` or `shots`) and a
+`note` instead of `howto`: it shows a "Coming soon" tag, its preview has no
+Open button, and it takes the place of the empty next-act slot. When it ships,
+remove `comingSoon` and add `href`, `howto` and `shots`.
 
 Clicking a game opens its preview (screenshots, description, how to play)
 with **Open the game** and **Close**; ctrl/cmd-click still opens the game
