@@ -2529,7 +2529,7 @@ function openGate(p, silent) {
   if (!silent) { Aud.sfx('door'); shake(1, 0.2); }
   BM.onGate && BM.onGate(p);
 }
-const GATE_MSG = { giant: 'Giant toy blocks are stacked in the doorway. Something could shrink them...', trellis: 'An empty trellis. Something that grows could climb it.', cobweb: 'Thick cobwebs bar the way. Something hot would fix that.', ghostfire: 'Cold green fire. Something freezing might put it out.', steam: 'Scalding steam. Something freezing might quiet it.', veil: 'Just a wall... but the paper is cracked in odd lines.', key: 'Locked. It needs a brass key.', flag: "It won't budge. Something on the other side?", asleep: 'This part of the house is still asleep.', tower: 'The Tower door is sealed tight. All eight clock parts...', spores: 'Choking spores fill the doorway. A strong wind would clear the air.', glass: 'Stained glass, thick as a wall. A pure, ringing note might shatter it.' };
+const GATE_MSG = { giant: 'Giant toy blocks are stacked in the doorway. Something could shrink them...', trellis: 'An empty trellis. Something that grows could climb it.', cobweb: 'Thick cobwebs bar the way. Something hot would fix that.', ghostfire: 'Cold green fire. Something freezing might put it out. (Got Frost? Stand close and cast it here.)', steam: 'Scalding steam. Something freezing might quiet it.', veil: 'Just a wall... but the paper is cracked in odd lines.', key: 'Locked. It needs a brass key.', flag: "It won't budge. Something on the other side?", asleep: 'This part of the house is still asleep.', tower: 'The Tower door is sealed tight. All eight clock parts...', spores: 'Choking spores fill the doorway. A strong wind would clear the air.', glass: 'Stained glass, thick as a wall. A pure, ringing note might shatter it.' };
 PROPDEF.gate = {
   fw: 2, fd: 1, ph: 40, reach: 18,
   vkey(p) { return p.kind + p.dir + R.id + (p.state.seen ? 's' : ''); },
@@ -2717,6 +2717,9 @@ PROPDEF.hidden = { fw: 1, fd: 1, ph: 12, solid: false, reach: 12, reachBias: -2,
   },
   onSpell(p, spell) { if (spell === 'veilsight') { p.state.glow = 6; weave('hidden+veilsight'); } return false; },
   interact(p) { if (p.gone || R.rs.found[p.id]) return false; if (p.needVeil && !(veilRevealed(p.cx, p.cy) || p.state.glow > 0 || R.lightning > 0)) return false; p.gone = true; R.rs.found[p.id] = 1; if (p.item === 'wisps') { spawnWisps(p.cx, p.cy, p.n || 10); Aud.sfx('secret'); floatText(p.cx, p.cy - 10, 'Found!', C.fire0); } else giveItem(p.item, p.cx, p.cy); return true; },
+  // Soot can reach the places Juniper can't (behind a cat-flap): ACTION or a pounce on the sparkle collects it, and Wisps go straight into the bag
+  sootUse(p) { if (p.gone || R.rs.found[p.id]) return; p.gone = true; R.rs.found[p.id] = 1; SO.emote = '!'; SO.emoteT = 1.2; Aud.sfx('meow'); burst(p.cx, p.cy - 6, 10, C.fire0, { spd: 40, add: true }); if (p.item === 'wisps') { addWisps(p.n || 10); Aud.sfx('secret'); floatText(p.cx, p.cy - 10, '+' + (p.n || 10) + ' Wisps!', C.ecto0); } else giveItem(p.item, p.cx, p.cy); Game.dirtyProps && Game.dirtyProps(); },
+  onPounce(p) { PROPDEF.hidden.sootUse(p); },
   sniffable(p) { return !p.gone && !R.rs.found[p.id]; }, restore(p, rs) { if (rs.found[p.id]) p.gone = true; } };
 PROPDEF.berrybush = { fw: 1, fd: 1, ph: 20, sb: [2, 8, 12, 8], reach: 14, paint(x, p, r) { rect(x, C.grn1, 1, 6, 14, 10); rect(x, C.grn2, 3, 4, 10, 8); for (let i = 0; i < 5; i++) rect(x, C.vel2, 3 + r.int(0, 9), 6 + r.int(0, 7), 2, 2); rect(x, C.grn0, 1, 15, 14, 1); },
   interact(p) { if (p.gone) return false; p.gone = true; rebuildSolids(); spawnPickup('heart', p.cx, p.cy); Aud.sfx('pop'); burst(p.cx, p.cy - 6, 8, [C.vel2, C.grn3], { spd: 30 }); return true; } };
@@ -3146,7 +3149,10 @@ Game.say = function (lines, opts) {
     Aud.sfx('select');
   });
 };
-function prepLine() { const d = Game.dlg, l = d.lines[d.i]; const txt = String(l.text).replace(/\{me\}/g, S ? S.name : 'JUNIPER'); d.wrap = Font.wrap(txt, VW - 16 - (portraitKey(l.who) ? 50 : 14)); d.total = d.wrap.join('').length; d.ch = 0; d.sel = 0; d.done = false; }
+function prepLine() { const d = Game.dlg, l = d.lines[d.i]; const txt = String(l.text).replace(/\{me\}/g, S ? S.name : 'JUNIPER'); d.wrap = Font.wrap(txt, VW - 16 - (portraitKey(l.who) ? 50 : 14));
+  // more than the box holds: the rest goes on a next page (any choices move with it)
+  if (d.wrap.length > 4) { d.lines.splice(d.i + 1, 0, Object.assign({}, l, { text: d.wrap.slice(4).join(' ') })); d.lines[d.i] = Object.assign({}, l, { choices: undefined }); d.wrap = d.wrap.slice(0, 4); }
+  d.total = d.wrap.join('').length; d.ch = 0; d.sel = 0; d.done = false; }
 function finishDialogue(idx) { const d = Game.dlg; Game.dlg = null; In.consume('act'); In.consume('cast'); In.swallow = true; In.tAt.act = 0; In.tAt.cast = 0; Game.state = d.prev === 'dialogue' ? 'play' : d.prev; d.res(idx); }
 function updateDialogue(dt) {
   const d = Game.dlg; if (!d) return; const l = d.lines[d.i];
@@ -5439,8 +5445,8 @@ function drawTitleArt(ctx, dt) {
 const GATE_HINT = {
   cobweb: ['spark', 'Cobwebs block the way to {to}. A Spark will burn them away.'],
   veil: ['veilsight', 'Something is hidden in the wall toward {to}. Stand close and cast Veilsight.'],
-  ghostfire: ['frost', 'Cold ghostfire blocks the way to {to}. Frost puts it out.'],
-  steam: ['frost', 'Hot steam blocks the way to {to}. Frost cools it down.'],
+  ghostfire: ['frost', 'Cold green ghostfire blocks the way to {to}. Stand close and cast Frost at it.'],
+  steam: ['frost', 'Hot steam blocks the way to {to}. Stand close and cast Frost at it.'],
   giant: ['thimble', 'Giant toy blocks are in the way to {to}. Thimble can shrink them.'],
   trellis: ['bloom', 'A bare trellis blocks the way to {to}. Bloom grows it into a doorway.'],
   spores: ['gust', 'Spore clouds fill the way to {to}. Gust blows them away.'],
@@ -5465,6 +5471,8 @@ const AIM_HINT = {
   stainedglass: ['chime', 'Stained glass! Chime makes it ring.'],
   gearplat: ['frost', 'Gear platforms come and go. Frost holds one still.']
 };
+// how to pick a spell, in words that match the controls being used
+function castHow(id) { const n = SPELL_NAME[id] || id; if (S.eq === id) return n + ' is ready.'; return In.mode === 'touch' ? 'Tap the arrows beside your spell until ' + n + ' shows.' : 'Press Q or E until ' + n + ' shows.'; }
 function roomHints() {
   const out = [], later = [], d = DB.rooms[R.id] || {}, has = s => hasSpell(s);
   if (R.boss && BOSS_TIP[R.boss.type]) { out.push(BOSS_TIP[R.boss.type]); out.push(S.surge >= SURGE_MAX ? 'Your Witch Surge is full: unleash it to stun the boss!' : 'Every hit fills your Witch Surge meter. When it glows, unleash it!'); return out; }
@@ -5493,6 +5501,7 @@ function roomHints() {
   const dark = R.props.filter(p => !p.gone && p.def.lightable && !p.state.lit).length, foes = R.en.filter(e => !e.def.friendly && !e.def.mouse && !e.def.hazard).length;
   if (!R.rs.warm && dark) out.push(dark + (dark > 1 ? ' flames are' : ' flame is') + ' still dark. Spark them, or walk right up and press ACTION.' + (foes ? ' Calm the ghosts too, and the room turns Warm.' : ' Light them all and the room turns Warm.'));
   else if (!R.rs.warm && foes && R.props.some(p => p.def.lightable)) out.push('Calm every ghost here and the room turns Warm.');
+  if (R.props.some(p => !p.gone && p.type === 'hidden' && !R.rs.found[p.id] && tileAt(p.tx, p.ty) === 'c')) out.unshift(In.mode === 'touch' ? 'A sparkle where only Soot fits! Near the cat-flap, tap the CAT button, steer Soot to the sparkle and tap ACTION.' : 'A sparkle where only Soot fits! Near the cat-flap, press I, steer Soot to the sparkle and press K.');
   if (R.props.some(p => !p.gone && p.def.sniffable && p.def.sniffable(p)) || R.props.some(p => !p.gone && p.def.search && !p.searched && p.loot && p.loot.item && !R.rs.found[p.id])) out.push('Soot smells a secret here! Tap the CAT button and follow his nose.');
   const tk = S.tracked && taskDef(S.tracked); if (tk && tk.hint && tk.loc === R.id && !/Old Tock/.test(tk.hint)) out.unshift(tk.hint);
   if (R.npcs.some(n => !n.noTalk)) out.push('Someone here might help: walk up to them and press ACTION.');
@@ -6729,7 +6738,7 @@ Game.updateMusic = function (sync) {
       const pantry = DB.rooms.pantry; if (pantry && !pantry.place.some(p => p.type === 'mouseboard')) pantry.place.push({ type: 'mouseboard', x: 8, y: 4 });
       const landing = DB.rooms.landing; if (landing) landing.onEnter = function () { };
       const base = DB.hooks.mainStep;
-      DB.hooks.mainStep = function () { const b = base(); if (b.room !== 'landing' || !S.flags.ret_winding_key) return b; if (!S.rooms.landing || !S.rooms.landing.seen) return { room: 'foyer', at: [19, 4], hint: 'The grand stair is blocked by ghostfire. Frost puts out cold fire, girl!' }; return part2Step(); };
+      DB.hooks.mainStep = function () { const b = base(); if (b.room !== 'landing' || !S.flags.ret_winding_key) return b; if (!S.rooms.landing || !S.rooms.landing.seen) return { room: 'foyer', at: [19, 4], get hint() { return 'Upstairs is through the wide doorway at the top of the Grand Foyer, behind the green ghostfire. ' + castHow('frost') + ' Stand close to the flames and cast!'; } }; return part2Step(); };
     }
   });
 })();
