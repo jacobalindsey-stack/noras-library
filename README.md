@@ -15,7 +15,7 @@ Every push to `main` redeploys the site.
 | Mirror of Algol | `algol.html` | migrated from Claude Design export (single file) |
 | Adriatica II | `adriatica2/` | migrated from Claude Design export (folder build, 19 MB) |
 | Pumpkin Slash | `pumpkinslash.html` | single file, attached Oct 18 2026 (three.js r128 from cdnjs, jsdelivr/unpkg fallbacks) |
-| Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (f23c81a) |
+| Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (cfd48f4, v1.2.0) |
 
 Adriatica II also lives at the old subdomain adriatica2.noralindsey.com until
 that is retired. Its folder build loads React and three.js from unpkg and its
