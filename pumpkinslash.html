@@ -1874,10 +1874,24 @@ function segDist(px, py, x0, y0, x1, y1){
   let t = l ? ((px - x0)*dx + (py - y0)*dy)/l : 0; t = Math.max(0, Math.min(1, t));
   return Math.hypot(x0 + dx*t - px, y0 + dy*t - py);
 }
+// the glow stick is long and thin, so it gets a capsule along its real on-screen axis instead of a circle
+const _ax2 = new T.Vector3();
+function segSeg(ax, ay, bx2, by2, cx, cy, dx, dy){
+  const o = (px, py, qx, qy, rx, ry) => Math.sign((qx - px)*(ry - py) - (qy - py)*(rx - px));
+  if (o(ax, ay, bx2, by2, cx, cy) !== o(ax, ay, bx2, by2, dx, dy) && o(cx, cy, dx, dy, ax, ay) !== o(cx, cy, dx, dy, bx2, by2)) return 0;
+  return Math.min(segDist(ax, ay, cx, cy, dx, dy), segDist(bx2, by2, cx, cy, dx, dy), segDist(cx, cy, ax, ay, bx2, by2), segDist(dx, dy, ax, ay, bx2, by2));
+}
+function hits(it, x0, y0, x1, y1){
+  if (segDist(it.x, it.y, x0, y0, x1, y1) < rad(it)) return true;
+  if (it.type !== 'glow') return false;
+  _ax2.set(0, 1, 0).applyQuaternion(it.spin.quaternion);
+  const L = R*it.scale*1.35, ex = _ax2.x*L, ey = -_ax2.y*L;   // tip of the loop to the far end, foreshortened by tilt
+  return segSeg(it.x - ex, it.y - ey, it.x + ex, it.y + ey, x0, y0, x1, y1) < R*it.scale*0.5;
+}
 function trySlice(x0, y0, x1, y1, speed){
   if (speed < 450) return;
   const ang = Math.atan2(y1 - y0, x1 - x0);
-  for (const it of items) if (!it.dead && segDist(it.x, it.y, x0, y0, x1, y1) < rad(it)) sliceItem(it, ang);
+  for (const it of items) if (!it.dead && hits(it, x0, y0, x1, y1)) sliceItem(it, ang);
 }
 
 /* ================= Input ================= */
