@@ -187,16 +187,8 @@
   .act.next .cameo { background: none; box-shadow: none; border: 2px dashed #d9c3a0; }
   .act.next .cameo svg { width: 24%; color: #e2cfaa; filter: none; }
 
-  /* ---------- about + footlights ---------- */
-  .about { padding: 0 16px clamp(64px, 9vh, 100px); text-align: center; }
-  .about p {
-    max-width: 760px;
-    margin: 0 auto;
-    font-style: italic;
-    font-size: clamp(22px, 2.4vw, 32px);
-    line-height: 1.35;
-    color: var(--cream);
-  }
+  /* ---------- footlights ---------- */
+  main { padding-bottom: clamp(56px, 8vh, 90px); }
   footer {
     position: relative;
     padding: 46px 16px 40px;
@@ -208,6 +200,44 @@
     color: #b98f86;
   }
   .footlights { position: absolute; left: 0; top: -12px; width: 100%; height: 24px; }
+
+  /* ---------- report a bug: a fold-down note card in the footer ---------- */
+  .bug { max-width: 440px; margin: 0 auto 26px; text-align: left; }
+  .bug summary {
+    list-style: none; cursor: pointer; width: max-content; margin: 0 auto;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px 7px; border: 1px solid rgba(224,184,106,.45); border-radius: 999px;
+    font-size: 13px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold);
+    transition: background-color .15s, border-color .15s;
+  }
+  .bug summary::-webkit-details-marker { display: none; }
+  .bug summary:hover, .bug summary:focus-visible { background: rgba(224,184,106,.1); border-color: var(--gold); outline: none; }
+  .bug summary svg { width: 14px; height: 14px; transition: transform .2s; }
+  .bug[open] summary svg { transform: rotate(180deg); }
+  .bug form {
+    margin-top: 14px; padding: 18px 18px 16px;
+    background: var(--paper); color: var(--ink);
+    border-radius: 6px; box-shadow: 0 0 0 1px #d9b877, 0 18px 40px rgba(0,0,0,.45);
+    letter-spacing: 0; font-size: 15px;
+    animation: bugIn .2s ease-out;
+  }
+  @keyframes bugIn { from { opacity: 0; transform: translateY(-6px); } }
+  .bug label { display: block; margin: 0 0 6px; font-weight: 500; font-size: 13px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--kind); }
+  .bug select, .bug textarea {
+    width: 100%; margin: 0 0 14px; padding: 10px 12px;
+    font: 16px "Jost", system-ui, sans-serif; color: var(--ink);
+    background: #fff; border: 1px solid var(--paper-rule); border-radius: 4px;
+  }
+  .bug textarea { min-height: 110px; resize: vertical; line-height: 1.4; }
+  .bug select:focus, .bug textarea:focus { outline: 2px solid var(--gold-deep); outline-offset: 1px; border-color: transparent; }
+  .bug .send {
+    display: block; width: 100%; padding: 11px 16px; border: 0; border-radius: 4px; cursor: pointer;
+    font: 500 15px "Jost", system-ui, sans-serif; letter-spacing: 1.4px; text-transform: uppercase;
+    color: #fff6e6; background: var(--velvet);
+  }
+  .bug .send:hover, .bug .send:focus-visible { background: #85203d; outline: none; }
+  .bug .note { margin: 10px 0 0; font-size: 13px; line-height: 1.4; color: var(--kind); text-align: center; }
+  .bug .note.err { color: #a8243f; }
 
   /* ---------- the preview: what you're getting into ---------- */
   html.pv-lock { overflow: hidden; }
@@ -500,10 +530,6 @@
   </div>
 </main>
 
-<section class="about">
-  <p>Fantasy, witches, cats, ballet and books, made into games by Nora.</p>
-</section>
-
 <footer>
   <svg class="footlights" viewBox="0 0 1440 24" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
     <defs>
@@ -512,6 +538,21 @@
     </defs>
     <rect width="1440" height="24" fill="url(#lights)"/>
   </svg>
+  <details class="bug" id="bug">
+    <summary>Report a bug
+      <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </summary>
+    <form id="bug-form" novalidate>
+      <label for="bug-game">Game</label>
+      <select id="bug-game" required>
+        <option value="">Choose a game…</option>
+      </select>
+      <label for="bug-text">What happened?</label>
+      <textarea id="bug-text" required placeholder="What were you doing, and what went wrong?"></textarea>
+      <button type="submit" class="send">Send report</button>
+      <p class="note" id="bug-note" aria-live="polite">Opens your email app with the report filled in.</p>
+    </form>
+  </details>
   © 2026 Nora Lindsey
 </footer>
 
@@ -544,6 +585,30 @@
 </dialog>
 
 <script src="games.js"></script>
+<script>
+  // Report a bug: no server here, so the report goes out through the visitor's own mail app.
+  (function () {
+    var form = document.getElementById('bug-form'), sel = document.getElementById('bug-game');
+    var text = document.getElementById('bug-text'), note = document.getElementById('bug-note');
+    if (!form) return;
+    (window.NORA_GAMES || []).forEach(function (g) {
+      var o = document.createElement('option'); o.value = o.textContent = g.title; sel.appendChild(o);
+    });
+    var site = document.createElement('option'); site.value = site.textContent = 'The front page'; sel.appendChild(site);
+    var to = ['jacob.a.lindsey', 'gmail.com'].join('@');   // assembled here so it isn't sitting in the page for scrapers
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!sel.value) { note.textContent = 'Pick which game it was.'; note.className = 'note err'; sel.focus(); return; }
+      if (!text.value.trim()) { note.textContent = 'Tell us what went wrong.'; note.className = 'note err'; text.focus(); return; }
+      var body = text.value.trim() + '\n\n---\nGame: ' + sel.value +
+        '\nDevice: ' + navigator.userAgent +
+        '\nScreen: ' + window.innerWidth + 'x' + window.innerHeight + ' @' + (window.devicePixelRatio || 1) + 'x' +
+        '\nSent: ' + new Date().toString();
+      location.href = 'mailto:' + to + '?subject=' + encodeURIComponent('Bug report: ' + sel.value) + '&body=' + encodeURIComponent(body);
+      note.textContent = 'Your email app should open with the report. Press send there and it’s on its way.'; note.className = 'note';
+    });
+  })();
+</script>
 <script>
   // Builds the playbill from games.js. Add a game there; nothing here needs to change.
   (function () {
