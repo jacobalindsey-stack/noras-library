@@ -1763,7 +1763,12 @@ function addScore(n){
   if (ns > stage) setStage(ns, true);
   updateHud();
 }
+let deathT = 0;
 function startGame(){
+  // anything still flying from the last round goes, so it can't cost (or give back) a candle in this one
+  for (const it of items) if (!it.dead) { it.dead = true; disposeObj(it); }
+  items = [];
+  clearTimeout(deathT); deathT = 0;
   state = 'play'; score = 0; lives = 3; spawnT = 0.5; queue = []; ts = 1; frostT = 0; rushT = 0; graceT = 0; reached = 0;
   setStage(0, false);
   menuEl.hidden = true; overEl.hidden = true; cueEl.hidden = true;
@@ -1784,7 +1789,7 @@ function miss(it){
   const x = Math.max(10, Math.min(W - 10, it.x));
   pop('missed', it.x, H - 50, '#ff9a7a', 22);
   for (let i = 0; i < 6; i++) addP({ kind: 'smoke', x: x + rand(-15, 15), y: H - 10, vx: rand(-20, 20), vy: rand(-60, -20), life: 1, max: 1, size: rand(8, 14), color: '200,190,225' });
-  if (lives <= 0) { state = 'dying'; setTimeout(() => gameOver('The candles are out'), 800); }
+  if (lives <= 0) { state = 'dying'; deathT = setTimeout(() => { deathT = 0; gameOver('The candles are out'); }, 800); }
 }
 function explode(it){
   state = 'dying'; ts = 0.22; shake = 0.8; flash = 1; flashRGB = '184,132,255'; frostT = 0; rushT = 0; graceT = 0;
@@ -1847,6 +1852,9 @@ function sliceItem(it, ang){
   sliceFx(it, ang);
   if (it.type === 'corn' || it.type === 'bar' || it.type === 'lolly') sfx.crunch(); else sfx.slice();
   if (it.menu) { menuEl.hidden = true; overEl.hidden = true; cueEl.hidden = true; state = 'starting'; setTimeout(startGame, 450); return; }
+  // a glow stick cut in the moment the last candle goes out is a last-second save
+  const rescue = t.power === 'candle' && state === 'dying' && lives <= 0 && deathT;
+  if (rescue) { clearTimeout(deathT); deathT = 0; state = 'play'; }
   if (state !== 'play') return;
   addScore(t.pts);
   if (t.pts > 1) { pop('+' + t.pts, it.x, it.y - R, '#ffd84a', 36); sfx.gold(); }
