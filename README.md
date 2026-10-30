@@ -15,7 +15,7 @@ Every push to `main` redeploys the site.
 | Mirror of Algol | `algol.html` | migrated from Claude Design export (single file) |
 | Adriatica II | `adriatica2/` | migrated from Claude Design export (folder build, 19 MB) |
 | Pumpkin Slash | `pumpkinslash.html` | single file, attached Oct 18 2026 (three.js r128 from cdnjs, jsdelivr/unpkg fallbacks) |
-| Blackthorn Manor II | coming soon | the Last Lantern; in progress on the `claude/affectionate-ramanujan-3ld4ce` branch of reimagined-chainsaw (`blackthorn2/`) |
+| Blackthorn Manor II | `blackthorn2.html` | beta: built `blackthorn2/index.html` from the `claude/affectionate-ramanujan-3ld4ce` branch of reimagined-chainsaw (78b9b78). Saves under `bm2.save.v1` |
 | Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (5fd1666, v1.2.3) |
 
 Adriatica II also lives at the old subdomain adriatica2.noralindsey.com until
@@ -61,6 +61,10 @@ A game that isn't out yet gets `comingSoon: true` (no `href` or `shots`) and a
 `note` instead of `howto`: it shows a "Coming soon" tag, its preview has no
 Open button, and it takes the place of the empty next-act slot. When it ships,
 remove `comingSoon` and add `href`, `howto` and `shots`.
+
+A brand-new game can carry `isNew: true` (a sparkly gold "New" badge on its
+cameo) and `beta: true` (a small "Beta" chip after its kind). Take them off
+when they no longer apply.
 
 Clicking a game opens its preview (screenshots, description, how to play)
 with **Open the game** and **Close**; ctrl/cmd-click still opens the game

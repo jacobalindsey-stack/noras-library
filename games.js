@@ -16,6 +16,11 @@
    foil    the emblem's gold color (from the game's own art)
    emblem  the inside of a 64x64 SVG drawn in currentColor
 
+   isNew   true shows a sparkly gold "New" badge on the cameo (remove it
+           once the game has been out a while)
+   beta    true adds a small "Beta" chip after the kind
+   note    optional extra line in the preview, shown as "From the workshop"
+
    A game that isn't out yet: add  comingSoon: true , leave out href and
    shots, and give it a  note  (shown as "From the workshop") instead of
    howto. It takes the next numeral with a "Coming soon" tag, and its preview
@@ -117,10 +122,14 @@ window.NORA_GAMES = [
     key: 'blackthorn2',
     title: 'Blackthorn Manor II',
     kind: '3D platformer',
-    comingSoon: true,
-    platforms: ['PC', 'iPad'],
+    isNew: true,
+    beta: true,
+    platforms: ['PC', 'iPad', 'iPhone'],
     blurb: "The party's over and every ghost has crossed the Lantern Road, except Wick, the smallest ghost in the house, who slept through it. He has until sunrise to climb the manor and catch up.",
+    howto: "WASD to move, Space to jump (hold to float), E to plop, F to fade, Shift to duck, arrows or the mouse to look, H for a hint. A gamepad or the on-screen buttons work too.",
     note: "Wick comes straight from one of Nora's own drawings: a bedsheet ghost with pink cheeks, glowing in a window.",
+    shots: ['previews/blackthorn2-play.jpg', 'previews/blackthorn2-title.jpg'],
+    href: 'blackthorn2.html',
     ground: '#1d2340',
     foil: '#f0b45a',
     emblem: '<path d="M19 58V30a13 13 0 0 1 26 0v28l-4.3-3.5-4.4 3.5-4.3-3.5-4.4 3.5-4.3-3.5z"/><ellipse cx="27" cy="32" rx="2" ry="3" fill="currentColor" stroke="none"/><ellipse cx="37" cy="32" rx="2" ry="3" fill="currentColor" stroke="none"/><path d="M23.5 38.5h2.5M38 38.5h2.5"/><path d="M19 45l-4-3M45 44l4-5"/><path d="M52 4v3M49 7h6v9h-6zM50 16h4"/>'
