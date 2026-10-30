@@ -28,19 +28,6 @@
    ===================================================================== */
 window.NORA_GAMES = [
   {
-    key: 'algol',
-    title: 'Mirror of Algol',
-    kind: 'Retro turn-based RPG',
-    platforms: ['PC', 'iPad', 'iPhone'],
-    blurb: "Alys wakes in Glass Camineet, a city of mirror-stone under one moon and its impossible reflection, remembering nothing but the word home.",
-    howto: "Arrow keys to move, Z to confirm, X to go back. On a touch screen an on-screen pad appears.",
-    shots: ['previews/algol-play.jpg', 'previews/algol-title.jpg'],
-    href: 'algol.html',
-    ground: '#0b0640',
-    foil: '#e0a86a',
-    emblem: '<circle cx="32" cy="20" r="10"/><path d="M10 34h44"/><circle cx="32" cy="48" r="10" stroke-dasharray="2.5 3.5"/>'
-  },
-  {
     key: 'blackthorn',
     title: 'Blackthorn Manor',
     kind: 'Spellcasting action adventure',
@@ -52,6 +39,48 @@ window.NORA_GAMES = [
     ground: '#1c1222',
     foil: '#e8a83a',
     emblem: '<path d="M8 56V32l12-10 12 10 12-10 12 10v24z"/><path d="M28 56v-7a4 4 0 0 1 8 0v7"/><rect x="14" y="38" width="5" height="6" fill="currentColor" stroke="none"/><rect x="45" y="38" width="5" height="6" fill="currentColor" stroke="none"/><path d="M46 4a8 8 0 1 0 9 11a6.5 6.5 0 1 1 -9 -11z" fill="currentColor" stroke="none"/>'
+  },
+  {
+    key: 'blackthorn2',
+    title: 'Blackthorn Manor II',
+    kind: '3D platformer',
+    isNew: true,
+    beta: true,
+    platforms: ['PC', 'iPad', 'iPhone'],
+    blurb: "The party's over and every ghost has crossed the Lantern Road, except Wick, the smallest ghost in the house, who slept through it. He has until sunrise to climb the manor and catch up.",
+    howto: "WASD to move, Space to jump (hold to float), E to plop, F to fade, Shift to duck, arrows or the mouse to look, H for a hint. A gamepad or the on-screen buttons work too.",
+    note: "Wick comes straight from one of Nora's own drawings: a bedsheet ghost with pink cheeks, glowing in a window.",
+    shots: ['previews/blackthorn2-play.jpg', 'previews/blackthorn2-title.jpg'],
+    href: 'blackthorn2.html',
+    ground: '#1d2340',
+    foil: '#f0b45a',
+    emblem: '<path d="M19 58V30a13 13 0 0 1 26 0v28l-4.3-3.5-4.4 3.5-4.3-3.5-4.4 3.5-4.3-3.5z"/><ellipse cx="27" cy="32" rx="2" ry="3" fill="currentColor" stroke="none"/><ellipse cx="37" cy="32" rx="2" ry="3" fill="currentColor" stroke="none"/><path d="M23.5 38.5h2.5M38 38.5h2.5"/><path d="M19 45l-4-3M45 44l4-5"/><path d="M52 4v3M49 7h6v9h-6zM50 16h4"/>'
+  },
+  {
+    key: 'catbakery',
+    title: 'The Cat Bakery',
+    kind: 'Cozy bakery sim',
+    platforms: ['PC', 'iPad', 'iPhone'],
+    blurb: "Bake living cat-pastries, serve a town of cats, and journey toward the legendary Cinnamon Roll Cat.",
+    howto: "Click or tap. On a phone, turn it sideways. Your bakery saves automatically.",
+    shots: ['previews/catbakery-play.jpg', 'previews/catbakery-title.jpg'],
+    href: 'catbakery/',
+    ground: '#2d1a35',
+    foil: '#f2c14e',
+    emblem: '<path d="M12 54c0-14 9-24 20-24s20 10 20 24z"/><path d="M19 37l1-10 7 5M45 37l-1-10-7 5"/><path d="M25 44q2 2 4 0M35 44q2 2 4 0"/><path d="M27 20c-3-3 3-5 0-8M37 20c-3-3 3-5 0-8"/>'
+  },
+  {
+    key: 'algol',
+    title: 'Mirror of Algol',
+    kind: 'Retro turn-based RPG',
+    platforms: ['PC', 'iPad', 'iPhone'],
+    blurb: "Alys wakes in Glass Camineet, a city of mirror-stone under one moon and its impossible reflection, remembering nothing but the word home.",
+    howto: "Arrow keys to move, Z to confirm, X to go back. On a touch screen an on-screen pad appears.",
+    shots: ['previews/algol-play.jpg', 'previews/algol-title.jpg'],
+    href: 'algol.html',
+    ground: '#0b0640',
+    foil: '#e0a86a',
+    emblem: '<circle cx="32" cy="20" r="10"/><path d="M10 34h44"/><circle cx="32" cy="48" r="10" stroke-dasharray="2.5 3.5"/>'
   },
   {
     key: 'adriatica',
@@ -80,19 +109,6 @@ window.NORA_GAMES = [
     emblem: '<path d="M32 8v34"/><path d="M35 11l15 27H35z"/><path d="M29 17L17 38h12z"/><path d="M12 44h40l-6 7H18z"/><path d="M6 58c4-3 8-3 12 0s8 3 12 0 8-3 12 0 8 3 12 0"/>'
   },
   {
-    key: 'catbakery',
-    title: 'The Cat Bakery',
-    kind: 'Cozy bakery sim',
-    platforms: ['PC', 'iPad', 'iPhone'],
-    blurb: "Bake living cat-pastries, serve a town of cats, and journey toward the legendary Cinnamon Roll Cat.",
-    howto: "Click or tap. On a phone, turn it sideways. Your bakery saves automatically.",
-    shots: ['previews/catbakery-play.jpg', 'previews/catbakery-title.jpg'],
-    href: 'catbakery/',
-    ground: '#2d1a35',
-    foil: '#f2c14e',
-    emblem: '<path d="M12 54c0-14 9-24 20-24s20 10 20 24z"/><path d="M19 37l1-10 7 5M45 37l-1-10-7 5"/><path d="M25 44q2 2 4 0M35 44q2 2 4 0"/><path d="M27 20c-3-3 3-5 0-8M37 20c-3-3 3-5 0-8"/>'
-  },
-  {
     key: 'apprenticeship',
     title: 'The Long Apprenticeship',
     kind: 'Caravan survival strategy',
@@ -117,21 +133,5 @@ window.NORA_GAMES = [
     ground: '#120a24',
     foil: '#ff9a3a',
     emblem: '<path d="M32 24c-15 0-25 8-25 18s10 16 25 16 25-6 25-16-10-18-25-18z"/><path d="M32 24c0-4 1-6 4-8"/><path d="M21 38l4-6 4 6zM35 38l4-6 4 6z" fill="currentColor" stroke="none"/><path d="M22 46q10 6 20 0"/><path d="M6 15Q30 -1 58 13"/><path d="M50 4l2 4 4 2-4 2-2 4-2-4-4-2 4-2z" fill="currentColor" stroke="none"/>'
-  },
-  {
-    key: 'blackthorn2',
-    title: 'Blackthorn Manor II',
-    kind: '3D platformer',
-    isNew: true,
-    beta: true,
-    platforms: ['PC', 'iPad', 'iPhone'],
-    blurb: "The party's over and every ghost has crossed the Lantern Road, except Wick, the smallest ghost in the house, who slept through it. He has until sunrise to climb the manor and catch up.",
-    howto: "WASD to move, Space to jump (hold to float), E to plop, F to fade, Shift to duck, arrows or the mouse to look, H for a hint. A gamepad or the on-screen buttons work too.",
-    note: "Wick comes straight from one of Nora's own drawings: a bedsheet ghost with pink cheeks, glowing in a window.",
-    shots: ['previews/blackthorn2-play.jpg', 'previews/blackthorn2-title.jpg'],
-    href: 'blackthorn2.html',
-    ground: '#1d2340',
-    foil: '#f0b45a',
-    emblem: '<path d="M19 58V30a13 13 0 0 1 26 0v28l-4.3-3.5-4.4 3.5-4.3-3.5-4.4 3.5-4.3-3.5z"/><ellipse cx="27" cy="32" rx="2" ry="3" fill="currentColor" stroke="none"/><ellipse cx="37" cy="32" rx="2" ry="3" fill="currentColor" stroke="none"/><path d="M23.5 38.5h2.5M38 38.5h2.5"/><path d="M19 45l-4-3M45 44l4-5"/><path d="M52 4v3M49 7h6v9h-6zM50 16h4"/>'
   }
 ];
