@@ -15,6 +15,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital@0;1&family=Caveat:wght@400;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
   <style>
     html,body{margin:0;padding:0;overflow:hidden;background:#0a0806;height:100%;width:100%;}
+    /* phones held sideways: tighten the puzzle card so its buttons stay on screen without scrolling */
+    @media (max-height:520px){
+      #puzzle > div{padding:10px 16px 12px !important;max-height:96dvh !important;}
+      #pz-title{font-size:18px !important;}
+      #pz-prompt{font-size:13px !important;line-height:1.3 !important;margin-top:4px !important;}
+      #pz-stage{margin-top:6px !important;}
+      #pz-stage{zoom:.74;}
+      #pz-hint{font-size:12px !important;margin-top:4px !important;min-height:0 !important;}
+      #pz-actions{margin-top:6px !important;}
+      #pz-actions button{padding:6px 12px !important;font-size:13px !important;}
+    }
     @keyframes sqpulse{0%,100%{opacity:.8}50%{opacity:1}}
     @keyframes sqblink{0%,100%{opacity:.35}50%{opacity:1}}
     @keyframes sqdrift{0%{transform:scale(1.02) translate(0,0)}100%{transform:scale(1.12) translate(-1.5%,-1%)}}
@@ -191,7 +202,7 @@
       <div style="position:absolute;left:calc(var(--u)*1.6);bottom:calc(var(--u)*1.4);font-family:'EB Garamond',serif;font-style:italic;font-size:calc(var(--u)*1.25);color:rgba(243,230,198,.6);">A Split midnight tale · for ages 9–12 <span style="font-family:'Silkscreen',monospace;font-style:normal;font-size:calc(var(--u)*.85);color:rgba(243,230,198,.35);margin-left:calc(var(--u)*.8);">v2.1</span></div>
 
       <!-- DEV jump panel -->
-      <div id="eng-devbtn" style="position:absolute;right:calc(var(--u)*1.6);bottom:calc(var(--u)*1.4);font-family:'Silkscreen',monospace;font-size:calc(var(--u)*.95);letter-spacing:calc(var(--u)*.08);color:rgba(243,230,198,.4);background:rgba(12,9,6,.35);padding:calc(var(--u)*.5) calc(var(--u)*.9);border-radius:calc(var(--u)*.5);cursor:pointer;border:calc(var(--u)*.1) solid rgba(217,164,65,.18);">DEV</div>
+      <div id="eng-devbtn" style="display:none;position:absolute;right:calc(var(--u)*1.6);bottom:calc(var(--u)*1.4);font-family:'Silkscreen',monospace;font-size:calc(var(--u)*.95);letter-spacing:calc(var(--u)*.08);color:rgba(243,230,198,.4);background:rgba(12,9,6,.35);padding:calc(var(--u)*.5) calc(var(--u)*.9);border-radius:calc(var(--u)*.5);cursor:pointer;border:calc(var(--u)*.1) solid rgba(217,164,65,.18);">DEV</div>
       <div id="eng-devpanel" style="display:none;position:absolute;right:calc(var(--u)*1.6);bottom:calc(var(--u)*4.4);width:calc(var(--u)*30);max-height:calc(var(--u)*54);overflow-y:auto;background:rgba(12,9,6,.92);border:calc(var(--u)*.14) solid rgba(217,164,65,.5);border-radius:calc(var(--u)*.9);padding:calc(var(--u)*1.2);backdrop-filter:blur(3px);">
         <div style="font-family:'Silkscreen',monospace;font-size:calc(var(--u)*1);color:#d9a441;letter-spacing:calc(var(--u)*.1);margin-bottom:calc(var(--u)*.8);">JUMP IN — EARLIER GOALS PRE-SET</div>
         <div id="eng-devlinks" style="display:flex;flex-direction:column;gap:calc(var(--u)*.45);"></div>
@@ -1364,10 +1375,10 @@ class Component extends DCLogic {
       glyphs+=`<div data-pick="${i}" style="position:absolute;left:${gx-22}px;top:${gy-22}px;width:44px;height:44px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:8px;box-sizing:border-box;background:${on?'radial-gradient(circle,rgba(217,164,65,.4),rgba(217,164,65,0) 72%)':'none'};filter:${on?'drop-shadow(0 0 7px rgba(217,164,65,.85))':'none'};transition:all .18s;">${this.glyphSVG(d.glyphs[i], on?'#7a5210':'#8a6a36')}</div>`;
     }
     const name=(this.GLYPH_NAMES[d.glyphs[p.cur]]||'').toUpperCase();
-    return `<div style="position:relative;width:280px;height:308px;">
+    return `<div style="position:relative;width:280px;height:334px;">
       <svg viewBox="0 0 280 280" width="280" height="280" style="position:absolute;left:0;top:0;">${parts}</svg>
       ${blade}${gnomon}${glyphs}
-      <div id="pz-dial-label" style="position:absolute;left:0;right:0;bottom:0;text-align:center;font-family:'EB Garamond',serif;font-style:italic;font-size:17px;color:#6a4d24;">the shadow lies on — ${name}</div></div>`;
+      <div id="pz-dial-label" style="position:absolute;left:-30px;right:-30px;top:284px;line-height:1.2;text-align:center;font-family:'EB Garamond',serif;font-style:italic;font-size:17px;color:#6a4d24;">the shadow lies on — ${name}</div></div>`;
   }
   pzGlyphs(){
     const p=this.puzzle, d=p.data; p.seq=p.seq||[];
@@ -1714,7 +1725,10 @@ class Component extends DCLogic {
     // ── bottom doorway → climb back down to the cathedral ──
     // Trigger as soon as Mira is near the bottom of the tower, regardless of held direction.
     // (Previously required holding ↓ AND being within 30px of centre — too easy to miss.)
-    if(this.scene.back && p.py > (this.MH-5)*16 && Math.abs(p.px-c.backZone.x) < 60){
+    // Armed only once she has climbed clear of the ground floor: she starts inside this zone, and without
+    // the guard she was sent straight back out the moment the arrival dialogue closed.
+    if(p.py < (this.MH-7)*16) c.backArmed=true;
+    if(this.scene.back && c.backArmed && p.py > (this.MH-5)*16 && Math.abs(p.px-c.backZone.x) < 60){
       this.beginTransition(this.scene.back.to, this.scene.back.tx, this.scene.back.ty); return;
     }
     document.getElementById('ab').style.display='none';

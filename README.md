@@ -11,7 +11,7 @@ Every push to `main` redeploys the site.
 |---|---|---|
 | Cat Bakery | `catbakery/` | migrated from Claude Design export (deploy build) |
 | The Long Apprenticeship | `apprenticeship/` | migrated from Claude Design export ("Wilderlore") |
-| Adriatica | `adriatica/` | migrated from Claude Design export ("Thirteen Sphinxes", v2.1) |
+| Adriatica | `adriatica/` | migrated from Claude Design export ("Thirteen Sphinxes", v2.1); playtested and fixed Oct 30 2026. Jump panels only with `?dev` |
 | Mirror of Algol | `algol.html` | migrated from Claude Design export (single file); playtested, fixed and rebalanced Oct 30 2026. Dev menu only with `?dev`. Saves under `mirror-save` |
 | Adriatica II | `adriatica2/` | migrated from Claude Design export (folder build, 19 MB) |
 | Pumpkin Slash | `pumpkinslash.html` | single file, attached Oct 18 2026 (three.js r128 from cdnjs, jsdelivr/unpkg fallbacks) |

@@ -95,6 +95,8 @@ class Component extends DCLogic {
       ['Finale — the Peristyle at midnight','?scene=peristyle&frags=11&intro=1'],
     ];
     const panel=document.getElementById('dbgpanel'), btn=document.getElementById('dbgbtn'), links=document.getElementById('dbglinks');
+    // the jump panel is for building and testing: only with ?dev on the address
+    if(btn && !/[?&]dev\b/.test(location.search)) btn.style.display='none';
     if(btn&&panel&&links){
       links.innerHTML=JUMPS.map(([l,qs])=>`<a href="${ENG}${qs}" style="display:block;font-family:'EB Garamond',serif;font-size:calc(var(--u)*1.35);color:#f3e6c6;text-decoration:none;padding:calc(var(--u)*.5) calc(var(--u)*.7);border-radius:calc(var(--u)*.5);border:1px solid rgba(217,164,65,.22);" onmouseover="this.style.background='rgba(217,164,65,.18)'" onmouseout="this.style.background='none'">${l}</a>`).join('');
       btn.onclick=()=>{ panel.style.display = panel.style.display==='none' ? 'block':'none'; };

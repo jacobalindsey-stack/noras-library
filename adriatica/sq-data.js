@@ -1168,7 +1168,7 @@ export const SCENES = {
     entities: [],
     interactables: [
       { x: 8, y: 8, w: 4, h: 2, name: 'Diocletian’s tomb', script: 'heart_examine', icon: '✦',
-        gate: '!gotFragment9' },
+        gate: 'gotFragment8&!gotFragment9' },
       { x: 1, y: 4, w: 3, h: 3, name: 'Stair to the bell tower', script: 'belltower_enter', icon: '↑',
         gate: '!gotFragment7' },
       { x: 5, y: 7, w: 2, h: 3, name: 'Egyptian granite column', script: 'flavor_granite', icon: '?' },
