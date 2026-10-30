@@ -18,13 +18,17 @@
   #bL{left:0;top:44px;width:44px;height:44px}#bR{right:0;top:44px;width:44px;height:44px}
   #bA{right:0;top:0;width:54px;height:54px;border-radius:50%}
   #bB{left:0;bottom:0;width:54px;height:54px;border-radius:50%}
+  #dpad div{pointer-events:none}#dpad.on div{background:#9db4ff}
+  #mute{right:14px;top:14px;width:44px;height:44px}
+  #mute div{position:static;width:44px;height:44px;border-radius:50%;font-size:20px}
 </style>
 </head>
 <body>
 <div id="wrap"><canvas id="cv" width="320" height="224"></canvas></div>
-<div id="devlink" style="position:fixed;right:8px;bottom:8px;font:11px monospace;color:#9fb4e8;background:rgba(10,14,38,0.85);border:1px solid #3a4a8a;border-radius:3px;padding:2px 7px;cursor:pointer;user-select:none;z-index:999">dev</div>
+<div id="devlink" style="display:none;position:fixed;right:8px;bottom:8px;font:11px monospace;color:#9fb4e8;background:rgba(10,14,38,0.85);border:1px solid #3a4a8a;border-radius:3px;padding:2px 7px;cursor:pointer;user-select:none;z-index:999">dev</div>
 <div class="tc" id="dpad"><div id="bU">▲</div><div id="bL">◀</div><div id="bR">▶</div><div id="bD">▼</div></div>
 <div class="tc" id="btns"><div id="bA">A</div><div id="bB">B</div></div>
+<div class="tc" id="mute"><div id="bM">&#9834;</div></div>
 <script>
 "use strict";
 //==================================================================
@@ -41,7 +45,7 @@ ctx.imageSmoothingEnabled=false;
 function fitCanvas(){
   const s=Math.max(1,Math.floor(Math.min(innerWidth/W,innerHeight/H)));
   const s2=Math.min(innerWidth/W,innerHeight/H);
-  const sc=(s2<1.4)?s2:s; // allow fractional on small screens
+  const sc=(s>=s2*0.85)?s:s2; // crisp whole-number pixels unless that would leave the game small (phones held sideways)
   cv.style.width=(W*sc)+'px';cv.style.height=(H*sc)+'px';
 }
 addEventListener('resize',fitCanvas);fitCanvas();
@@ -61,11 +65,22 @@ addEventListener('keyup',e=>{const k=KEYMAP[e.code];if(k){K[k]=0;e.preventDefaul
 function jp(k){if(Kp[k]){Kp[k]=0;return true;}return false;}
 function clearJP(){for(const k in Kp)Kp[k]=0;}
 // touch controls
-const TBTN={bU:'u',bD:'d',bL:'l',bR:'r',bA:'a',bB:'b'};
+const TBTN={bA:'a',bB:'b'};
 let touchShown=false;
 function showTouch(){if(touchShown)return;touchShown=true;
   document.getElementById('dpad').style.display='block';
-  document.getElementById('btns').style.display='block';}
+  document.getElementById('btns').style.display='block';
+  document.getElementById('mute').style.display='block';}
+// d-pad: one pad you can slide your thumb around, like a real one
+(()=>{const pad=document.getElementById('dpad');let id=null;
+  const set=d=>{for(const k of ['u','d','l','r']){const on=k===d;if(on&&!K[k])Kp[k]=1;K[k]=on?1:0;}};
+  const dirOf=e=>{const r=pad.getBoundingClientRect(),x=e.clientX-(r.left+r.width/2),y=e.clientY-(r.top+r.height/2);
+    if(Math.hypot(x,y)<12)return null;return Math.abs(x)>Math.abs(y)?(x>0?'r':'l'):(y>0?'d':'u');};
+  pad.addEventListener('pointerdown',e=>{e.preventDefault();id=e.pointerId;try{pad.setPointerCapture(id);}catch(_){}pad.classList.add('on');set(dirOf(e));userGesture();});
+  pad.addEventListener('pointermove',e=>{if(e.pointerId===id)set(dirOf(e));});
+  const up=e=>{if(e.pointerId!==id)return;id=null;pad.classList.remove('on');set(null);};
+  pad.addEventListener('pointerup',up);pad.addEventListener('pointercancel',up);})();
+document.getElementById('bM').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();Kp.m=1;userGesture();});
 for(const id in TBTN){const el=document.getElementById(id),k=TBTN[id];
   el.addEventListener('pointerdown',e=>{e.preventDefault();if(!K[k])Kp[k]=1;K[k]=1;userGesture();});
   el.addEventListener('pointerup',e=>{e.preventDefault();K[k]=0;});
@@ -1162,7 +1177,7 @@ const WEAPONS={
   laser:{n:'Laser Slicer',atk:7,cost:340},
   mirredge:{n:'Mirror Edge',atk:10,cost:0},
   ceramic:{n:'Ceramic Blade',atk:13,cost:760},
-  staticrend:{n:'Static Render',atk:16,cost:1400},
+  staticrend:{n:'Static Render',atk:16,cost:1000},
   truth:{n:'Truth Saber',atk:20,cost:0},
   elsy:{n:'Elsydeon Shard',atk:26,cost:0}
 };
@@ -1170,7 +1185,7 @@ const ARMORS={
   cloth:{n:'Traveler Cloth',def:1,cost:0},
   glassml:{n:'Glass Mail',def:3,cost:180},
   cersuit:{n:'Ceramic Suit',def:6,cost:620},
-  prism:{n:'Prism Guard',def:10,cost:1500}
+  prism:{n:'Prism Guard',def:10,cost:1100}
 };
 const ACCS={
   none:{n:'(none)',fx:''},
@@ -1203,14 +1218,14 @@ const ENEMIES={
   lakewraith:{n:'Lakewraith',hp:55,atk:16,df:7,spd:11,xp:100,gd:48,spr:eWraith,c:'#7a8ae8'},
   mirrorfish:{n:'Mirrorfin',hp:48,atk:15,df:10,spd:13,xp:95,gd:44,spr:eShardfly,c:'#9fe8ff'},
   deepref:{n:'Drowned Reflection',hp:364,atk:24,df:14,spd:12,xp:380,gd:300,spr:eDeep,c:'#4ad4b0',boss:1,ai:'mirror'},
-  staticghoul:{n:'Static Ghoul',hp:70,atk:22,df:10,spd:10,xp:150,gd:70,spr:eWraith,c:'#d44ab0'},
-  nullhound:{n:'Null Hound',hp:64,atk:24,df:9,spd:14,xp:145,gd:66,spr:eGlitchpup,c:'#5a3a68'},
+  staticghoul:{n:'Static Ghoul',hp:70,atk:20,df:10,spd:10,xp:150,gd:70,spr:eWraith,c:'#d44ab0'},
+  nullhound:{n:'Null Hound',hp:64,atk:21,df:9,spd:14,xp:145,gd:66,spr:eGlitchpup,c:'#5a3a68'},
   corruptknight:{n:'Corrupt Knight',hp:106,atk:28,df:17,spd:9,xp:175,gd:90,spr:eKnight,c:'#6a5a8a',ai:'mirror'},
-  colossus:{n:'Static Colossus',hp:595,atk:33,df:19,spd:7,xp:480,gd:420,spr:eColossus,c:'#666a78',boss:1,ai:'colossus'},
+  colossus:{n:'Static Colossus',hp:595,atk:30,df:19,spd:7,xp:480,gd:420,spr:eColossus,c:'#666a78',boss:1,ai:'colossus'},
   mirrorknight:{n:'Mirror Knight',hp:468,atk:34,df:24,spd:12,xp:300,gd:200,spr:eKnight,c:'#9fb4cf',boss:1,ai:'mirror'},
   twinwraith:{n:'Twin Wraith',hp:110,atk:26,df:12,spd:15,xp:170,gd:120,spr:eWraith,c:'#cfe0ff'},
   guardian:{n:'Archive Guardian',hp:672,atk:38,df:24,spd:11,xp:420,gd:320,spr:eGuardian,c:'#caa84a',boss:1,ai:'guardian'},
-  mirroralys:{n:'Mirror Alys',hp:940,atk:33,df:22,spd:14,xp:0,gd:0,spr:eMirrorAlys,c:'#cfd6ff',boss:1,ai:'mirroralys'}
+  mirroralys:{n:'Mirror Alys',hp:800,atk:33,df:22,spd:14,xp:0,gd:0,spr:eMirrorAlys,c:'#cfd6ff',boss:1,ai:'mirroralys'}
 };
 // xp curve
 const xpNext=lvl=>30+8*lvl*lvl;
@@ -1392,7 +1407,7 @@ npcs:[
  {id:'posy',x:7,y:9,n:'Posy',seed:1,d:()=>'posy'},
  {id:'brin',x:17,y:9,n:'Brin',seed:2,rep:1,d:()=>'brin'},
  {id:'cale',x:22,y:5,n:'Cale',seed:5,d:()=>'cale'},
- {id:'joren',x:8,y:5,n:'Joren',seed:0,d:()=>F('husband_done')?'joren3':'joren1'},
+ {id:'joren',x:8,y:5,n:'Joren',seed:0,d:()=>F('husband_done')?'joren3':(F('sense')?'joren1':'joren0')},
  {id:'mina',x:7,y:5,n:'Mina',seed:3,rep:1,d:()=>F('husband_done')?'mina2':'mina1'},
  {id:'orin',x:21,y:12,n:'Orin',seed:2,rep:1,d:()=>F('orin_taken')?'orin2':'orin1'},
  {id:'pell',x:10,y:12,n:'Old Pell',seed:4,d:()=>F('fetch_done')?'pell3':(F('searose_checked')?'pell2':'pell1')},
@@ -1458,14 +1473,14 @@ rows:[
 "#..*........*..#",
 "#..............#",
 "#..............#",
-"#......,.......#",
+"#..C...,.......#",
 "#..............#",
 "######....######"],
 exits:[{x:6,y:10,to:'wastes',tx:23,ty:5},{x:7,y:10,to:'wastes',tx:23,ty:5},
        {x:8,y:10,to:'wastes',tx:23,ty:5},{x:9,y:10,to:'wastes',tx:23,ty:5},
        {x:7,y:0,to:'spire2',tx:7,ty:9,hidden:1},{x:8,y:0,to:'spire2',tx:8,ty:9,hidden:1}],
 dyn:m=>{if(D('sp1')){m[0]='#######..#######';}},
-npcs:[],objects:[],
+npcs:[],objects:[{x:3,y:8,type:'crystal'}],
 enemies:[{id:'sp1',x:7,y:5,e:'mirrorknight',g:['mirrorknight'],boss:1}]},
 
 spire2:{pal:'spire',music:'spire',name:'Silver Spire 2F',
@@ -1498,14 +1513,14 @@ rows:[
 "#......,.......#",
 "#..............#",
 "#..............#",
-"#..............#",
+"#..C...........#",
 "#......,.......#",
 "#######..#######"],
 exits:[{x:7,y:10,to:'spire2',tx:7,ty:1},{x:8,y:10,to:'spire2',tx:8,ty:1}],
 triggers:[{x:7,y:5,type:'apex'},{x:8,y:5,type:'apex'},
           {x:7,y:4,type:'apex'},{x:8,y:4,type:'apex'}],
 dyn:m=>{},
-npcs:[],objects:[],
+npcs:[],objects:[{x:3,y:8,type:'crystal'}],
 enemies:[{id:'sp3',x:7,y:7,e:'guardian',g:['guardian'],boss:1}]}
 };
 //MAPDATA-END
@@ -1531,7 +1546,7 @@ intro:[
  {s:'Alys',p:'alys',t:'...Same as ever? How does he know my name?'},
  {s:'Passerby',t:'Trader Hesh has his lamps lit already, the door by the north houses. Tell him I still want that kettle.'},
  {s:'Alys',p:'alys',t:'(Every face here smiles at me like a door I should recognize. None of them open.)'},
- {t:'(Arrows/WASD move. Z/Enter: talk, confirm. X/Esc: menu, cancel. M: mute.)'},
+ {get t(){return touchShown?'(D-pad: move. A: talk, confirm. B: menu, cancel. The note button mutes.)':'(Arrows/WASD move. Z/Enter: talk, confirm. X/Esc: menu, cancel. M: mute.)';}},
  {do:()=>{setF('intro_done');}}
 ],
 elder1:[
@@ -1607,7 +1622,8 @@ warden_win:[
  {t:'It powers down before finishing the name.'},
  {s:'Tein',p:'tein',t:'Back? You\'ve never set foot here.'},
  {s:'Alis',p:'alys',t:'The north gate is open now. It told me. Not out loud. Inside.'},
- {do:()=>{setF('lake_pass');toast('The way north to Reflection Lake is open!');autosave();}}
+ {t:'From the Warden\'s chest plate you pry a dull core. It still hums with a guard\'s patience.'},
+ {do:()=>{addAcc('wcore');setF('lake_pass');toast('Got WARDEN CORE (DEF +4). The way north is open!');SFX.chest();autosave();}}
 ],
 veth1:[
  {s:'Keeper Veth',t:'You walk like a hunter and wake like a stranger. The lake remembers everyone, you know.'},
@@ -1649,6 +1665,9 @@ veth2:[
 ],
 veth3:[
  {s:'Keeper Veth',t:'Use it gently. Knowing what someone is tells you nothing about what they\'re worth.'}
+],
+joren0:[
+ {s:'Joren',t:'You\'re new. Keeper Veth teaches people to see what others are. When she\'s taught you... come and find me.'}
 ],
 joren1:[
  {s:'Joren',t:'You have the Sense. Word travels on water. My wife, Mina. Twenty years married.'},
@@ -1711,7 +1730,7 @@ pell2:[
  {s:'Old Pell',t:'Well? The shore?'},
  {choice:[{t:'There are no sea-roses.',j:'truth'},{t:'I\'ll keep looking.',j:'keep'}]},
  {label:'keep'},
- {s:'Old Pell',t:'Good lad. Good. Take your time. Time is the one thing I\'m rich in.'},{end:1},
+ {s:'Old Pell',t:'Good. Good. Take your time. Time is the one thing I\'m rich in.'},{end:1},
  {label:'truth'},
  {s:'Alys',p:'alys',t:'There are no sea-roses, Pell. There\'s no Palma shore. Not in this world. I\'m sorry.'},
  {s:'Old Pell',t:'...I know. I\'ve known for years. Palma is a word from a life that isn\'t this one.'},
@@ -1799,10 +1818,11 @@ apex:[
  {t:'The apex is a circle of glass. Below it, all five lands, arranged like a face seen in a spoon: familiar, reversed.'},
  {t:'A voice with your exact cadence: "You kept walking. Good."'},
  {t:'Light gathers into a blade. A shard of a sword that remembers a thousand years of hands.'},
- {do:()=>{G.stash.push(['w','elsy']);toast('Got ELSYDEON SHARD! (Equip it from the menu.)');SFX.chest();autosave();}},
+ {do:()=>{G.stash.push(['w','elsy']);setF('apex_seen');toast('Got ELSYDEON SHARD! (Equip it from the menu.)');SFX.chest();autosave();}},
  {t:'"One of those hands was yours."'},
  {t:'"Two of them were."'},
- {do:()=>setF('apex_seen')}
+ {do:()=>setF('apex_seen')},
+ {t:'(Equip the shard from the menu. When you are ready, step into the light again.)'}
 ],
 prefinal:[
  {t:'She steps out of your shadow the way a reflection steps out of still water: without a sound, already facing you.'},
@@ -1886,6 +1906,9 @@ function joinParty(id){
     // joiners arrive near party level
     const tl=Math.max(1,G.party[0].lvl-1);
     while(m.lvl<tl)gainXP(m,xpNext(m.lvl));
+    // they arrive with their own kit rather than a rusted saber and cloth
+    if(id==='tein'){m.weapon='glassdag';}
+    if(id==='mara'){m.weapon='laser';m.armor='glassml';}
     m.hp=m.maxhp;m.tp=m.maxtp;}
   G.party.push(m);
 }
@@ -2078,6 +2101,8 @@ function blocked(x,y){
   return false;
 }
 function enterMap(name,x,y,silent){
+  // ordinary enemies come back when you return to an area (bosses stay beaten), so there's always a way to level up
+  if(name!==G.map)(MAPS[name].enemies||[]).forEach(e=>{if(!e.boss)delete G.defeated[e.id];});
   G.map=name;G.px=x;G.py=y;G.moving=0;G.mx=0;G.my=0;
   mapCache.stamp=-1;
   const m=MAPS[name];
@@ -2107,6 +2132,7 @@ function exploreUpdate(dt){
   if(blocked(nx,ny)){
     const t=tileAt(G.map,nx,ny);
     if(t==='G'&&jpAnyDir())gateMessage();
+    if(t==='D'&&!npcAt(nx,ny)){useDoor();clearJP();}
     return;
   }
   G.px=nx;G.py=ny;G.mx=-dx;G.my=-dy;G.moving=1;G.steps++;
@@ -2147,6 +2173,7 @@ function fireTrigger(tr){
       else toast('The Silver Spire is sealed. Something cold should fit here.');
       break;
     case 'apex':
+      if(!D('sp3')){toast('The Archive Guardian bars the light.');SFX.bump();break;}
       if(!F('apex_seen'))runDlg('apex');
       else if(!F('finale_started')){setF('finale_started');runDlg('prefinal');}
       break;
@@ -2155,7 +2182,7 @@ function fireTrigger(tr){
 function interact(){
   const [dx,dy]=DIRV[G.dir],tx=G.px+dx,ty=G.py+dy;
   const n=npcAt(tx,ty);
-  if(n){SFX.menu();runDlg(n.d());return;}
+  if(n){SFX.menu();const did=n.d();if(!DLG[did]&&SHOPS[did]){openShop(did);return;}runDlg(did);return;}
   const en=enemyAt(tx,ty);
   if(en){startBattle(en.g,{mapEnemy:en});return;}
   const o=objAt(tx,ty);
@@ -2181,11 +2208,13 @@ function interact(){
     return;
   }
   if(t==='G')gateMessage();
-  if(t==='D'){
-    const sid=({camineet:'shop_cam',lake:'shop_lake',wastes:'shop_wastes'})[G.map];
-    if(sid){SFX.menu();openShop(sid);}
-    return;
-  }
+  if(t==='D'){useDoor();return;}
+}
+// a building door: a shop in town, the Silver Spire in the Wastes
+function useDoor(){
+  if(G.map==='wastes'){fireTrigger({type:'spiredoor'});return;}
+  const sid=({camineet:'shop_cam',lake:'shop_lake'})[G.map];
+  if(sid){SFX.menu();openShop(sid);}
 }
 // field Mirror Sense: press B adjacent to a person
 function fieldSense(){
@@ -2276,7 +2305,7 @@ function dlgDraw(){
   }
   const body=st.dynline?D2.line:(st.t||'');
   wrapTxt(body,tx0,speaker?179:169,306-tx0,'#fff',11);
-  if(!DL.choices)txt('Z',304,210,'#6f86d6');
+  if(!DL.choices)txt(touchShown?'A':'Z',304,210,'#6f86d6');
   if(DL.choices){
     const ch=DL.choices;
     const w=170,h=ch.length*13+12,x=146,y=160-h-4;
@@ -2741,13 +2770,16 @@ function stepExec(){
             msgs.push(m.n+': '+T.n+'! '+T.msg);
             tgts.forEach(t=>{
               FXS.push({k:'bolt',x1:W/2+14,y1:118,x2:epx(t),y2:epy(t)+10,t:0.35});
-              let dmg=Math.max(1,Math.round((T.pow+m.lvl*2)*rnd(0.9,1.1)-t.df/2));
+              // techniques grow with the caster and slip past most armor, so they stay worth casting late on
+              let dmg=Math.max(1,Math.round((T.pow*1.5+m.lvl*3)*rnd(0.9,1.1)-t.df/4));
               if(t.ai==='mirroralys'&&topCmd()==='Tech'){dmg=Math.ceil(dmg/2);}
               t.hp=Math.max(0,t.hp-dmg);t.lastHitTech=true;BT.flash=0.15;
               t.flashT=0.22;fx('burst',epx(t),epy(t),'#9fe8ff');pop(epx(t),epy(t)-10,dmg,'#cfe0ff');
               msgs.push(t.n+' takes '+dmg+(t.ai==='mirroralys'&&topCmd()==='Tech'?' (she bends the technique aside)':'')+'.');
               if(t.hp<=0){msgs.push(t.n+' shatters into light.');SFX.die();fx('shatter',epx(t),epy(t),t.c);}
             });
+          }else if(T.kind==='heal'&&(c.tgt||m).hp<=0){
+            m.tp+=cost;msgs.push(m.n+': '+T.n+'... but '+(c.tgt||m).n+' is beyond its reach. (Moon Dew revives.)');
           }else if(T.kind==='heal'){
             const t=c.tgt||m;const h=Math.min(t.maxhp-t.hp,T.pow+m.lvl*3);
             t.hp+=h;SFX.heal();fx('heal',ppx(t),ppy(t));pop(ppx(t),ppy(t)-6,'+'+h,'#8fe8a0');
@@ -2843,7 +2875,7 @@ function enemyAct(e,msgs){
       if(!BT.mirrorRemarked){BT.mirrorRemarked=true;}
       const pierce=topCmd()==='Defend';
       if(Math.random()<0.4){msgs.push('Mirror Alys: Refoi, your favorite shape of fire.');liv.forEach(m=>hitParty(e,m,0.6,msgs,pierce));}
-      else hitParty(e,pick(),1.05,msgs,pierce);
+      else hitParty(e,pick(),0.95,msgs,pierce);
       if(pierce&&!e.pnoted){e.pnoted=true;msgs.push('Your guard means nothing to someone who knows it from inside.');}
       break;}
     default:hitParty(e,pick(),1,msgs);
@@ -3168,13 +3200,14 @@ function titleOpts(){
 function titleUpdate(){
   if(!TITLE.checked)return;
   const o=titleOpts();
-  if(jp('u')){TITLE.row=(TITLE.row+o.length-1)%o.length;SFX.menu();}
-  if(jp('d')){TITLE.row=(TITLE.row+1)%o.length;SFX.menu();}
+  if(jp('u')){TITLE.row=(TITLE.row+o.length-1)%o.length;TITLE.sure=false;SFX.menu();}
+  if(jp('d')){TITLE.row=(TITLE.row+1)%o.length;TITLE.sure=false;SFX.menu();}
   if(jp('a')){
     const c=o[TITLE.row];SFX.pick();
     if(c==='New Game')newGame(false);
     else if(c==='Continue'&&TITLE.data){unpackSave(TITLE.data);toast('Welcome back.');}
-    else if(c==='Delete Save'){deleteSave();TITLE.hasSave=false;TITLE.data=null;TITLE.row=0;toast('Save deleted.');}
+    else if(c==='Delete Save'&&!TITLE.sure){TITLE.sure=true;SFX.bump();toast('Really delete your save? Press again to delete.');}
+    else if(c==='Delete Save'){deleteSave();TITLE.hasSave=false;TITLE.data=null;TITLE.row=0;TITLE.sure=false;toast('Save deleted.');}
   }
 }
 // ==================================================================
@@ -3354,14 +3387,14 @@ function titleDraw(t){
     }else txt(o,x,y,'#9aa6d0');
   });
   ctx.fillStyle='rgba(6,8,22,0.5)';ctx.fillRect(188,204,128,14);
-  txt('Z confirm   M mute',194,207,'#aab6e0');
+  txt(touchShown?'A confirm':'Z confirm   M mute',touchShown?248:194,207,'#aab6e0');
 }
 
 
 function gameOverUpdate(){
   if(jp('a')){
     loadSaveData().then(d=>{
-      if(d){unpackSave(d);toast('The Mirror restores what it remembers.');}
+      if(d){unpackSave(d);G.party.forEach(m=>{m.hp=m.maxhp;m.tp=m.maxtp;});toast('The Mirror restores what it remembers. Your party is whole again.');}
       else{G.state='TITLE';titleRefresh();playTune('title');}
     });
   }
@@ -3536,8 +3569,11 @@ function devDraw(){
   txt('Z spawn   X close',40,192,'#5a668e');
 }
 window.__openDev=openDev;
-document.getElementById('devlink').addEventListener('click',()=>openDev());
-addEventListener('keydown',e=>{if(e.key==='`')openDev();});
+// dev tools only when the page is opened with ?dev
+const DEVMODE=/[?&]dev\b/.test(location.search);
+if(DEVMODE){document.getElementById('devlink').style.display='block';
+  document.getElementById('devlink').addEventListener('click',()=>openDev());
+  addEventListener('keydown',e=>{if(e.key==='`')openDev();});}
 
 //==================================================================
 // 14. MAIN LOOP / BOOT
