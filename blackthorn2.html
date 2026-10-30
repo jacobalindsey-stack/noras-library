@@ -173,6 +173,8 @@ function initTouch() {
 
 // Full screen: a corner button on every screen. Uses the Fullscreen API where the browser has one. iPhone Safari
 // doesn't let a web page go full screen, so there it explains Add to Home Screen, which opens the game with no browser bars.
+// iPhones and iPads (iPadOS reports itself as a Mac with a touch screen): no full screen button there
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 function fsActive() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 function standalone() { return !!(navigator.standalone || (matchMedia && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches)); }
 function toggleFullscreen() {
@@ -189,20 +191,21 @@ function toggleFullscreen() {
 }
 function showToast(text) {
   let t = document.getElementById('toast');
-  if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); t.addEventListener('pointerdown', e => { e.stopPropagation(); t.style.opacity = 0; }); }
-  t.textContent = text; t.style.opacity = 1; clearTimeout(t.tm); t.tm = setTimeout(() => { t.style.opacity = 0; }, 9000);
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); t.addEventListener('pointerdown', e => { e.stopPropagation(); t.classList.remove('on'); }); }
+  // only catches taps while it's showing: a faded-out toast used to sit invisibly over the menu and swallow them
+  t.textContent = text; t.classList.add('on'); clearTimeout(t.tm); t.tm = setTimeout(() => { t.classList.remove('on'); }, 9000);
 }
 function initFullscreen() {
   const css = document.createElement('style');
   css.textContent = '#fs{position:fixed;z-index:6;right:calc(16px + env(safe-area-inset-right));top:calc(64px + env(safe-area-inset-top));width:40px;height:40px;border-radius:10px;background:rgba(20,14,44,.55);border:2px solid rgba(255,240,200,.45);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none}'
     + '#fs.t{right:auto;left:calc(16px + env(safe-area-inset-left));width:54px;height:54px;border-radius:50%;background:rgba(255,240,200,.18);border-color:rgba(255,240,200,.5)}#fs svg{width:22px;height:22px}'
-    + '#toast{position:fixed;z-index:7;left:50%;transform:translateX(-50%);bottom:calc(40% + env(safe-area-inset-bottom));max-width:min(86vw,520px);padding:14px 18px;border-radius:12px;background:rgba(14,10,38,.92);border:2px solid rgba(255,214,120,.5);color:#fff7e0;font:600 16px/1.4 "Trebuchet MS","Segoe UI",system-ui,sans-serif;text-align:center;opacity:0;transition:opacity .3s;pointer-events:auto}';
+    + '#toast{position:fixed;z-index:7;left:50%;transform:translateX(-50%);bottom:calc(40% + env(safe-area-inset-bottom));max-width:min(86vw,520px);padding:14px 18px;border-radius:12px;background:rgba(14,10,38,.92);border:2px solid rgba(255,214,120,.5);color:#fff7e0;font:600 16px/1.4 "Trebuchet MS","Segoe UI",system-ui,sans-serif;text-align:center;opacity:0;transition:opacity .3s;pointer-events:none}#toast.on{opacity:1;pointer-events:auto}';
   document.head.appendChild(css);
   const b = document.createElement('div'); b.id = 'fs'; b.title = 'Full screen'; b.setAttribute('role', 'button'); b.setAttribute('aria-label', 'Full screen');
   const icon = on => b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff7e0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">' + (on ? '<path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6"/>' : '<path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/>') + '</svg>';
   icon(false); b.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); if (B2.editBtns) { dragBtn(e, b); return; } toggleFullscreen(); });
   const upd = () => { icon(fsActive()); setTimeout(resize, 60); }; document.addEventListener('fullscreenchange', upd); document.addEventListener('webkitfullscreenchange', upd);
-  if (standalone()) b.style.display = 'none';
+  if (standalone() || IOS) b.style.display = 'none';
   document.body.appendChild(b);
 }
 
@@ -1858,7 +1861,7 @@ const GAME = {
         break;
       }
       case 'play':
-        if (M.pause) { this.mode = 'pause'; this.menu = { items: [{ label: 'Resume', fn: () => { this.mode = 'play'; this.menu = null; } }, { label: 'Hint', fn: () => { this.mode = 'play'; this.menu = null; HINT.show(); } }, { get label() { return fsActive() ? 'Exit full screen' : 'Full screen'; }, fn: () => toggleFullscreen() }, ...(B2.touchUI ? [{ label: 'Move buttons', fn: () => editButtons(true) }] : []), { label: 'Back to last candle', fn: () => { this.mode = 'play'; this.menu = null; B2.respawn(); } }, { get label() { return 'Pixel size: ' + PIXEL_SIZES.find(p => p[1] === GLR.targetH)[0]; }, fn: () => cyclePixels() }, { get label() { return 'Camera distance: ' + ['Near', 'Normal', 'Far'][CAM.zoomI]; }, fn: () => { B2.zoomQ = 0; setZoom((CAM.zoomI + 1) % ZOOMS.length); CAM.dist = ZOOMS[CAM.zoomI]; } }, { label: 'Quit to title', fn: () => { this.menu = null; this.fadeThen(() => this.toTitle()); } }] }; this.sel = 0; SFX.menu(); break; }
+        if (M.pause) { this.mode = 'pause'; this.menu = { items: [{ label: 'Resume', fn: () => { this.mode = 'play'; this.menu = null; } }, { label: 'Hint', fn: () => { this.mode = 'play'; this.menu = null; HINT.show(); } }, ...(IOS || standalone() ? [] : [{ get label() { return fsActive() ? 'Exit full screen' : 'Full screen'; }, fn: () => toggleFullscreen() }]), ...(B2.touchUI ? [{ label: 'Move buttons', fn: () => editButtons(true) }] : []), { label: 'Back to last candle', fn: () => { this.mode = 'play'; this.menu = null; B2.respawn(); } }, { get label() { return 'Pixel size: ' + PIXEL_SIZES.find(p => p[1] === GLR.targetH)[0]; }, fn: () => cyclePixels() }, { get label() { return 'Camera distance: ' + ['Near', 'Normal', 'Far'][CAM.zoomI]; }, fn: () => { B2.zoomQ = 0; setZoom((CAM.zoomI + 1) % ZOOMS.length); CAM.dist = ZOOMS[CAM.zoomI]; } }, { label: 'Quit to title', fn: () => { this.menu = null; this.fadeThen(() => this.toTitle()); } }] }; this.sel = 0; SFX.menu(); break; }
         if (M.padZoomIn) B2.zoomQ = (B2.zoomQ || 0) - 1; if (M.padZoomOut) B2.zoomQ = (B2.zoomQ || 0) + 1; if (this.zoomT > 0) this.zoomT -= dt;
         if (M.hint && WORLD.chapter) HINT.show();
         this.chT += dt; this.totalT += dt; WORLD.update(); wickStep(); if (WORLD.boss) bossStep(WORLD.boss); camStep(); fxStep(); HINT.step(dt); break;
