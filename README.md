@@ -15,7 +15,7 @@ Every push to `main` redeploys the site.
 | Mirror of Algol | `algol.html` | migrated from Claude Design export (single file) |
 | Adriatica II | `adriatica2/` | migrated from Claude Design export (folder build, 19 MB) |
 | Pumpkin Slash | `pumpkinslash.html` | single file, attached Oct 18 2026 (three.js r128 from cdnjs, jsdelivr/unpkg fallbacks) |
-| Blackthorn Manor II | `blackthorn2.html` | beta: built `blackthorn2/index.html` from the `claude/affectionate-ramanujan-3ld4ce` branch of reimagined-chainsaw (c767ee4). Saves under `bm2.save.v1` |
+| Blackthorn Manor II | `blackthorn2.html` | beta: built `blackthorn2/index.html` from the `claude/affectionate-ramanujan-3ld4ce` branch of reimagined-chainsaw (1d0e324). Saves under `bm2.save.v1` |
 | Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (5fd1666, v1.2.3) |
 
 Adriatica II also lives at the old subdomain adriatica2.noralindsey.com until

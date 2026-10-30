@@ -99,6 +99,15 @@ function gamepadState() {
   return { mx: lx, my: -ly, camX: rx, camY: -ry, jump: b(0), pound: b(1) || b(2), fade: b(3) || b(4), crouch: b(6) || b(7) || b(5) };
 }
 
+// Keyboard layouts, chosen in the pause menu and saved. 0: SPACE jump, E plop, F fade, SHIFT duck (J and K also plop and fade).
+// 1: right hand on J K L I (jump, plop, fade, duck), Q and E turn the camera. WASD moves in both; SPACE still jumps in both.
+const KEY_LAYOUTS = ['SPACE E F SHIFT', 'J K L I'];
+B2.keyLayout = (() => { try { const v = +localStorage.getItem('bm2.keys'); return KEY_LAYOUTS[v] ? v : 0; } catch (e) { return 0; } })();
+function cycleKeys() { B2.keyLayout = (B2.keyLayout + 1) % KEY_LAYOUTS.length; try { localStorage.setItem('bm2.keys', B2.keyLayout); } catch (e) { } }
+function keysLabel() { return 'Keys: ' + KEY_LAYOUTS[B2.keyLayout]; }
+// Captions and hints name the default keys; rename them for the other layout as they're drawn.
+function keyText(s) { if (B2.touchUI || !B2.keyLayout || !s) return s; return s.replace(/\bSPACE\b/g, 'J').replace(/\bSHIFT\b/g, 'I').replace(/\bE\b/g, 'K').replace(/\bF\b/g, 'L'); }
+
 function pollInput() {
   const K = KEYS;
   let mx = (K.KeyD ? 1 : 0) - (K.KeyA ? 1 : 0), my = (K.KeyW ? 1 : 0) - (K.KeyS ? 1 : 0);
@@ -108,6 +117,10 @@ function pollInput() {
     jump: !!K.Space, pound: !!(K.KeyE || K.KeyJ), fade: !!(K.KeyF || K.KeyK), crouch: !!(K.ShiftLeft || K.ShiftRight || K.KeyC || K.ControlLeft),
     camX: ((K.ArrowRight ? 1 : 0) - (K.ArrowLeft ? 1 : 0)), camY: ((K.ArrowUp ? 1 : 0) - (K.ArrowDown ? 1 : 0)),
   };
+  if (B2.keyLayout === 1) {
+    o.jump = !!(K.Space || K.KeyJ); o.pound = !!K.KeyK; o.fade = !!K.KeyL; o.crouch = !!(K.KeyI || K.ShiftLeft || K.ShiftRight);
+    o.camX += (K.KeyE ? 1 : 0) - (K.KeyQ ? 1 : 0);
+  }
   const g = gamepadState();
   if (g) { if (Math.hypot(g.mx, g.my) > Math.hypot(o.mx, o.my)) { o.mx = g.mx; o.my = g.my; } o.jump = o.jump || g.jump; o.pound = o.pound || g.pound; o.fade = o.fade || g.fade; o.crouch = o.crouch || g.crouch; o.camX += g.camX; o.camY += g.camY; }
   if (TOUCH.active || TOUCH.jump || TOUCH.pound || TOUCH.crouch || TOUCH.fade) {
@@ -1078,6 +1091,13 @@ B2.respawn = function () { SFX.respawn(); wickRespawn(); CAM.snap = true; CAM.ya
 
 // Lakitu-style follow camera: orbit by hand, swings behind Wick when he runs sideways, never sits inside walls.
 const ZOOMS = [5.2, 7.0, 9.5];
+// Camera styles, chosen in the pause menu and saved. Follow: settles in behind Wick whenever he runs (like the Lakitu
+// camera in Mario 64 with its follow setting held). Free: only drifts behind when he runs sideways for a while, and
+// otherwise stays where you put it. Follow is the default with a keyboard; Free with touch, where the right thumb steers.
+const CAM_STYLES = ['Follow', 'Free'];
+function camStyle() { try { const v = localStorage.getItem('bm2.cam'); if (v !== null && CAM_STYLES[+v]) return +v; } catch (e) { } return B2.touchUI ? 1 : 0; }
+function cycleCam() { const i = (camStyle() + 1) % CAM_STYLES.length; try { localStorage.setItem('bm2.cam', i); } catch (e) { } }
+function camLabel() { return 'Camera: ' + CAM_STYLES[camStyle()]; }
 const CAM = { yaw: 0, pitch: 0.48, dist: 7.0, curDist: 7.0, zoomI: 1, fov: 0.92, x: 0, y: 3, z: 5.6, tx: 0, ty: 0.7, tz: 0, p: null, fx: 0, fy: 0.55, fz: 0, shake: 0, idle: 0, snap: true };
 
 function camStep() {
@@ -1090,9 +1110,15 @@ function camStep() {
   c.pitch = clamp(c.pitch - I.camY * 1.5 * dt + I.dragY * 0.004, 0.12, 1.25);
   c.idle = manual ? 0 : c.idle + dt;
   const sp = Math.hypot(w.vel[0], w.vel[2]);
-  if (!c.noAuto && !(WORLD.boss && WORLD.boss.st !== 'wait' && WORLD.boss.st !== 'defeated') && c.idle > 0.45 && sp > 2.5 && w.state !== 'pound') {
+  const bossOn = WORLD.boss && WORLD.boss.st !== 'wait' && WORLD.boss.st !== 'defeated';
+  if (B2.camStyleI === undefined || (B2.frame & 31) === 0) B2.camStyleI = camStyle();
+  if (!c.noAuto && !bossOn && w.state !== 'pound') {
     const e = angDiff(c.yaw, w.yaw + PI);
-    if (Math.abs(e) < 2.1) { const ee = Math.abs(e) > 0.55 ? e - Math.sign(e) * 0.55 : 0; c.yaw += ee * clamp(sp / 6, 0, 1) * 0.9 * dt; }
+    if (B2.camStyleI === 0) {
+      // Follow: swing in behind him as soon as he runs, a little slower in the air; running straight at the camera
+      // (|e| near PI) is left alone so it doesn't spin round.
+      if (c.idle > 0.6 && sp > 1.0 && Math.abs(e) < 2.5) c.yaw += e * clamp(sp / 5, 0, 1) * (w.grounded ? 2.4 : 1.2) * dt;
+    } else if (c.idle > 0.45 && sp > 2.5 && Math.abs(e) < 2.1) { const ee = Math.abs(e) > 0.55 ? e - Math.sign(e) * 0.55 : 0; c.yaw += ee * clamp(sp / 6, 0, 1) * 0.9 * dt; }
   }
   const T = [w.pos[0], w.pos[1] + 0.55, w.pos[2]];
   // boss camera: keep Mrs. Sweep in frame by looking past Wick toward her
@@ -1364,7 +1390,7 @@ function drawHUD() {
     ctx.restore();
   }
   if (G.caption && G.captionT > 0 && G.mode !== 'title' && G.mode !== 'pause' && G.mode !== 'layout' && !(G.mode === 'ending' && G.E && G.E.phase === 'credits')) {
-    const touch = !!B2.touchUI && G.mode === 'play', a = Math.min(1, G.captionT / 0.4), lines = wrapText(G.caption.text, tall ? Wd - 24 : Math.min(Wd - 40, 300), 10); ctx.globalAlpha = a;
+    const touch = !!B2.touchUI && G.mode === 'play', a = Math.min(1, G.captionT / 0.4), lines = wrapText(keyText(G.caption.text), tall ? Wd - 24 : Math.min(Wd - 40, 300), 10); ctx.globalAlpha = a;
     const h = lines.length * 12 + (G.caption.who ? 13 : 6) + 4;
     const y0 = touch && tall ? Hd - h - sB - 214 * (GLR.dpr || 1) / GLR.US : touch ? sT + (G.cardT > 0 ? 56 : 18) : Hd - h - 10 - sB; band(y0, h, 0.72);
     let y = y0 + 4; if (G.caption.who) { drawTextC(ctx, G.caption.who, Wd / 2, y, 'ffcf7a'); y += 13; }
@@ -1407,26 +1433,59 @@ function drawHouseMap(ctx, x0, y0) {
     if (here) { ctx.fillStyle = '#fff7e0'; ctx.fillRect(x0 + (x + w / 2) * 0.75 - 1.5, y0 + (y + h / 2) * 0.75 - 1.5, 3, 3); }
   }
 }
-function drawMenu(ctx, cx, y) {
+function drawMenu(ctx, cx, y, minW) {
   const G = GAME; if (!G.menu) return;
   const big = !!B2.touchUI, sz = big ? 11 : undefined, rh = big ? 19 : 14;   // fingers need bigger targets than mice
-  G.menu.items.forEach((it, i) => { const on = i === G.sel, wdt = Math.max(textW(it.label, sz) + 16, big ? 150 : 0); if (on) { ctx.fillStyle = 'rgba(255,214,120,0.18)'; ctx.fillRect(cx - wdt / 2, y - 2 - (big ? 3 : 0), wdt, rh - 2); } drawTextC(ctx, (on ? '> ' : '') + it.label + (on ? ' <' : ''), cx, y, on ? 'ffe6a8' : 'b8aee0', sz); G.hits.push({ x: cx - wdt / 2, y: y - 2 - (big ? 3 : 0), w: wdt, h: rh, i }); y += rh; });
+  G.menu.items.forEach((it, i) => { const on = i === G.sel, wdt = Math.max(textW(it.label, sz) + 16, big ? 150 : 0, minW || 0); if (on) { ctx.fillStyle = 'rgba(255,214,120,0.18)'; ctx.fillRect(cx - wdt / 2, y - 2 - (big ? 3 : 0), wdt, rh - 2); } drawTextC(ctx, (on ? '> ' : '') + it.label + (on ? ' <' : ''), cx, y, on ? 'ffe6a8' : 'b8aee0', sz); G.hits.push({ x: cx - wdt / 2, y: y - 2 - (big ? 3 : 0), w: wdt, h: rh, i }); y += rh; });
 }
 function drawTitle(ctx, Wd, Hd) {
-  const t = B2.time, tall = GLR.portrait, x = tall ? Math.round(Wd / 2) : Math.round(Wd * 0.62), y = tall ? Math.round(Math.max(Hd * 0.16, 132 * (GLR.dpr || 1) / GLR.US) + (GLR.safeT || 0)) : 26, sB = GLR.safeB || 0;
-  const big = textW('BLACKTHORN MANOR', 24) > Wd - 16 ? 18 : 24;
-  drawTextC(ctx, 'BLACKTHORN MANOR', x, y, 'ffe6a8', big);
-  drawTextC(ctx, '~ II ~', x, y + 26, 'ffcf7a', 16);
-  drawTextC(ctx, 'THE LAST LANTERN', x, y + 46, 'fff7e0', 16);
-  if (GAME.menu && GAME.menu.sub) drawTextC(ctx, GAME.menu.sub, x, y + 72, 'c8bcf0');
-  drawMenu(ctx, x, y + 88);
-  const help = B2.touchUI ? 'Left thumb: move · Right thumb: look · Pinch: zoom · ? for hints' : 'WASD move · SPACE jump · E plop · F fade · SHIFT crouch · ARROWS/drag camera · WHEEL zoom · H hint · ESC pause';
-  const hl = wrapText(help, Wd - 16, 8); let hy = Hd - 6 - sB - hl.length * 10;
-  if (GAME.save.finished) drawTextC(ctx, 'Wick made it home.', x, hy - 16, 'ffcf7a');
-  for (const l of hl) { drawTextC(ctx, l, Wd / 2, hy, '8f86c0', 8); hy += 10; }
+  // Centred on every screen: the title sits in a darkened sky, the menu on its own panel down on the lawn,
+  // the controls in a soft band along the bottom. Wick stands to the left, out of the way.
+  const tall = GLR.portrait, x = Math.round(Wd / 2), sT = GLR.safeT || 0, sB = GLR.safeB || 0;
+  let g = ctx.createLinearGradient(0, 0, 0, Hd * 0.5); g.addColorStop(0, 'rgba(10,6,28,0.7)'); g.addColorStop(0.55, 'rgba(10,6,28,0.36)'); g.addColorStop(1, 'rgba(10,6,28,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, Wd, Hd * 0.5);
+  g = ctx.createLinearGradient(0, Hd * 0.8, 0, Hd); g.addColorStop(0, 'rgba(10,6,28,0)'); g.addColorStop(1, 'rgba(10,6,28,0.6)');
+  ctx.fillStyle = g; ctx.fillRect(0, Hd * 0.8, Wd, Hd * 0.2);
+
+  // title
+  const T = 'BLACKTHORN MANOR', room = Wd - 28;
+  const big = textW(T, 24) <= room ? 24 : textW(T, 19) <= room ? 19 : 15;
+  const y = tall ? Math.round(Math.max(Hd * 0.12, 120 * (GLR.dpr || 1) / GLR.US) + sT) : Math.round(Math.max(14, Hd * 0.07) + sT);
+  const tw = drawTextC(ctx, T, x, y, 'ffe6a8', big);
+  // a gold rule with the numeral in the middle
+  const oy = y + big + 9, ow = Math.min(tw / 2, 96), gap = 12;
+  ctx.fillStyle = 'rgba(255,207,122,0.75)'; ctx.fillRect(x - ow, oy, ow - gap, 0.8); ctx.fillRect(x + gap, oy, ow - gap, 0.8);
+  ctx.fillRect(x - ow - 2, oy - 0.6, 2, 2); ctx.fillRect(x + ow, oy - 0.6, 2, 2);
+  drawTextC(ctx, 'II', x, oy - 6, 'ffcf7a', 12);
+  const sub = 'THE LAST LANTERN', ss = big >= 24 ? 14 : 12;
+  drawTextC(ctx, sub, x, oy + 9, 'fff7e0', ss);
+  const titleBottom = oy + 9 + ss + 4;
+
+  // controls along the bottom
+  const help = B2.touchUI ? 'Left thumb: move · Right thumb: look · Pinch: zoom · ? for hints' : B2.keyLayout === 1 ? 'WASD move · J jump · K plop · L fade · I duck · Q/E or mouse: look · H hint · ESC pause' : 'WASD move · SPACE jump · E plop · F fade · SHIFT duck · mouse look · H hint · ESC pause';
+  const hs = 7, hl = wrapText(help, Wd - 24, hs); const helpTop = Hd - 7 - sB - hl.length * 9;
+
+  // menu panel
+  const G = GAME, items = G.menu ? G.menu.items : [], touch = !!B2.touchUI, rh = touch ? 19 : 14, sz = touch ? 11 : undefined;
+  const subT = G.menu && G.menu.sub;
+  let pw = touch ? 172 : 128; for (const it of items) pw = Math.max(pw, textW('> ' + it.label + ' <', sz) + 28);
+  pw = Math.min(pw, Wd - 16);
+  const ph = 12 + (subT ? 16 : 0) + items.length * rh + (touch ? 2 : 0);
+  let py = Math.round(Hd * (tall ? 0.55 : 0.6));
+  py = Math.min(py, helpTop - 10 - ph); py = Math.max(py, titleBottom + 8);
+  if (items.length) {
+    const px = Math.round(x - pw / 2), r = 5;
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, r); else ctx.rect(px, py, pw, ph);
+    ctx.fillStyle = 'rgba(14,10,38,0.66)'; ctx.fill(); ctx.lineWidth = 0.7; ctx.strokeStyle = 'rgba(255,214,120,0.45)'; ctx.stroke();
+    let my = py + 7 + (touch ? 3 : 0);
+    if (subT) { drawTextC(ctx, subT, x, my - (touch ? 3 : 0), 'c8bcf0'); my += 16; }
+    drawMenu(ctx, x, my, pw - 10);
+  }
+  if (G.save.finished) drawTextC(ctx, 'Wick made it home.', x, Math.max(titleBottom, py - 14), 'ffcf7a');
+  let hy = helpTop; for (const l of hl) { drawTextC(ctx, l, x, hy, 'c3b9e8', hs); hy += 9; }
 }
 function pressY() { const Hd = GLR.UIH, sB = GLR.safeB || 0; return B2.touchUI && GLR.portrait ? Hd - sB - 214 * (GLR.dpr || 1) / GLR.US - 14 : B2.touchUI ? Hd - sB - 16 - 150 * (GLR.dpr || 1) / GLR.US : Hd - 16 - sB; }
-function PRESS() { return B2.touchUI ? 'tap JUMP to go on' : 'press SPACE'; }
+function PRESS() { return B2.touchUI ? 'tap JUMP to go on' : B2.keyLayout === 1 ? 'press J' : 'press SPACE'; }
 
 // Enemies: few, readable, never chase far. Jump on them or Plop near them.
 const EDEF = {
@@ -1876,7 +1935,7 @@ const GAME = {
         break;
       }
       case 'play':
-        if (M.pause) { this.mode = 'pause'; this.menu = { items: [{ label: 'Resume', fn: () => { this.mode = 'play'; this.menu = null; } }, { label: 'Hint', fn: () => { this.mode = 'play'; this.menu = null; HINT.show(); } }, ...(IOS || standalone() ? [] : [{ get label() { return fsActive() ? 'Exit full screen' : 'Full screen'; }, fn: () => toggleFullscreen() }]), ...(B2.touchUI ? [{ label: 'Move buttons', fn: () => editButtons(true) }, { get label() { return btnLookLabel(); }, fn: () => cycleBtnLook() }] : []), { label: 'Back to last candle', fn: () => { this.mode = 'play'; this.menu = null; B2.respawn(); } }, { get label() { return 'Pixel size: ' + PIXEL_SIZES.find(p => p[1] === GLR.targetH)[0]; }, fn: () => cyclePixels() }, { get label() { return 'Camera distance: ' + ['Near', 'Normal', 'Far'][CAM.zoomI]; }, fn: () => { B2.zoomQ = 0; setZoom((CAM.zoomI + 1) % ZOOMS.length); CAM.dist = ZOOMS[CAM.zoomI]; } }, { label: 'Quit to title', fn: () => { this.menu = null; this.fadeThen(() => this.toTitle()); } }] }; this.sel = 0; SFX.menu(); break; }
+        if (M.pause) { this.mode = 'pause'; this.menu = { items: [{ label: 'Resume', fn: () => { this.mode = 'play'; this.menu = null; } }, { label: 'Hint', fn: () => { this.mode = 'play'; this.menu = null; HINT.show(); } }, ...(IOS || standalone() ? [] : [{ get label() { return fsActive() ? 'Exit full screen' : 'Full screen'; }, fn: () => toggleFullscreen() }]), ...(B2.touchUI ? [{ label: 'Move buttons', fn: () => editButtons(true) }, { get label() { return btnLookLabel(); }, fn: () => cycleBtnLook() }] : []), { label: 'Back to last candle', fn: () => { this.mode = 'play'; this.menu = null; B2.respawn(); } }, { get label() { return 'Pixel size: ' + PIXEL_SIZES.find(p => p[1] === GLR.targetH)[0]; }, fn: () => cyclePixels() }, { get label() { return 'Camera distance: ' + ['Near', 'Normal', 'Far'][CAM.zoomI]; }, fn: () => { B2.zoomQ = 0; setZoom((CAM.zoomI + 1) % ZOOMS.length); CAM.dist = ZOOMS[CAM.zoomI]; } }, { get label() { return camLabel(); }, fn: () => { cycleCam(); B2.camStyleI = camStyle(); } }, ...(B2.touchUI ? [] : [{ get label() { return keysLabel(); }, fn: () => cycleKeys() }]), { label: 'Quit to title', fn: () => { this.menu = null; this.fadeThen(() => this.toTitle()); } }] }; this.sel = 0; SFX.menu(); break; }
         if (M.padZoomIn) B2.zoomQ = (B2.zoomQ || 0) - 1; if (M.padZoomOut) B2.zoomQ = (B2.zoomQ || 0) + 1; if (this.zoomT > 0) this.zoomT -= dt;
         if (M.hint && WORLD.chapter) HINT.show();
         this.chT += dt; this.totalT += dt; WORLD.update(); wickStep(); if (WORLD.boss) bossStep(WORLD.boss); camStep(); fxStep(); HINT.step(dt); break;
