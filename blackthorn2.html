@@ -288,14 +288,37 @@ function editButtons(on) {
 // All sound is synthesized with Web Audio. Nothing is loaded.
 const AU = {
   ctx: null, master: null, nbuf: null, flutter: null,
+  // iPad/iPhone: when the screen locks, Safari moves the context to 'interrupted' (not 'suspended'), and after a
+  // long sleep it can stay dead even when resumed. Every tap or key calls init(): wake it from any stopped state,
+  // and if it was put to sleep, build a fresh one right here inside the tap (iOS only lets sound start from a gesture).
+  stale: false,
   init() {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    if (this.ctx && this.ctx.state !== 'running') {
+      if (this.stale || this.ctx.state === 'interrupted' || this.ctx.state === 'closed') { this.rebuild(); return; }
+      try { this.ctx.resume(); } catch (e) { }
+      return;
+    }
+    if (this.ctx) return;
     try {
       const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
       this.ctx = new C(); this.master = this.ctx.createGain(); this.master.gain.value = 0.5;
       const comp = this.ctx.createDynamicsCompressor(); this.master.connect(comp); comp.connect(this.ctx.destination);
       const n = this.ctx.sampleRate, b = this.ctx.createBuffer(1, n, n), d = b.getChannelData(0), r = rng(7); for (let i = 0; i < n; i++) d[i] = r() * 2 - 1; this.nbuf = b;
     } catch (e) { this.ctx = null; }
+    if (this.ctx && !this._watch) {
+      this._watch = true;
+      const sleep = () => { this.stale = true; try { if (this.ctx && this.ctx.state === 'running') this.ctx.suspend(); } catch (e) { } };
+      document.addEventListener('visibilitychange', () => { if (document.hidden) sleep(); else if (this.ctx) { try { this.ctx.resume(); } catch (e) { } } });
+      addEventListener('pagehide', sleep);
+      // iOS wants the first touch, not just the pointer event, to unlock sound
+      for (const ev of ['touchend', 'pointerdown', 'keydown']) addEventListener(ev, () => this.init(), { capture: true, passive: true });
+    }
+  },
+  rebuild() {
+    const old = this.ctx; this.ctx = null; this.stale = false;
+    try { if (old) old.close(); } catch (e) { }
+    this.init();
+    if (this.ctx && typeof MUSIC !== 'undefined') { MUSIC.gain = null; MUSIC.next = 0; }   // the music re-lays its bus on the new context
   },
   tone(f, dur, type, vol, slide, delay) {
     const c = this.ctx; if (!c) return; const t = c.currentTime + (delay || 0);
@@ -1447,7 +1470,11 @@ function drawHUD() {
     if (G.lanternT > 2.4) drawTextC(ctx, PRESS(), Wd / 2, pressY(), 'b8aee0'); ctx.globalAlpha = 1;
   }
   if (G.mode === 'title') drawTitle(ctx, Wd, Hd);
-  if (G.mode === 'pause') { ctx.fillStyle = 'rgba(10,8,28,0.6)'; ctx.fillRect(0, 0, Wd, Hd); const pY = tall ? Hd / 2 - 40 : B2.touchUI ? Hd / 2 - 78 : Hd / 2 - 48; drawTextC(ctx, 'PAUSED', Wd / 2, pY, 'ffe6a8', 16); drawTextC(ctx, (G.conn ? CONNECTORS[G.conn].name : CHAPTERS[G.ch].name) + '  ·  ' + fmtT(G.chT), Wd / 2, pY + 20, 'c8bcf0'); drawMenu(ctx, Wd / 2, pY + 40); if (tall) drawHouseMap(ctx, Wd / 2 - 20, Hd / 2 - 120); else if (B2.touchUI) drawHouseMap(ctx, 16, 56 + sT); else drawHouseMap(ctx, Wd - 92, 46); }
+  if (G.mode === 'pause') { ctx.fillStyle = 'rgba(10,8,28,0.6)'; ctx.fillRect(0, 0, Wd, Hd); let pY = tall ? Hd / 2 - 40 : B2.touchUI ? Hd / 2 - 78 : Hd / 2 - 48;
+    // keep the whole menu on screen: move it up first, then tighten the rows if it still doesn't fit (landscape tablets and phones)
+    const nI = G.menu ? G.menu.items.length : 0, bot = Hd - 6 - sB; let rowH = B2.touchUI ? 19 : 14;
+    if (pY + 40 + nI * rowH > bot) { pY = Math.max(6 + sT, bot - 40 - nI * rowH); if (pY + 40 + nI * rowH > bot) rowH = Math.max(11, (bot - 40 - pY) / nI); }
+    drawTextC(ctx, 'PAUSED', Wd / 2, pY, 'ffe6a8', 16); drawTextC(ctx, (G.conn ? CONNECTORS[G.conn].name : CHAPTERS[G.ch].name) + '  ·  ' + fmtT(G.chT), Wd / 2, pY + 20, 'c8bcf0'); drawMenu(ctx, Wd / 2, pY + 40, 0, rowH); if (tall) drawHouseMap(ctx, Wd / 2 - 20, Hd / 2 - 120); else if (B2.touchUI) drawHouseMap(ctx, 16, 56 + sT); else drawHouseMap(ctx, Wd - 92, 46); }
   if (G.mode === 'ending') drawEndingUI(ctx, Wd, Hd);
   if (B2.flash > 0) { ctx.fillStyle = `rgba(255,240,200,${Math.min(0.7, B2.flash)})`; ctx.fillRect(0, 0, Wd, Hd); }
   if (G.fade > 0) { ctx.fillStyle = `rgba(6,4,16,${G.fade})`; ctx.fillRect(0, 0, Wd, Hd); }
@@ -1470,9 +1497,9 @@ function drawHouseMap(ctx, x0, y0) {
     if (here) { ctx.fillStyle = '#fff7e0'; ctx.fillRect(x0 + (x + w / 2) * 0.75 - 1.5, y0 + (y + h / 2) * 0.75 - 1.5, 3, 3); }
   }
 }
-function drawMenu(ctx, cx, y, minW) {
+function drawMenu(ctx, cx, y, minW, rowH) {
   const G = GAME; if (!G.menu) return;
-  const big = !!B2.touchUI, sz = big ? 11 : undefined, rh = big ? 19 : 14;   // fingers need bigger targets than mice
+  const big = !!B2.touchUI, rh = rowH || (big ? 19 : 14), sz = big ? (rh < 17 ? 10 : 11) : undefined;   // fingers need bigger targets than mice
   G.menu.items.forEach((it, i) => { const on = i === G.sel, wdt = Math.max(textW(it.label, sz) + 16, big ? 150 : 0, minW || 0); if (on) { ctx.fillStyle = 'rgba(255,214,120,0.18)'; ctx.fillRect(cx - wdt / 2, y - 2 - (big ? 3 : 0), wdt, rh - 2); } drawTextC(ctx, (on ? '> ' : '') + it.label + (on ? ' <' : ''), cx, y, on ? 'ffe6a8' : 'b8aee0', sz); G.hits.push({ x: cx - wdt / 2, y: y - 2 - (big ? 3 : 0), w: wdt, h: rh, i }); y += rh; });
 }
 function drawTitle(ctx, Wd, Hd) {
