@@ -1192,9 +1192,14 @@ function camStep() {
     c.fx = damp(c.fx, T[0], 14, dt); c.fz = damp(c.fz, T[2], 14, dt);
     const ky = w.grounded ? 6 : (Math.abs(T[1] - c.fy) > 2.2 ? 5 : 1.3); c.fy = damp(c.fy, T[1], ky, dt);
   }
-  const cp = Math.cos(c.pitch), dir = [Math.sin(c.yaw) * cp, Math.sin(c.pitch), Math.cos(c.yaw) * cp];
-  const f = [c.fx, c.fy, c.fz];
-  const D = c.bossDist || c.dist, hit = raycast(f[0], f[1], f[2], dir[0], dir[1], dir[2], D + 0.4);
+  const f = [c.fx, c.fy, c.fz], D = c.bossDist || c.dist;
+  // if a wall or pillar sits right behind Wick, rise up and look down over it rather than squeezing into it
+  const dirAt = pp => { const k = Math.cos(pp); return [Math.sin(c.yaw) * k, Math.sin(pp), Math.cos(c.yaw) * k]; };
+  let want0 = c.pitch, h0 = raycast(f[0], f[1], f[2], ...dirAt(c.pitch), D + 0.4);
+  if (h0 >= 0 && h0 < 2.4) for (const up of [0.25, 0.5, 0.75, 1.0]) { const pp = Math.min(1.35, c.pitch + up), h = raycast(f[0], f[1], f[2], ...dirAt(pp), D + 0.4); if (h < 0 || h >= 2.4) { want0 = pp; break; } }
+  c.lift = c.snap ? want0 - c.pitch : damp(c.lift || 0, want0 - c.pitch, 6, dt);
+  const dir = dirAt(Math.min(1.4, c.pitch + c.lift));
+  const hit = raycast(f[0], f[1], f[2], dir[0], dir[1], dir[2], D + 0.4);
   let want = D; if (hit >= 0) want = Math.max(0.9, hit - 0.35);
   c.curDist = want < c.curDist ? damp(c.curDist, want, 22, dt) : damp(c.curDist, want, 2.5, dt);
   if (c.snap) c.curDist = want;
@@ -2331,7 +2336,7 @@ function drawWick(a) {
   const flip = w.flipOn ? w.flipA * w.flipDir : 0;
   m = M4.chain(m, M4.T(0, 0.5, 0), M4.RX(w.lean + flip), M4.T(0, -0.5, 0), M4.S(sxz, sy, sxz));
   const trail = [-(Math.cos(yaw) * w.vel[0] - Math.sin(yaw) * w.vel[2]) * 0.05, 0, -(Math.sin(yaw) * w.vel[0] + Math.cos(yaw) * w.vel[2]) * 0.05];
-  const o = { wick: true, self: true, trail, blink: w.eye, glow: [0.38, 0.33, 0.24], alpha: (w.fading ? 0.5 : (w.iT > 0 && (B2.frame >> 2) & 1 ? 0.4 : 1)) * (GAME.camOv ? 1 : clamp((Math.hypot(CAM.x - x, CAM.y - y - 0.5, CAM.z - z) - 1.3) / 1.8, 0.28, 1)), nocull: true };   // see-through when the camera is squeezed up close
+  const o = { wick: true, self: true, trail, blink: w.eye, glow: [0.38, 0.33, 0.24], alpha: (w.fading ? 0.5 : (w.iT > 0 && (B2.frame >> 2) & 1 ? 0.4 : 1)) * (GAME.camOv ? 1 : clamp((Math.hypot(CAM.x - x, CAM.y - y - 0.5, CAM.z - z) - 1.3) / 1.8, 0.5, 1)), nocull: true };   // see-through when the camera is squeezed up close
   drawMesh(G.body, m, o);
   const arm = (side, ang) => drawMesh(G.arm, M4.chain(m, M4.T(side * 0.33, 0.5, 0), M4.RZ(-side * ang), M4.T(0, -0.1, 0), M4.S(0.065, 0.13, 0.075)), { self: true, glow: [0.38, 0.33, 0.24], alpha: o.alpha, tint: [0.97, 0.94, 0.86] });
   arm(1, w.armL); arm(-1, w.armR);
@@ -2351,11 +2356,25 @@ B2.teleport = function (x, y, z, yaw) { W.pos = [x, y, z]; W.prev = [x, y, z]; W
 B2.play = function (n, cp) { GAME.fade = 0; GAME.ch = n; GAME.chT = 0; WORLD.reset(); if (n === 0) buildPlayground(); else CHAPTERS[n].build(); WORLD.chapter = n; W.wisps = 0; W.hp = 3; GAME.mode = 'play'; GAME.camOv = null; GAME.menu = null; if (cp !== undefined && cp >= 0) { const c = WORLD.candles[cp]; c.lit = true; WORLD.spawn = [c.x + (c.ox || 0), c.y + 0.02, c.z + (c.oz === undefined ? 1 : c.oz)]; if (c.yaw !== undefined) WORLD.spawnYaw = c.yaw; } wickRespawn(); CAM.yaw = WORLD.spawnYaw + PI; CAM.snap = true; camStep(); };
 B2.GAME = GAME; B2.HINT = HINT;
 
+// iOS throws away a page's WebGL context when the iPad sleeps or runs short of memory. The world then freezes on its
+// last frame while the buttons still work. Rebuilding every mesh is fragile, so reload and resume at the last candle.
+function watchContextLoss() {
+  const cv = GLR.cv; let reloading = false;
+  const recover = () => { if (reloading) return; reloading = true; try { GAME.writeSave(); sessionStorage.setItem('bm2.resume', '1'); } catch (e) { } location.reload(); };
+  cv.addEventListener('webglcontextlost', e => { e.preventDefault(); B2.glLost = true; if (!document.hidden) recover(); });
+  cv.addEventListener('webglcontextrestored', recover);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && (B2.glLost || (GLR.gl && GLR.gl.isContextLost()))) recover(); });
+}
 function boot() {
   loadPixels(); initGL(); loadZoom(); initPointer(); initTouch(); buildWickMeshes(); buildObjectMeshes(); buildEnemyMeshes(); buildHatMeshes(); buildSpookyMeshes(); if (typeof buildBossMeshes === 'function') buildBossMeshes();
   B2.GLR_UI = null; Object.defineProperty(B2, 'GLR_UI', { get: () => [GLR.UIW, GLR.UIH] }); B2.W = W; B2.CAM = CAM; B2.WORLD = WORLD; B2.AU = AU; B2.MUSIC = MUSIC; B2.SFX = SFX; GAME.loadSave();
   const q = location.search, mc = q.match(/[?&]ch=(\d)/);
-  if (/toybox/.test(q)) B2.play(0); else if (mc) B2.play(+mc[1]); else GAME.toTitle();
+  // after the graphics were lost (iPad slept) we reload and go straight back to the last candle, skipping the title
+  let resume = false; try { resume = sessionStorage.getItem('bm2.resume') === '1'; sessionStorage.removeItem('bm2.resume'); } catch (e) { }
+  if (/toybox/.test(q)) B2.play(0); else if (mc) B2.play(+mc[1]);
+  else if (resume && GAME.save.cont && GAME.save.cont.ch) { const c = GAME.save.cont; GAME.toTitle(); GAME.startChapter(c.ch, c.cp, c.t); }
+  else GAME.toTitle();
+  watchContextLoss();
   if (B2.manual) { B2.advance(1); return; }
   let last = performance.now(), acc = 0, fa = 0, fn = 0;
   function frame(now) {
