@@ -357,6 +357,17 @@ const SFX = {
 // Renderer: WebGL2 into a tiny framebuffer, then an integer-scaled, dithered, 5-bit-ish palette blit.
 const GLR = { gl: null, W: 320, H: 224, S: 3, fbo: null, tex: null, rb: null, prog: {}, loc: {}, cv: null, ui: null, uictx: null, levels: 28, targetH: 360, clip: [0, 0, 0, 1], UIW: 400, UIH: 240, US: 3 };
 const PIXEL_SIZES = [['Chunky', 224], ['Classic', 360], ['Fine', 480]];
+// Two looks. N64: smoothed textures, smooth shading, anti-aliased edges, a soft upscale with a little of the
+// console's horizontal video blur, and closer fog. Pixel: the original PS1-style dithered, posterised, hard-pixel look.
+const LOOKS = [['N64', 'n64'], ['Pixel', 'pixel']];
+GLR.look = (() => { try { const v = localStorage.getItem('bm2.look'); if (LOOKS.some(l => l[1] === v)) return v; } catch (e) { } return 'n64'; })();
+function lookLabel() { return 'Look: ' + LOOKS.find(l => l[1] === GLR.look)[0]; }
+function cycleLook() { const i = LOOKS.findIndex(l => l[1] === GLR.look); GLR.look = LOOKS[(i + 1) % LOOKS.length][1]; try { localStorage.setItem('bm2.look', GLR.look); } catch (e) { } applyLook(); }
+function applyLook() {
+  const gl = GLR.gl; if (!gl) return; const f = GLR.look === 'n64' ? gl.LINEAR : gl.NEAREST;
+  if (GLR.atlas) { gl.bindTexture(gl.TEXTURE_2D, GLR.atlas); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f); }
+  resize();
+}
 const ENV = {
   ambTop: [0.46, 0.5, 0.78], ambBot: [0.24, 0.22, 0.42], sunDir: [0.5, 0.78, 0.38], sunCol: [0.78, 0.62, 0.46],
   fog: [0.52, 0.42, 0.62], fogNear: 28, fogFar: 85,
@@ -383,7 +394,7 @@ const FS_WORLD = `#version 300 es
 precision highp float;
 in vec3 vNrm; in vec3 vCol; in vec2 vUV; in float vTile; in float vDist; in vec3 vW;
 uniform vec4 uPL[8]; uniform vec3 uPC[8]; uniform float uNPL, uSelf; uniform vec4 uClip;
-uniform sampler2D uAtlas; uniform vec3 uSunDir, uSunCol, uAmbTop, uAmbBot, uFogCol, uTint, uGlow; uniform float uFogNear, uFogFar, uAlpha, uUnlit;
+uniform sampler2D uAtlas; uniform vec3 uSunDir, uSunCol, uAmbTop, uAmbBot, uFogCol, uTint, uGlow; uniform float uFogNear, uFogFar, uAlpha, uUnlit, uSmooth;
 out vec4 o;
 float bayer4(vec2 p){ ivec2 q = ivec2(mod(p, 4.0)); int i = q.x + q.y*4; float b[16] = float[16](0.,8.,2.,10., 12.,4.,14.,6., 3.,11.,1.,9., 15.,7.,13.,5.); return (b[i] + 0.5) / 16.0; }
 void main(){
@@ -396,10 +407,10 @@ void main(){
     base *= texture(uAtlas, (cell + f) / 4.0).rgb;
   }
   vec3 n = normalize(vNrm);
-  float band = floor(clamp(dot(n, uSunDir), 0.0, 1.0) * 3.0 + 0.5) / 3.0;
+  float nd = clamp(dot(n, uSunDir), 0.0, 1.0); float band = mix(floor(nd * 3.0 + 0.5) / 3.0, nd, uSmooth);
   vec3 amb = mix(uAmbBot, uAmbTop, n.y * 0.5 + 0.5);
   vec3 pl = vec3(0.0);
-  for(int i = 0; i < 8; i++){ if(float(i) >= uNPL) break; if(i == 0 && uSelf > 0.5) continue; vec3 d = uPL[i].xyz - vW; float l = length(d); float att = clamp(1.0 - l / uPL[i].w, 0.0, 1.0); att = floor(att * att * 5.0 + 0.5) / 5.0; float df = max(dot(n, d / max(l, 0.001)), 0.0) * 0.65 + 0.35; pl += uPC[i] * att * df; }
+  for(int i = 0; i < 8; i++){ if(float(i) >= uNPL) break; if(i == 0 && uSelf > 0.5) continue; vec3 d = uPL[i].xyz - vW; float l = length(d); float att = clamp(1.0 - l / uPL[i].w, 0.0, 1.0); att = mix(floor(att * att * 5.0 + 0.5) / 5.0, pow(att, 1.4) * 1.08, uSmooth); float df = max(dot(n, d / max(l, 0.001)), 0.0) * 0.65 + 0.35; pl += uPC[i] * att * df; }
   vec3 lit = base * (amb + uSunCol * band + pl) + base * uGlow;
   lit = mix(lit, base, uUnlit);
   float fg = clamp((vDist - uFogNear) / (uFogFar - uFogNear), 0.0, 1.0);
@@ -425,9 +436,18 @@ void main(){
   o = vec4(c, 1.0);
 }`;
 const FS_POST = `#version 300 es
-precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTex; uniform vec2 uLow; uniform float uLv;
+precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTex; uniform vec2 uLow; uniform float uLv, uSmooth;
 float bayer4(vec2 p){ ivec2 q = ivec2(mod(p, 4.0)); int i = q.x + q.y*4; float b[16] = float[16](0.,8.,2.,10., 12.,4.,14.,6., 3.,11.,1.,9., 15.,7.,13.,5.); return (b[i] + 0.5) / 16.0; }
 void main(){
+  if(uSmooth > 0.5){
+    // N64: bilinear upscale plus a gentle horizontal smear, like the console's video filter
+    vec2 tx = vec2(0.6 / uLow.x, 0.0);
+    vec3 s = texture(uTex, vUv).rgb * 0.5 + texture(uTex, vUv - tx).rgb * 0.25 + texture(uTex, vUv + tx).rgb * 0.25;
+    float l = dot(s, vec3(0.299, 0.587, 0.114));
+    s = mix(vec3(l), s, 1.18);                 // N64 colour: soft, but saturated
+    s = (s - 0.5) * 1.07 + 0.5;
+    o = vec4(clamp(s, 0.0, 1.0), 1.0); return;
+  }
   vec3 c = texture(uTex, vUv).rgb; vec2 px = floor(vUv * uLow);
   float b = bayer4(px) - 0.5;
   c = floor(c * uLv + 0.5 + b * 0.5) / uLv;
@@ -473,8 +493,22 @@ function resize() {
   if (GLR.fbo) { gl.deleteFramebuffer(GLR.fbo); gl.deleteTexture(GLR.tex); gl.deleteRenderbuffer(GLR.rb); }
   GLR.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, GLR.tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  const sf = GLR.look === 'n64' ? gl.LINEAR : gl.NEAREST;
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, sf); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, sf);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  if (GLR.msFbo) { gl.deleteFramebuffer(GLR.msFbo); gl.deleteRenderbuffer(GLR.msCol); gl.deleteRenderbuffer(GLR.msDep); GLR.msFbo = null; }
+  if (GLR.look === 'n64') {   // anti-aliased edges: draw into a 4x multisampled buffer, resolve into the scene texture
+    try {
+      const ns = Math.min(4, gl.getParameter(gl.MAX_SAMPLES) || 0);
+      if (ns > 1) {
+        GLR.msCol = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, GLR.msCol); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, ns, gl.RGBA8, W, H);
+        GLR.msDep = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, GLR.msDep); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, ns, gl.DEPTH24_STENCIL8, W, H);
+        GLR.msFbo = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, GLR.msFbo);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, GLR.msCol); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, GLR.msDep);
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) { gl.deleteFramebuffer(GLR.msFbo); GLR.msFbo = null; }
+      }
+    } catch (e) { GLR.msFbo = null; }
+  }
   GLR.rb = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, GLR.rb); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, W, H);
   GLR.fbo = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, GLR.fbo);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, GLR.tex, 0); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, GLR.rb);
@@ -506,7 +540,8 @@ function makeAtlas() {
   tile(11, (x, y) => { const d = (x % 16 === 0 || y % 16 === 0) ? 0.5 : 1; return d * (0.9 + nz(x, y, 12) * 0.1); }); // glass panes
   GLR.atlas = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, GLR.atlas);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  const af = GLR.look === 'n64' ? gl.LINEAR : gl.NEAREST;
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, af); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, af);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
@@ -533,7 +568,7 @@ function drawMesh(m, model, o) {
 
 function beginScene(cam) {
   const gl = GLR.gl;
-  gl.bindFramebuffer(gl.FRAMEBUFFER, GLR.fbo); gl.viewport(0, 0, GLR.W, GLR.H);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, GLR.msFbo || GLR.fbo); gl.viewport(0, 0, GLR.W, GLR.H);
   gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   // sky
   const f = [cam.tx - cam.x, cam.ty - cam.y, cam.tz - cam.z]; let l = Math.hypot(...f); f.forEach((_, i) => f[i] /= l);
@@ -554,7 +589,8 @@ function beginScene(cam) {
   const sd = ENV.sunDir, sl = Math.hypot(...sd);
   gl.uniform3f(U('world', 'uSunDir'), sd[0] / sl, sd[1] / sl, sd[2] / sl); gl.uniform3fv(U('world', 'uSunCol'), ENV.sunCol);
   gl.uniform3fv(U('world', 'uAmbTop'), ENV.ambTop); gl.uniform3fv(U('world', 'uAmbBot'), ENV.ambBot); gl.uniform3fv(U('world', 'uFogCol'), ENV.fog);
-  gl.uniform1f(U('world', 'uFogNear'), ENV.fogNear); gl.uniform1f(U('world', 'uFogFar'), ENV.fogFar);
+  const n64 = GLR.look === 'n64', fk = n64 ? 0.8 : 1, fk2 = n64 ? 0.9 : 1;   // N64: the fog creeps closer
+  gl.uniform1f(U('world', 'uFogNear'), ENV.fogNear * fk); gl.uniform1f(U('world', 'uFogFar'), ENV.fogFar * fk2); gl.uniform1f(U('world', 'uSmooth'), n64 ? 1 : 0);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, GLR.atlas); gl.uniform1i(U('world', 'uAtlas'), 0);
   // nearest point lights to the camera focus
   const L = gatherLights(cam), pos = new Float32Array(32), col = new Float32Array(24);
@@ -576,11 +612,12 @@ function gatherLights(cam) {
 }
 function endScene() {
   const gl = GLR.gl;
+  if (GLR.msFbo) { gl.bindFramebuffer(gl.READ_FRAMEBUFFER, GLR.msFbo); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, GLR.fbo); gl.blitFramebuffer(0, 0, GLR.W, GLR.H, 0, 0, GLR.W, GLR.H, gl.COLOR_BUFFER_BIT, gl.NEAREST); gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null); }
   gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, GLR.cv.width, GLR.cv.height);
   gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE);
   gl.useProgram(GLR.prog.post); gl.bindVertexArray(GLR.vaoEmpty);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, GLR.tex); gl.uniform1i(U('post', 'uTex'), 0);
-  gl.uniform2f(U('post', 'uLow'), GLR.W, GLR.H); gl.uniform1f(U('post', 'uLv'), GLR.levels);
+  gl.uniform2f(U('post', 'uLow'), GLR.W, GLR.H); gl.uniform1f(U('post', 'uLv'), GLR.levels); gl.uniform1f(U('post', 'uSmooth'), GLR.look === 'n64' ? 1 : 0);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
@@ -1935,7 +1972,7 @@ const GAME = {
         break;
       }
       case 'play':
-        if (M.pause) { this.mode = 'pause'; this.menu = { items: [{ label: 'Resume', fn: () => { this.mode = 'play'; this.menu = null; } }, { label: 'Hint', fn: () => { this.mode = 'play'; this.menu = null; HINT.show(); } }, ...(IOS || standalone() ? [] : [{ get label() { return fsActive() ? 'Exit full screen' : 'Full screen'; }, fn: () => toggleFullscreen() }]), ...(B2.touchUI ? [{ label: 'Move buttons', fn: () => editButtons(true) }, { get label() { return btnLookLabel(); }, fn: () => cycleBtnLook() }] : []), { label: 'Back to last candle', fn: () => { this.mode = 'play'; this.menu = null; B2.respawn(); } }, { get label() { return 'Pixel size: ' + PIXEL_SIZES.find(p => p[1] === GLR.targetH)[0]; }, fn: () => cyclePixels() }, { get label() { return 'Camera distance: ' + ['Near', 'Normal', 'Far'][CAM.zoomI]; }, fn: () => { B2.zoomQ = 0; setZoom((CAM.zoomI + 1) % ZOOMS.length); CAM.dist = ZOOMS[CAM.zoomI]; } }, { get label() { return camLabel(); }, fn: () => { cycleCam(); B2.camStyleI = camStyle(); } }, ...(B2.touchUI ? [] : [{ get label() { return keysLabel(); }, fn: () => cycleKeys() }]), { label: 'Quit to title', fn: () => { this.menu = null; this.fadeThen(() => this.toTitle()); } }] }; this.sel = 0; SFX.menu(); break; }
+        if (M.pause) { this.mode = 'pause'; this.menu = { items: [{ label: 'Resume', fn: () => { this.mode = 'play'; this.menu = null; } }, { label: 'Hint', fn: () => { this.mode = 'play'; this.menu = null; HINT.show(); } }, ...(IOS || standalone() ? [] : [{ get label() { return fsActive() ? 'Exit full screen' : 'Full screen'; }, fn: () => toggleFullscreen() }]), ...(B2.touchUI ? [{ label: 'Move buttons', fn: () => editButtons(true) }, { get label() { return btnLookLabel(); }, fn: () => cycleBtnLook() }] : []), { label: 'Back to last candle', fn: () => { this.mode = 'play'; this.menu = null; B2.respawn(); } }, { get label() { return lookLabel(); }, fn: () => cycleLook() }, { get label() { return 'Pixel size: ' + PIXEL_SIZES.find(p => p[1] === GLR.targetH)[0]; }, fn: () => cyclePixels() }, { get label() { return 'Camera distance: ' + ['Near', 'Normal', 'Far'][CAM.zoomI]; }, fn: () => { B2.zoomQ = 0; setZoom((CAM.zoomI + 1) % ZOOMS.length); CAM.dist = ZOOMS[CAM.zoomI]; } }, { get label() { return camLabel(); }, fn: () => { cycleCam(); B2.camStyleI = camStyle(); } }, ...(B2.touchUI ? [] : [{ get label() { return keysLabel(); }, fn: () => cycleKeys() }]), { label: 'Quit to title', fn: () => { this.menu = null; this.fadeThen(() => this.toTitle()); } }] }; this.sel = 0; SFX.menu(); break; }
         if (M.padZoomIn) B2.zoomQ = (B2.zoomQ || 0) - 1; if (M.padZoomOut) B2.zoomQ = (B2.zoomQ || 0) + 1; if (this.zoomT > 0) this.zoomT -= dt;
         if (M.hint && WORLD.chapter) HINT.show();
         this.chT += dt; this.totalT += dt; WORLD.update(); wickStep(); if (WORLD.boss) bossStep(WORLD.boss); camStep(); fxStep(); HINT.step(dt); break;
