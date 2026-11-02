@@ -1,3 +1,5 @@
+<!doctype html>
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <title>Holy City Hustle</title>
@@ -278,8 +280,25 @@ body.compact #tDir{font-size:10px} body.compact #tStreet{font-size:11px} body.co
 }
 .keys{font-size:15px;line-height:1.5;color:#d8dcef}
 kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px solid #2d3d70;padding:2px 4px}
-#rotateHint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 200px);transform:translateX(-50%);font-size:14px;background:rgba(11,16,34,.85);border:2px solid var(--haint);padding:6px 10px;display:none;pointer-events:none;white-space:nowrap}
-@media (orientation:portrait){body.touch.playing #rotateHint{display:block}}
+/* ---------- iPhone: portrait play with a control deck ---------- */
+#deck{display:none;position:absolute;left:0;right:0;bottom:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,#141c3a 0 2px,#111833 2px 4px);border-top:4px solid var(--haint);box-shadow:0 -4px 0 #000 inset,0 -4px 0 #0b1022}
+body.phone-port #touch.on #deck{display:block}
+body.phone-port #touch.on #stick,body.phone-port #touch.on .tbtn{opacity:1}
+#deckSpeed{position:absolute;left:50%;top:10px;transform:translateX(-50%);font-family:var(--f-display);font-size:12px;color:var(--butter);
+  background:#0b1022;border:2px solid #2d3d70;padding:4px 7px;white-space:nowrap;font-variant-numeric:tabular-nums}
+#deckSpeed span{font-size:8px;color:var(--haint)}
+body.phone-port #hud{bottom:var(--deckH,0px)!important}
+body.phone-port #game{height:calc(100% - var(--deckH,0px))!important}
+body.phone-port #hTurn{top:calc(env(safe-area-inset-top,0px) + 74px)!important;max-width:92vw}
+body.phone-port #hMsg{top:30%}
+#rotate{display:none;position:fixed;inset:0;z-index:50;background:var(--ink);flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:16px}
+body.phone-land #rotate{display:flex}
+#rotate .ph{width:34px;height:58px;border:4px solid var(--haint);border-radius:6px;position:relative;animation:rot 2s ease-in-out infinite}
+#rotate .ph::after{content:"";position:absolute;left:50%;bottom:4px;width:8px;height:3px;margin-left:-4px;background:var(--haint)}
+#rotate p{font-family:var(--f-display);font-size:12px;color:var(--butter);margin:0;line-height:1.6}
+#rotate small{font-size:15px;color:var(--cream)}
+@keyframes rot{0%,20%{transform:rotate(-90deg)}50%,100%{transform:rotate(0)}}
 @media (prefers-reduced-motion:reduce){.blink{animation:none}}
 </style>
 
@@ -304,11 +323,11 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
     <div id="hTurn" hidden><canvas id="turnIcon" width="16" height="16"></canvas><div class="tt"><b id="tDir">RIGHT</b><span id="tStreet"></span></div><div id="tDist"></div></div>
     <div id="hMsg"></div>
     <div id="hCount"></div>
-    <div id="rotateHint">Turn sideways for a wider view</div>
   </div>
   <canvas id="minimap" width="116" height="116" hidden></canvas>
 
   <div id="touch">
+    <div id="deck"><div id="deckSpeed">0 <span>MPH</span></div></div>
     <div id="stick"><div id="knob"></div></div>
     <div class="tbtn" id="bGas">GAS</div>
     <div class="tbtn" id="bBrake">BRAKE</div>
@@ -321,6 +340,8 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
     <button class="btn ghost" id="lReset">RESET</button>
     <button class="btn" id="lDone">DONE</button>
   </div>
+
+  <div id="rotate"><div class="ph"></div><p>HOLD YOUR PHONE<br>UPRIGHT</p><small>Holy City Hustle plays tall on iPhone.</small></div>
 
   <!-- Title -->
   <div class="screen" id="title">
@@ -2353,7 +2374,7 @@ function tick(dt) {
   if (p.skid > 0.4 && Math.random() < 0.5) G.particles.push({ x: p.x - Math.cos(p.h) * 7, y: p.y - Math.sin(p.h) * 7, vx: 0, vy: 0, vz: 10, z: 0, life: 0.4, col: '#9a9890', s: 2 });
   if (p.nitroT > 0) for (let i = 0; i < 2; i++) G.particles.push({ x: p.x - Math.cos(p.h) * 10, y: p.y - Math.sin(p.h) * 10, vx: -Math.cos(p.h) * 60 + (Math.random() - .5) * 20, vy: -Math.sin(p.h) * 60 + (Math.random() - .5) * 20, vz: 10, z: p.z + 2, life: 0.25, col: i ? '#f6d77a' : '#f08a6b', s: 2 });
   // camera
-  const look = 0.45; const tx = p.x + clamp(p.vx * look, -110, 110), ty = p.y + clamp(p.vy * look, -80, 80) - p.z * 0.3;
+  const look = 0.45, lx = Math.min(110, VW * 0.3), ly = Math.min(80, VH * 0.3); const tx = p.x + clamp(p.vx * look, -lx, lx), ty = p.y + clamp(p.vy * look, -ly, ly) - p.z * 0.3;
   cam.x += (tx - cam.x) * (1 - Math.exp(-5 * dt)); cam.y += (ty - cam.y) * (1 - Math.exp(-5 * dt));
   cam.shake *= Math.exp(-6 * dt);
   if (msgT > 0) { msgT -= dt; if (msgT <= 0) $('#hMsg').style.opacity = 0; }
@@ -2792,26 +2813,32 @@ function stickArt() {
   return { base: c.toDataURL(), knob: k.toDataURL() };
 }
 const CTRL = [
-  { id: 'stick', size: 150, def: (ins, sc) => ({ x: ins.l + 18 + 75 * sc, y: innerHeight - ins.b - 18 - 75 * sc }) },
-  { id: 'bGas', size: 92, def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 46 * sc, y: innerHeight - ins.b - 30 - 46 * sc }) },
-  { id: 'bBrake', size: 66, def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 104 * sc - 33 * sc, y: innerHeight - ins.b - 18 - 33 * sc }) },
-  { id: 'bNitro', size: 66, def: (ins, sc) => ({ x: innerWidth - ins.r - 30 - 33 * sc, y: innerHeight - ins.b - 134 * sc - 33 * sc }) },
-  { id: 'bHonk', size: 58, def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 92 * sc - 29 * sc, y: innerHeight - ins.b - 98 * sc - 29 * sc }) },
+  { id: 'stick', size: 150, pp: (dk, ins, sc) => ({ x: ins.l + 14 + 75 * sc, y: dk.cy }), def: (ins, sc) => ({ x: ins.l + 18 + 75 * sc, y: innerHeight - ins.b - 18 - 75 * sc }) },
+  { id: 'bGas', size: 92, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 46 * sc, y: dk.cy + 22 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 46 * sc, y: innerHeight - ins.b - 30 - 46 * sc }) },
+  { id: 'bBrake', size: 66, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 92 * sc - 30 * sc, y: dk.cy + 44 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 104 * sc - 33 * sc, y: innerHeight - ins.b - 18 - 33 * sc }) },
+  { id: 'bNitro', size: 66, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 40 * sc, y: dk.cy - 62 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 30 - 33 * sc, y: innerHeight - ins.b - 134 * sc - 33 * sc }) },
+  { id: 'bHonk', size: 58, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 118 * sc, y: dk.cy - 30 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 92 * sc - 29 * sc, y: innerHeight - ins.b - 98 * sc - 29 * sc }) },
 ];
 function safeInsets() {
   let p = document.getElementById('insetProbe');
   if (!p) { p = document.createElement('div'); p.id = 'insetProbe'; p.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)'; document.body.appendChild(p); }
   const cs = getComputedStyle(p); return { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
 }
-function orientKey() { return innerWidth >= innerHeight ? 'L' : 'P'; }
+function isPhone() { return isTouch && Math.min(innerWidth, innerHeight) < 520; }
+function isPhonePortrait() { return isPhone() && innerHeight > innerWidth; }
+function deckHeight() { if (!isPhonePortrait()) return 0; const ins = safeInsets(); return Math.round(clamp(innerHeight * 0.32, 210, 270) + ins.b); }
+function orientKey() { return isPhonePortrait() ? 'PP' : innerWidth >= innerHeight ? 'L' : 'P'; }
 function isCompact() { return Math.min(innerWidth, innerHeight) < 500; }
-function ctrlScale() { return (SAVE.settings.btnSize || 1) * (isCompact() ? 0.68 : 1); }
+function ctrlScale() { if (isPhonePortrait()) { const dh = deckHeight() - safeInsets().b; return (SAVE.settings.btnSize || 1) * clamp(Math.min((dh - 40) / 150, innerWidth * 0.4 / 150), 0.7, 1.05); } return (SAVE.settings.btnSize || 1) * (isCompact() ? 0.68 : 1); }
 function layoutControls() {
   document.body.classList.toggle('compact', isCompact());
+  const pp = isPhonePortrait(); document.body.classList.toggle('phone-port', pp); document.body.classList.toggle('phone-land', isPhone() && !pp);
+  const dH = deckHeight(); document.documentElement.style.setProperty('--deckH', dH + 'px'); $('#deck').style.height = dH + 'px';
   const ins = safeInsets(), sc = ctrlScale(), L = (SAVE.settings.layout || {})[orientKey()] || {};
+  const dk = { top: innerHeight - dH, cy: innerHeight - ins.b - (dH - ins.b) / 2 + 12 };
   for (const c of CTRL) {
     const el = $('#' + c.id), sz = Math.round(c.size * sc);
-    let p = L[c.id] ? { x: L[c.id][0] * innerWidth, y: L[c.id][1] * innerHeight } : c.def(ins, sc);
+    let p = L[c.id] ? { x: L[c.id][0] * innerWidth, y: L[c.id][1] * innerHeight } : pp ? c.pp(dk, ins, sc) : c.def(ins, sc);
     p.x = clamp(p.x, sz / 2 + 4, innerWidth - sz / 2 - 4); p.y = clamp(p.y, sz / 2 + 4, innerHeight - sz / 2 - 4);
     Object.assign(el.style, { left: (p.x - sz / 2) + 'px', top: (p.y - sz / 2) + 'px', right: 'auto', bottom: 'auto', width: sz + 'px', height: sz + 'px' });
   }
@@ -3321,15 +3348,20 @@ function updateHud() {
   if (m.type === 'race') $('#hPlace').textContent = ['1ST', '2ND', '3RD', '4TH'][Math.max(0, (G.place || 1) - 1)];
   drawMinimap();
   updateTurnCard();
+  if (isPhonePortrait()) { const mph = Math.round(Math.hypot(G.player.vx, G.player.vy) * 0.22); const ds = $('#deckSpeed'); if (ds.dataset.v !== String(mph)) { ds.dataset.v = mph; ds.firstChild.nodeValue = mph + ' '; } }
 }
 
 /* resize */
 function resize() {
   const w = innerWidth, h = innerHeight;
-  if (w >= h) { VH = 300; VW = clamp(Math.round(300 * w / h), 360, 680); } else { VW = 320; VH = clamp(Math.round(320 * h / w), 320, 680); }
+  if (isPhonePortrait()) { const playH = Math.max(200, h - deckHeight()); VW = 236; VH = clamp(Math.round(236 * playH / w), 200, 520); }
+  else if (isPhone()) { VH = 220; VW = clamp(Math.round(220 * w / h), 300, 560); }
+  else if (w >= h) { VH = 300; VW = clamp(Math.round(300 * w / h), 360, 680); } else { VW = 320; VH = clamp(Math.round(320 * h / w), 320, 680); }
   canvas.width = VW; canvas.height = VH; ctx.imageSmoothingEnabled = false;
 }
-addEventListener('resize', () => { resize(); layoutControls(); });
+function relayout() { layoutControls(); resize(); if (isPhone() && !isPhonePortrait() && mode === 'play') pauseGame(); }
+addEventListener('resize', relayout); addEventListener('orientationchange', () => setTimeout(relayout, 250));
+if (window.visualViewport) visualViewport.addEventListener('resize', relayout);
 
 /* buttons */
 $('#tPlay').onclick = goMap; $('#tDealer').onclick = openDealer; $('#tSettings').onclick = () => { settingsFrom = 'title'; openSettings(); };
@@ -3355,7 +3387,7 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 function boot() {
-  loadSave(); resize(); makeTextures(ctx); makeGlow(); makeControlArt(); layoutControls();
+  loadSave(); resize(); makeTextures(ctx); makeGlow(); makeControlArt(); layoutControls(); resize();
   buildWorld(); bucketize(); buildOverview();
   goTitle();
   requestAnimationFrame(frame);
@@ -3364,3 +3396,4 @@ function boot() {
 boot();
 
 </script>
+</html>
