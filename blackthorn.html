@@ -31,7 +31,7 @@ if (window.__stage) window.__stage('[2] game code parsing...');
    BLACKTHORN MANOR  —  Part 1: Core + Act I
    ===================================================================== */
 /* ===== CONFIG ===== */
-const GAME_VERSION = '1.2.4', SCHEMA_VERSION = 1, TS = 16, VH = 224;
+const GAME_VERSION = '1.2.5', SCHEMA_VERSION = 1, TS = 16, VH = 224;
 let VW = 320;
 const SCR_W = 20, SCR_H = 14;
 const TAU = Math.PI * 2;
@@ -165,7 +165,7 @@ const In = {
       for (const b of this.buttons) {
         if (Math.hypot(p.x - b.x, p.y - b.y) <= b.r * 1.25) { ptr.kind = 'btn'; ptr.btn = b.name; this.tc[b.name] = true; this.pend[b.name] = true; break; }
       }
-      if (!ptr.kind && !this.joy.on && this.joyZone(p)) {
+      if (!ptr.kind && !this.joy.on && this.joyZone(p) && !(this.noJoy || []).some(r => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h)) {
         ptr.kind = 'joy'; this.joy = { on: true, id: e.pointerId, ox: p.x, oy: p.y, x: p.x, y: p.y };
       }
     }
@@ -3362,6 +3362,7 @@ const HiUI = {
     this.slab(c, x + 1, by + 1, w - 2, bh - 2, fill, cut);
     if (!e.dis) { c.fillStyle = this.mix(e.fill, 'w', e.down ? 0.1 : 0.28); c.fillRect(x + 1 + cut, by + 1, w - 2 - 2 * cut, 1); c.fillStyle = this.mix(e.fill, 'b', 0.25); c.fillRect(x + 1 + cut, by + bh - 2, w - 2 - 2 * cut, 1); }
     const cy = by + Math.floor(bh / 2);
+    if (e.mini) Mini.draw(c, e.mini, x + 2, by + 1, C.bone0);
     if (e.dot) { c.fillStyle = C.ink0; c.fillRect(x + w - 6, by + 1, 4, 4); c.fillStyle = e.dot; c.fillRect(x + w - 5, by + 2, 2, 2); }
     let lx = x + w / 2, aw = w - 6;
     if (e.icon) { if (e.label) { this.icon(c, e.icon, x + 4 + e.icon.width / 2, cy); lx = x + 6 + e.icon.width + (w - 6 - e.icon.width) / 2; aw = w - 10 - e.icon.width; } else this.icon(c, e.icon, x + w / 2, cy); }
@@ -3582,6 +3583,7 @@ function drawControls(ctx, sf) {
   const fa = spellFrameAt(sf), fx = fa.x, fy = fa.y;
   HiUI.push({ k: 'r', x: fx, y: fy, w: 22, h: 22, icon: hasSpell(S.eq) ? Icons['sp_' + S.eq] : null, fill: C.ink2, ring: C.fire1, round: 5, down: In.heldIn(fx, fy, 22, 22) });
   T(Lay.mode !== 'over' && Scr.uctx ? Scr.uctx : ctx, SPELL_MP[S.eq] + '', fx + 11, fy + 23, C.moon3, { align: 'c' });
+  In.noJoy = [{ x: fx - 17, y: fy - 19, w: 56, h: 44 }]; // a touch on the spell picker is a tap, even where it sits over the joystick's area
   if (In.tapIn(fx, fy, 22, 22)) openRing();
   if (In.tapIn(fx - 16, fy + 3, 15, 16)) nextSpell(-1); if (In.tapIn(fx + 23, fy + 3, 15, 16)) nextSpell(1);
   HiUI.push({ k: 'r', x: fx - 15, y: fy + 4, w: 13, h: 14, glyph: 'l', fill: C.ink3, round: 4, down: In.heldIn(fx - 16, fy + 3, 15, 16) });
@@ -3609,26 +3611,37 @@ function updateActIcon() {
 }
 /* ---------- Options > Move buttons: drag the touch buttons where your thumbs like them ---------- */
 function openBtnEdit() { Game.state = 'btnedit'; Aud.sfx('page'); }
+// everything the editor can move: the four round buttons, and the spell picker (its box, arrows and song button) as one piece
+function editItems() { const L = layoutTouch().slice(), f = spellFrameAt(safeLo()); L.push({ name: 'spell', x: f.x + 11, y: f.y + 11, r: 15, spell: true, fx: f.x, fy: f.y }); return L; }
+function editBase() { Game.padRaw = true; try { return editItems(); } finally { Game.padRaw = false; } }
+function drawSpellCluster(fx, fy, down) {
+  HiUI.push({ k: 'r', x: fx, y: fy, w: 22, h: 22, icon: hasSpell(S.eq) ? Icons['sp_' + S.eq] : null, fill: C.ink2, ring: C.fire1, round: 5, down });
+  HiUI.push({ k: 'r', x: fx - 15, y: fy + 4, w: 13, h: 14, glyph: 'l', fill: C.ink3, round: 4, down });
+  HiUI.push({ k: 'r', x: fx + 24, y: fy + 4, w: 13, h: 14, glyph: 'r', fill: C.ink3, round: 4, down });
+  if (Object.keys(S.songs).length) HiUI.push({ k: 'r', x: fx + 1, y: fy - 16, w: 20, h: 14, label: '♪', col: C.fire1, fill: C.ink3, fs: 9, down });
+  const w = Mini.w('SPELL') + 4; HiUI.push({ k: 'r', x: fx + 11 - w / 2 - 1, y: fy + 23, w: w + 2, h: 9, label: '', fill: C.ink0, flat: true });
+  HiUI.push({ k: 'r', x: fx + 11 - w / 2, y: fy + 24, w, h: 7, label: '', fill: C.ink3, flat: true, mini: 'SPELL' });
+}
 function drawBtnEdit(ctx, dt) {
   drawWorld(ctx); ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(0, 0, VW, VH);
   const pt = Disp.ptPx, key = padKey(); OPTS.pad = OPTS.pad || {}; const m = OPTS.pad[key] || (OPTS.pad[key] = {});
-  const base = padBase(); let held = null;
+  const base = editBase(); let held = null;
   for (const p of In.ptrs.values()) {
-    if (p.edit === undefined) { const L0 = layoutTouch(), b = L0.find(b => Math.hypot(p.sx - b.x, p.sy - b.y) <= b.r * 1.4); p.edit = b ? b.name : null; if (b) { p.o0 = (m[b.name] || [0, 0]).slice(); Aud.sfx('select'); } }
+    if (p.edit === undefined) { const b = editItems().find(b => b.spell ? Math.abs(p.sx - b.x) <= 28 && p.sy >= b.y - 30 && p.sy <= b.y + 14 : Math.hypot(p.sx - b.x, p.sy - b.y) <= b.r * 1.4); p.edit = b ? b.name : null; if (b) { p.o0 = (m[b.name] || [0, 0]).slice(); Aud.sfx('select'); } }
     if (!p.edit) continue; held = p.edit;
     m[p.edit] = [Math.round(p.o0[0] + (p.x - p.sx) * pt), Math.round(p.o0[1] + (p.y - p.sy) * pt)];
-    // keep the saved offset to where the button can actually go, so dragging back from an edge responds at once
-    const nb = layoutTouch().find(b => b.name === p.edit), bb = base.find(b => b.name === p.edit);
+    // keep the saved offset to where the piece can actually go, so dragging back from an edge responds at once
+    const nb = editItems().find(b => b.name === p.edit), bb = base.find(b => b.name === p.edit);
     m[p.edit] = [Math.round((nb.x - bb.x) * pt), Math.round((nb.y - bb.y) * pt)];
   }
-  for (const b of layoutTouch()) HiUI.push({ k: 'c', x: b.x, y: b.y, r: b.r, fill: PAD_COL[b.name], down: held === b.name, icon: padIconFor(b), cap: b.label, a: 1 });
-  const w = Math.min(VW - 16, 230), x = Math.round((VW - w) / 2), y = 8;
-  panel(ctx, x, y, w, 58, { fill: C.ink1, border: C.fire1 });
-  T(ctx, 'MOVE BUTTONS', VW / 2, y + 5, C.fire0, { align: 'c' });
-  Font.wrap('Drag a button to where your thumb likes it.', w - 12).forEach((l, i) => T(ctx, l, VW / 2, y + 16 + i * 9, C.bone0, { align: 'c' }));
-  T(ctx, fitStr('Saved for this screen shape.', w - 12), VW / 2, y + 16 + Font.wrap('Drag a button to where your thumb likes it.', w - 12).length * 9, C.bone2, { align: 'c' });
+  for (const b of editItems()) { if (b.spell) drawSpellCluster(b.fx, b.fy, held === 'spell'); else HiUI.push({ k: 'c', x: b.x, y: b.y, r: b.r, fill: PAD_COL[b.name], down: held === b.name, icon: padIconFor(b), cap: b.label, a: 1 }); }
+  const w = Math.min(VW - 16, 230), x = Math.round((VW - w) / 2), y = 8, msg = 'Drag a button or the spell picker to where your thumb likes it.', ML = Font.wrap(msg, w - 12);
+  panel(ctx, x, y, w, 49 + ML.length * 9, { fill: C.ink1, border: C.fire1 });
+  T(ctx, 'BUTTON LAYOUT', VW / 2, y + 5, C.fire0, { align: 'c' });
+  ML.forEach((l, i) => T(ctx, l, VW / 2, y + 16 + i * 9, C.bone0, { align: 'c' }));
+  T(ctx, fitStr('Saved for this screen shape.', w - 12), VW / 2, y + 16 + ML.length * 9, C.bone2, { align: 'c' });
   uiBegin();
-  const bw = 54, by = y + 42;
+  const bw = 54, by = y + 33 + ML.length * 9;
   if (btn(ctx, 'bedreset', VW / 2 - bw - 4, by, bw, 13, 'Reset', { fill: C.vel0 })) { delete OPTS.pad[key]; saveOpts(); toast('Buttons back where they started.'); }
   if (btn(ctx, 'beddone', VW / 2 + 4, by, bw, 13, 'Done', { fill: C.grn1 }) || In.back()) { if (!Object.keys(m).length) delete OPTS.pad[key]; saveOpts(); Game.state = 'book'; Ui.tab = 7; Aud.sfx('page'); }
   uiEnd();
@@ -4854,7 +4867,7 @@ function frame(ts) {
   if (isPregame() !== !!Lay.pre) resize();
   const ctx = Scr.ctx; ctx.imageSmoothingEnabled = false;
   HiUI.q.length = 0; HiUI.fade = 0; FS.last = FS.rects; FS.rects = [];
-  In.playActive = false; In.buttons = []; // set again by the HUD when there is play on screen
+  In.playActive = false; In.buttons = []; In.noJoy = []; // set again by the HUD when there is play on screen
   beginUiLayer();
   sceneRender(ctx, dtr);
   if (Lay.mode === 'side' && ['recap', 'credits', 'encore', 'gameover', 'dev'].includes(Game.state)) drawSideArt(dtr);
@@ -5800,7 +5813,12 @@ function drawPanelHUD() {
 }
 const Panel = { spellY: 0, infoBottom: 0 };
 // where the spell picker goes: { x, y } of its 22x22 frame
+// where the spell picker goes, moved by Options > Button layout on touch screens (kept clear of the edges with its arrows, song button and MP number)
 function spellFrameAt(sf) {
+  const b = spellFrameBase(sf), o = In.mode === 'touch' ? padOff('spell') : null; if (!o) return b;
+  const pt = Disp.ptPx; return { x: Math.round(clamp(b.x + o[0] / pt, -Lay.l + 17, VW + Lay.r - 39)), y: Math.round(clamp(b.y + o[1] / pt, -Lay.t + 18, VH + Lay.b - 33)) };
+}
+function spellFrameBase(sf) {
   const touch = In.mode === 'touch', pt = Disp.ptPx;
   if (Lay.mode === 'side' && !touch) return { x: VW + Math.round(Lay.r / 2) - 11, y: Panel.spellY + 18 };
   if (Lay.mode === 'side' || Lay.mode === 'gutter') { const a = touchAnchor(); return { x: Math.round(a.rx - (a.rx - VW) / 2 - 11), y: Math.max(Lay.mode === 'gutter' ? 20 : Panel.infoBottom + 18, Math.round(a.by - 196 / pt - 30)) }; }

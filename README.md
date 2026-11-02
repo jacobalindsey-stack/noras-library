@@ -16,7 +16,7 @@ Every push to `main` redeploys the site.
 | Adriatica II | `adriatica2/` | migrated from Claude Design export (folder build, 19 MB); playtested Nov 1 2026 (both endings reachable, no dead ends). Dev panel only with `?dev` |
 | Pumpkin Slash | `pumpkinslash.html` | single file, attached Oct 18 2026 (three.js r128 from cdnjs, jsdelivr/unpkg fallbacks) |
 | Blackthorn Manor II | `blackthorn2.html` | beta: built `blackthorn2/index.html` from the `claude/affectionate-ramanujan-3ld4ce` branch of reimagined-chainsaw (0558efc). Saves under `bm2.save.v1` |
-| Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (8459910, v1.2.4). Nov 2 2026: boss rooms no longer freeze on entry, spellbook fits narrow screens, clearer touch buttons with a Button layout editor, iPad full screen keeps both side panels, Servants' Corridor fall loop fixed, pantry steam step points at the steam |
+| Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (d03ba77, v1.2.5). Nov 2 2026: the spell picker can be moved in Button layout; boss rooms no longer freeze on entry, spellbook fits narrow screens, clearer touch buttons with a Button layout editor, iPad full screen keeps both side panels, Servants' Corridor fall loop fixed, pantry steam step points at the steam |
 
 Adriatica II also lives at the old subdomain adriatica2.noralindsey.com until
 that is retired. Its folder build loads React and three.js from unpkg and its
