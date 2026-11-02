@@ -294,12 +294,18 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
   background:repeating-linear-gradient(0deg,#141c3a 0 2px,#111833 2px 4px);border-top:4px solid var(--haint);box-shadow:0 -4px 0 #000 inset,0 -4px 0 #0b1022}
 body.phone-port #touch.on #deck{display:block}
 body.phone-port #touch.on #stick,body.phone-port #touch.on .tbtn{opacity:1}
-#deckSpeed{position:absolute;left:50%;top:10px;transform:translateX(-50%);font-family:var(--f-display);font-size:12px;color:var(--butter);
+#deckSpeed{position:absolute;right:8px;top:13px;font-family:var(--f-display);font-size:12px;color:var(--butter);
   background:#0b1022;border:2px solid #2d3d70;padding:4px 7px;white-space:nowrap;font-variant-numeric:tabular-nums}
 #deckSpeed span{font-size:8px;color:var(--haint)}
 body.phone-port #hud{bottom:var(--deckH,0px)!important}
 body.phone-port #game{height:calc(100% - var(--deckH,0px))!important}
-body.phone-port #hTurn{top:calc(env(safe-area-inset-top,0px) + 74px)!important;max-width:92vw}
+#navBand{position:absolute;left:0;right:0;top:0;height:50px;background:#0b1022;border-bottom:3px solid #2d3d70}
+#navIdle{position:absolute;left:12px;right:96px;top:17px;font-family:var(--f-display);font-size:9px;color:#7f8fb8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.phone-port #deck #hTurn{top:4px!important;left:6px;right:88px;transform:none;max-width:none;padding:2px 8px 2px 4px;gap:6px;border-width:2px;box-shadow:none;height:42px;box-sizing:border-box}
+body.phone-port #deck #turnIcon{width:34px;height:34px}
+body.phone-port #deck #tDir{font-size:10px} body.phone-port #deck #tStreet{font-size:12px} body.phone-port #deck #tDist{font-size:10px;margin-left:auto}
+body.phone-port #deck #hTurn.near{animation:tpulse2 1s ease-in-out infinite} body.phone-port #deck #hTurn.now{animation:tblink2 .32s steps(2) infinite}
+@keyframes tpulse2{50%{border-color:#fff}} @keyframes tblink2{50%{border-color:#fff;background:rgba(120,30,20,.95)}}
 body.phone-port #hMsg{top:30%}
 #rotate{display:none;position:fixed;inset:0;z-index:50;background:var(--ink);flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:16px}
 body.phone-land #rotate{display:flex}
@@ -337,7 +343,7 @@ body.phone-land #rotate{display:flex}
   <canvas id="minimap" width="116" height="116" hidden></canvas>
 
   <div id="touch">
-    <div id="deck"><div id="deckSpeed">0 <span>MPH</span></div></div>
+    <div id="deck"><div id="navBand"></div><div id="navIdle"></div><div id="deckSpeed">0 <span>MPH</span></div></div>
     <div id="stick"><div id="knob"></div></div>
     <div class="tbtn" id="bGas">GAS</div>
     <div class="tbtn" id="bBrake">BRAKE</div>
@@ -574,6 +580,7 @@ function E(a, b, o) {
   e.len = Math.hypot(B.x - A.x, B.y - A.y); e.ux = (B.x - A.x) / e.len; e.uy = (B.y - A.y) / e.len;
   e.nx = -e.uy; e.ny = e.ux; // right-hand normal for direction a->b (screen coords, y down)
   e.w = e.L * 2 * LW + (e.L >= 2 ? 6 : 0);
+  if (e.L === 1 && e.kind === 'st') e.w = Math.round(e.w * 1.15); // a little more room on neighborhood and downtown streets
   A.edges.push(e); B.edges.push(e); EDGES.push(e); return e;
 }
 function chain(ids, o) { for (let i = 0; i < ids.length - 1; i++) E(ids[i], ids[i + 1], o); }
@@ -1658,7 +1665,7 @@ const MISSIONS = [
     tide: { base: 6.8, amp: 0.7 }, draw: 0.35, swing: 0, lights: 0.6, traffic: 1.0, pay: 130, jams: [], works: [] },
   { id: 'playrace', title: 'Play Date: Race', when: 'Saturday · 2:10 PM', clock: 14 * 60 + 10, deadline: 14 * 60 + 25, start: 'wpg', type: 'race', tod: 'day',
     stops: [{ node: 'hpark', icon: 'flag', label: 'Hampton Park playground', say: '' }],
-    rivals: [{ car: 'sedan', ci: 3, name: "Ella's mom", skill: 0.9 }, { car: 'suv', ci: 6, name: "Theo's dad", skill: 0.95 }, { car: 'van', ci: 1, name: "June's grandma", skill: 0.86 }],
+    rivals: [{ car: 'sedan', ci: 3, name: "Ella's mom", skill: 0.88 }, { car: 'suv', ci: 6, name: "Theo's dad", skill: 0.92 }, { car: 'van', ci: 1, name: "June's grandma", skill: 0.86 }],
     text: 'Everyone leaves White Point Garden at once. First car to the Hampton Park playground gets the good swing. Bump them if you have to.',
     hazards: ['Three rival parents', 'Market St flooding', 'Carriages', 'Red lights with cross traffic'],
     tide: { base: 6.9, amp: 0.7 }, draw: 0, swing: 0, lights: 0.55, traffic: 0.9, pay: 140, jams: [], works: [] },
@@ -2142,6 +2149,8 @@ function updateCar(c, inp, dt) {
       c.airT = 0;
     }
   }
+  // curbs: a glancing hit slides you along the curb and straightens you out, instead of stopping you dead
+  curbDeflect(c, dt);
   // move with collision; curbs hold you on the pavement unless you hit them hard enough to hop
   const nx = c.x + c.vx * dt;
   if (hitsSolid(c, nx, c.y)) { bump(c, Math.abs(c.vx)); c.vx = -c.vx * 0.12; c.vy *= 0.92; }
@@ -2175,12 +2184,35 @@ function updateCar(c, inp, dt) {
 const PAVED = new Uint8Array(16); PAVED[T.ROAD] = PAVED[T.BRIDGE] = PAVED[T.WALK] = PAVED[T.COBBLE] = PAVED[T.LOT] = PAVED[T.DRAW] = PAVED[T.SWING] = 1;
 const OFFROAD = new Uint8Array(16); OFFROAD[T.LAND] = OFFROAD[T.PARK] = OFFROAD[T.SAND] = OFFROAD[T.MARSH] = 1;
 const CURB_HOP = 175;
+function curbNormal(px, py) {
+  const gx = px / C | 0, gy = py / C | 0; let sx = 0, sy = 0;
+  for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) { if (!OFFROAD[cellAt((gx + i) * C + C / 2, (gy + j) * C + C / 2)]) continue; const dx = px - ((gx + i) * C + C / 2), dy = py - ((gy + j) * C + C / 2); const d2 = dx * dx + dy * dy + 30; sx += dx / d2; sy += dy / d2; }
+  const L = Math.hypot(sx, sy); return L > 1e-6 ? [sx / L, sy / L] : null;
+}
+function curbDeflect(c, dt) {
+  if (c.z > 2 || c.onLeaf || c.dead > 0 || !PAVED[cellAt(c.x, c.y)]) return;
+  const sp = Math.hypot(c.vx, c.vy); if (sp < 1) return;
+  // probe a half car-width ahead in the direction of travel (not the nose, so swinging the front around a corner doesn't snag)
+  const ux = c.vx / sp, uy = c.vy / sp, reach = c.wid * 0.5 + sp * dt;
+  const qx = c.x + ux * reach, qy = c.y + uy * reach; if (!OFFROAD[cellAt(qx, qy)]) return;
+  const n = curbNormal(qx, qy); if (!n) return;
+  const vn = c.vx * n[0] + c.vy * n[1]; if (vn >= 0) return; // already heading back onto the road
+  const hop = (c.st && c.st.hop) || CURB_HOP, lift = (c.st && c.st.lift) || 1, across = -vn;
+  if (across > hop) { c.vz = (70 + (across - hop) * 0.4) * lift; c.z = 0.6; if (c.isPlayer) { sfx('jump'); if (!c.hopMsg || c.hopMsg < G.real) { c.hopMsg = G.real + 3; showMsg('CURB HOP!', '', 0.7); } } return; }
+  // shove back into the lane: drop the push into the curb, keep most of the roll along it
+  c.vx -= vn * n[0] * 1.15; c.vy -= vn * n[1] * 1.15;
+  const keep = 1 - clamp(across / 600, 0, 0.25); c.vx *= keep; c.vy *= keep;
+  // turn the car toward running along the curb
+  let ta = Math.atan2(n[0], -n[1]); if (Math.abs(angDiff(c.h, ta)) > Math.PI / 2) ta += Math.PI;
+  const d = angDiff(c.h, ta); if (Math.abs(d) < 1.2) c.h += d * Math.min(1, 9 * dt);
+  if (c.isPlayer && across > Math.min(70, hop * 0.7) && (!c.curbT || c.curbT < G.real)) { c.curbT = G.real + 0.25; sfx('bump', across * 0.5); cam.shake = Math.max(cam.shake, 1.2); }
+}
 function curbBlocks(c, x, y, across) {
   if (c.z > 2 || c.onLeaf || c.dead > 0) return false;
   if (!PAVED[cellAt(c.x, c.y)]) return false; // already off-road: always free to come back
   const fx = Math.cos(c.h), fy = Math.sin(c.h), sgn = (c.vx * fx + c.vy * fy) >= 0 ? 1 : -1;
-  const tc = cellAt(x, y), tn = cellAt(x + fx * c.len * 0.4 * sgn, y + fy * c.len * 0.4 * sgn);
-  if (!OFFROAD[tc] && !OFFROAD[tn]) return false;
+  const tc = cellAt(x, y);
+  if (!OFFROAD[tc]) return false;
   const hop = (c.st && c.st.hop) || CURB_HOP, lift = (c.st && c.st.lift) || 1;
   if (across > hop) { c.vz = (70 + (across - hop) * 0.4) * lift; c.z = 0.6; if (c.isPlayer) { sfx('jump'); if (!c.hopMsg || c.hopMsg < G.real) { c.hopMsg = G.real + 3; showMsg('CURB HOP!', '', 0.7); } } return false; }
   if (c.isPlayer && across > Math.min(70, hop * 0.7) && (!c.curbT || c.curbT < G.real)) { c.curbT = G.real + 0.25; sfx('bump', across * 0.6); cam.shake = Math.max(cam.shake, 1.5); }
@@ -3482,16 +3514,18 @@ function safeInsets() {
 }
 function isPhone() { return isTouch && Math.min(innerWidth, innerHeight) < 520; }
 function isPhonePortrait() { return isPhone() && innerHeight > innerWidth; }
-function deckHeight() { if (!isPhonePortrait()) return 0; const ins = safeInsets(); return Math.round(clamp(innerHeight * 0.32, 210, 270) + ins.b); }
+const NAV_H = 54; // iPhone: turn-by-turn strip between the street view and the controls
+function deckHeight() { if (!isPhonePortrait()) return 0; const ins = safeInsets(); return Math.round(clamp(innerHeight * 0.3, 200, 250) + NAV_H + ins.b); }
 function orientKey() { return isPhonePortrait() ? 'PP' : innerWidth >= innerHeight ? 'L' : 'P'; }
 function isCompact() { return Math.min(innerWidth, innerHeight) < 500; }
-function ctrlScale() { if (isPhonePortrait()) { const dh = deckHeight() - safeInsets().b; return (SAVE.settings.btnSize || 1) * clamp(Math.min((dh - 40) / 150, innerWidth * 0.4 / 150), 0.7, 1.05); } return (SAVE.settings.btnSize || 1) * (isCompact() ? 0.68 : 1); }
+function ctrlScale() { if (isPhonePortrait()) { const dh = deckHeight() - safeInsets().b - NAV_H + 20; return (SAVE.settings.btnSize || 1) * clamp(Math.min((dh - 40) / 150, innerWidth * 0.4 / 150), 0.7, 1.05); } return (SAVE.settings.btnSize || 1) * (isCompact() ? 0.68 : 1); }
 function layoutControls() {
   document.body.classList.toggle('compact', isCompact());
   const pp = isPhonePortrait(); document.body.classList.toggle('phone-port', pp); document.body.classList.toggle('phone-land', isPhone() && !pp);
   const dH = deckHeight(); document.documentElement.style.setProperty('--deckH', dH + 'px'); $('#deck').style.height = dH + 'px';
   const ins = safeInsets(), sc = ctrlScale(), L = (SAVE.settings.layout || {})[orientKey()] || {};
-  const dk = { top: innerHeight - dH, cy: innerHeight - ins.b - (dH - ins.b) / 2 + 12 };
+  const dk = { top: innerHeight - dH, cy: innerHeight - ins.b - (dH - NAV_H - ins.b) / 2 + 6 };
+  { const ht = $('#hTurn'), want = pp ? $('#deck') : $('#hud'); if (ht.parentNode !== want) want.appendChild(ht); }
   for (const c of CTRL) {
     const el = $('#' + c.id), sz = Math.round(c.size * sc);
     let p = L[c.id] ? { x: L[c.id][0] * innerWidth, y: L[c.id][1] * innerHeight } : pp ? c.pp(dk, ins, sc) : c.def(ins, sc);
@@ -3995,7 +4029,7 @@ function updateHud() {
     const n = G.player.nitros; const nh = $('#hNitro'); if (nh.dataset.n !== String(n)) { nh.dataset.n = n; nh.innerHTML = 'TEA' + '<span></span>'.repeat(Math.max(0, n)) + (n ? '' : '<span class="off"></span>'); }
     { const td = tideNow(), tr = tideTrend(); const flooding = FLOODS.some(f => td > f.elev); const tb = $('#hTide').querySelector('b'); tb.textContent = td.toFixed(1) + ' FT ' + (tr > 0 ? '\u25B2' : tr < 0 ? '\u25BC' : '\u25AC'); tb.style.color = flooding ? '#f08a6b' : '#9fd8dc'; $('#hTide').firstChild.nodeValue = flooding ? 'FLOOD ' : 'TIDE '; }
     drawMinimap(); updateTurnCard();
-    if (isPhonePortrait()) { const mph = Math.round(Math.hypot(G.player.vx, G.player.vy) * 0.22); const ds = $('#deckSpeed'); if (ds.dataset.v !== String(mph)) { ds.dataset.v = mph; ds.firstChild.nodeValue = mph + ' '; } }
+    if (isPhonePortrait()) { const mph = Math.round(Math.hypot(G.player.vx, G.player.vy) * 0.22); const ds = $('#deckSpeed'); if (ds.dataset.v !== String(mph)) { ds.dataset.v = mph; ds.firstChild.nodeValue = mph + ' '; } navIdle(); }
     return; }
   const late = m.type !== 'race' && G.t > G.limit;
   const ck = $('#hClock'); ck.classList.toggle('late', late);
@@ -4014,8 +4048,9 @@ function updateHud() {
   if (m.type === 'race') $('#hPlace').textContent = ['1ST', '2ND', '3RD', '4TH'][Math.max(0, (G.place || 1) - 1)];
   drawMinimap();
   updateTurnCard();
-  if (isPhonePortrait()) { const mph = Math.round(Math.hypot(G.player.vx, G.player.vy) * 0.22); const ds = $('#deckSpeed'); if (ds.dataset.v !== String(mph)) { ds.dataset.v = mph; ds.firstChild.nodeValue = mph + ' '; } }
+  if (isPhonePortrait()) { const mph = Math.round(Math.hypot(G.player.vx, G.player.vy) * 0.22); const ds = $('#deckSpeed'); if (ds.dataset.v !== String(mph)) { ds.dataset.v = mph; ds.firstChild.nodeValue = mph + ' '; } navIdle(); }
 }
+function navIdle() { const el = $('#navIdle'); if (!$('#hTurn').hidden) { el.textContent = ''; return; } const ne = nearestEdge(G.player.x, G.player.y, 300); const t = ne && ne.e.name ? 'ON ' + ne.e.name.toUpperCase() : ''; if (el.textContent !== t) el.textContent = t; }
 
 /* resize */
 function resize() {
