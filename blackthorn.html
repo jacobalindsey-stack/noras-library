@@ -31,7 +31,7 @@ if (window.__stage) window.__stage('[2] game code parsing...');
    BLACKTHORN MANOR  —  Part 1: Core + Act I
    ===================================================================== */
 /* ===== CONFIG ===== */
-const GAME_VERSION = '1.2.3', SCHEMA_VERSION = 1, TS = 16, VH = 224;
+const GAME_VERSION = '1.2.4', SCHEMA_VERSION = 1, TS = 16, VH = 224;
 let VW = 320;
 const SCR_W = 20, SCR_H = 14;
 const TAU = Math.PI * 2;
@@ -1690,7 +1690,7 @@ function updatePlayer(dt) {
   if (moving && p.air <= 0) { p.stepT -= dt * (Math.abs(p.vx) + Math.abs(p.vy)) / 60; if (p.stepT <= 0) { p.stepT = 0.26; footstep(ch); } }
   // hazards
   if (p.air <= 0 && p.z < 2 && tileHazardAt(p.x, p.y) && !hopAssist()) startFall();
-  if (p.state === 'walk' && !moving && p.air <= 0 || true) { p.safeT -= dt; if (p.safeT <= 0 && p.air <= 0 && !tileHazardAt(p.x, p.y) && ch !== 'i' && safeArea(p.x, p.y) && !(R.gearAt && R.gearAt(p.x, p.y))) { p.safeX = p.x; p.safeY = p.y; p.safeT = 0.15; } }
+  if (p.state === 'walk' && !moving && p.air <= 0 || true) { p.safeT -= dt; if (p.safeT <= 0 && p.air <= 0 && !tileHazardAt(p.x, p.y) && ch !== 'i' && !nearHiddenFloor(p.x, p.y) && safeArea(p.x, p.y) && !(R.gearAt && R.gearAt(p.x, p.y))) { p.safeX = p.x; p.safeY = p.y; p.safeT = 0.15; } }
   // casting
   updateCast(dt);
   // dash input
@@ -1701,6 +1701,7 @@ function updatePlayer(dt) {
   // doors
   checkDoors();
 }
+function nearHiddenFloor(x, y) { for (const [a, b] of [[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]]) if (surfaceAt(x + a, y + b) === 'x') return true; return false; }
 function safeArea(x, y) { for (const [a, b] of [[8, 0], [-8, 0], [0, 8], [0, -8]]) { if (tileHazardAt(x + a, y + b) || isSolidTile(surfaceAt(x + a, y + b))) return false; } return true; }
 function footstep(ch) { const s = ch === 'w' ? 3 : (R.style.floor === 'stone' || R.style.floor === 'cobble' || R.style.floor === 'tile') ? 1 : ch === 'i' ? 1 : R.style.floor === 'grass' ? 2 : 0; Aud.sfx('step' + s); if (ch === 'w') burst(P.x, P.y, 2, C.moon3, { spd: 20, life: 0.3, z: 1 }); }
 function startDash() {
@@ -2322,7 +2323,7 @@ function burstFire(x, y) { for (const p of R.props) if (p.def.lightable && !p.st
 SPELLFN.veilsight = (a, rank) => {
   Aud.sfx('veil');
   const big = rank >= 2;
-  R.veil = { x: P.x, y: P.y - 6, r: 0, maxR: big ? 210 : 160, t: 0, dur: big ? 10 : 6, sense: rank >= 3 };
+  R.veil = { x: P.x, y: P.y - 6, r: 0, maxR: big ? 210 : 160, t: 0, dur: big ? 10 : 8, sense: rank >= 3 };
   for (const p of R.props) if (!p.gone && p.def.onSpell && dist(p.cx, p.cy, P.x, P.y) < R.veil.maxR) { p.def.onSpell(p, 'veilsight', { rank, veil: true }); }
   for (const e of R.en) if (dist(e.x, e.y, P.x, P.y) < R.veil.maxR && !e.def.friendly) weave('ghost+veilsight');
 };
@@ -2483,7 +2484,7 @@ SPELLFN.beckon = (a, rank, ch) => {
 };
 /* soot hiss etc handled in entities */
 function updateSpellFx(dt) {
-  if (R.veil) { const v = R.veil; v.t += dt; v.r = Math.min(v.maxR, v.maxR * ease.out(Math.min(1, v.t / 0.6))); if (v.t > v.dur) R.veil = null; }
+  if (R.veil) { const v = R.veil; v.t += dt; v.r = Math.min(v.maxR, v.maxR * ease.out(Math.min(1, v.t / 0.6))); if (v.t > v.dur) { if (surfaceAt(P.x, P.y) === 'x' && P.state !== 'fall' && dist(P.x, P.y, v.x, v.y) <= v.r) v.t = v.dur; else R.veil = null; } }
   if (R.gust) { R.gust.t -= dt; if (R.gust.t <= 0) R.gust = null; }
   if (R.hand) { R.hand.t -= dt; if (R.hand.t <= 0) R.hand = null; }
   if (R.rings) { for (let i = R.rings.length - 1; i >= 0; i--) { const r = R.rings[i]; r.r += dt * (r.spd || 200); if (r.r > r.max) R.rings.splice(i, 1); } }
@@ -2570,7 +2571,7 @@ PROPDEF.gate = {
   },
   fx(ctx, p, t) {
     if (p.kind === 'ghostfire') { for (let i = 0; i < p.fw * 2; i++) { const cx = p.x + 4 + i * 8, by = p.y + p.fd * 16 - 2; const h = 10 + Math.sin(t * 9 + i * 1.7) * 4; ctx.fillStyle = C.ecto3; ctx.fillRect(cx - 3, by - h, 6, h); ctx.fillStyle = C.ecto2; ctx.fillRect(cx - 2, by - h + 2, 4, h - 2); ctx.fillStyle = C.ecto0; ctx.fillRect(cx - 1, by - h * 0.5, 2, h * 0.5 - 2); } }
-    if (p.kind === 'steam') { for (let i = 0; i < 3; i++) { const k = (t * 0.8 + i / 3) % 1; ctx.fillStyle = 'rgba(230,240,255,' + (0.5 - k * 0.5) + ')'; ctx.fillRect(Math.round(p.x + 6 + i * 10 + Math.sin(t * 3 + i) * 2), Math.round(p.y + p.fd * 16 - 8 - k * 22), 6, 5); } }
+    if (p.kind === 'steam') { const W = p.fw * 16, base = p.y + p.fd * 16 - 4; for (let i = 0; i < 9; i++) { const k = (t * 0.7 + i / 9) % 1, cx = p.x + 4 + ((i * 7) % Math.max(8, W - 8)) + Math.sin(t * 2.5 + i * 1.7) * 3, cy = base - k * 30, r = Math.round(3 + k * 5); ctx.globalAlpha = 0.75 * (1 - k); pxCircle(ctx, Math.round(cx), Math.round(cy), r, '#e6efff'); pxCircle(ctx, Math.round(cx - 1), Math.round(cy - 1), Math.max(1, r - 2), '#ffffff'); } ctx.globalAlpha = 1; }
   },
   light(p) { return p.kind === 'ghostfire' ? 40 : p.kind === 'glass' ? 20 : 0; },
   lightCol: C.ecto2,
@@ -2921,7 +2922,7 @@ function drawWorld(ctx) {
   for (let ty = y0; ty < y1; ty++) for (let tx = x0; tx < x1; tx++) {
     const ch = R.g[ty][tx];
     if (ch === '~' || ch === 'w') { const k = Math.sin(R.t * 2 + tx * 1.3 + ty * 0.7); if (k > 0.6) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(tx * TS + 3 + (k > 0.9 ? 4 : 0), ty * TS + 6 + ((tx + ty) % 3) * 3, 5, 1); } }
-    else if (ch === 'x') { if (veilRevealed(tx * TS + 8, ty * TS + 8)) { const sp = specialTile('x'); ctx.drawImage(sp, tx * TS, ty * TS); } else { ctx.fillStyle = '#0d0a14'; ctx.fillRect(tx * TS, ty * TS, TS, TS); ctx.fillStyle = C.ink1; ctx.fillRect(tx * TS, ty * TS, TS, 3); const k = Math.sin(R.t * 1.6 + tx * 2.3 + ty * 1.7); if (k > 0.9) { const sx = tx * TS + 4 + (tx * 5 + ty * 3) % 8, sy = ty * TS + 6 + (tx * 3 + ty * 7) % 7, a = (k - 0.9) * 6; ctx.fillStyle = 'rgba(143,240,200,' + a.toFixed(2) + ')'; ctx.fillRect(sx, sy, 1, 1); ctx.fillRect(sx - 1, sy + 1, 3, 1); ctx.fillRect(sx, sy + 2, 1, 1); } } }
+    else if (ch === 'x') { if (veilRevealed(tx * TS + 8, ty * TS + 8) && !(R.veil.dur - R.veil.t < 1.5 && surfaceAt(P.x, P.y) !== 'x' && Math.floor(R.t * 8) % 2)) { const sp = specialTile('x'); ctx.drawImage(sp, tx * TS, ty * TS); } else { ctx.fillStyle = '#0d0a14'; ctx.fillRect(tx * TS, ty * TS, TS, TS); ctx.fillStyle = C.ink1; ctx.fillRect(tx * TS, ty * TS, TS, 3); const k = Math.sin(R.t * 1.6 + tx * 2.3 + ty * 1.7); if (k > 0.9) { const sx = tx * TS + 4 + (tx * 5 + ty * 3) % 8, sy = ty * TS + 6 + (tx * 3 + ty * 7) % 7, a = (k - 0.9) * 6; ctx.fillStyle = 'rgba(143,240,200,' + a.toFixed(2) + ')'; ctx.fillRect(sx, sy, 1, 1); ctx.fillRect(sx - 1, sy + 1, 3, 1); ctx.fillRect(sx, sy + 2, 1, 1); } } }
     else if (ch === '_' ) { }
   }
   drawHazards(ctx);
@@ -3378,8 +3379,9 @@ const HiUI = {
     pxCircle(c, x, cy, r - 1, this.mix(e.fill, 'w', e.down ? 0.05 : 0.3));
     pxCircle(c, x, cy + 1, r - 2, e.down ? this.mix(e.fill, 'b', 0.1) : e.fill);
     c.globalAlpha *= 0.45; pxRing(c, x, cy, r - 3, C.fire0); c.globalAlpha /= 0.45;
-    if (e.icon) this.icon(c, e.icon, x, cy);
+    if (e.icon) this.icon(c, e.icon, x, cy - (e.cap ? 1 : 0));
     if (e.label) T(c, e.label, x, cy - 4, e.col || C.bone0, { align: 'c' });
+    if (e.cap) { const w = Mini.w(e.cap) + 4, tx = Math.round(x - w / 2), ty = cy + r - 4; HiUI.slab(c, tx - 1, ty - 1, w + 2, 9, C.ink0, 1); HiUI.slab(c, tx, ty, w, 7, this.mix(e.fill, 'b', 0.45), 1); Mini.draw(c, e.cap, tx + 2, ty + 1, C.bone0); }
   },
   drawJoy(c, e) {
     const ox = Math.round(e.ox), oy = Math.round(e.oy);
@@ -3510,9 +3512,64 @@ function roomPath(a, b) {
 function layoutTouch() {
   const pt = Disp.ptPx, sf = safeLo(), k = OPTS.btn === 0 ? 0.85 : OPTS.btn === 2 ? 1.2 : 1;
   const L = [], a = touchAnchor(), mirror = In.leftHanded && Lay.mode === 'over';
-  const add = (name, dxpt, dypt, rpt, label, icon) => { const r = rpt * k / pt; let x = a.rx - dxpt / pt, y = a.by - dypt / pt; if (mirror) x = VW - x; L.push({ name, x, y, r, label, icon }); };
-  add('cast', 62, 62, 38, 'CAST', 'cast'); add('act', 142, 38, 30, '', 'act'); add('dash', 128, 118, 28, '', 'dash'); add('cat', 48, 146, 28, '', 'cat');
+  const add = (name, dxpt, dypt, rpt, label, icon) => {
+    const r = rpt * k / pt; let x = a.rx - dxpt / pt, y = a.by - dypt / pt; if (mirror) x = VW - x;
+    const o = padOff(name); if (o) { x += o[0] / pt; y += o[1] / pt; }
+    x = clamp(x, -Lay.l + r + 1, VW + Lay.r - r - 1); y = clamp(y, -Lay.t + r + 1, VH + Lay.b - r - 4);
+    L.push({ name, x, y, r, label, icon });
+  };
+  add('cast', 62, 62, 38, 'CAST', 'cast'); add('act', 142, 38, 30, 'ACT', 'act'); add('dash', 128, 118, 28, 'DASH', 'dash'); add('cat', 48, 146, 28, 'CAT', 'cat');
   return L;
+}
+// moved buttons are saved per screen shape (Options > Move buttons), as an offset in points from where they start
+function padKey() { return Lay.mode + (In.leftHanded && Lay.mode === 'over' ? 'L' : ''); }
+function padOff(name) { if (Game.padRaw) return null; const m = OPTS.pad && OPTS.pad[padKey()]; return m && m[name] || null; }
+function padBase() { Game.padRaw = true; try { return layoutTouch(); } finally { Game.padRaw = false; } }
+// the touch buttons' own icons: bigger, outlined and drawn to read at a glance (a broom, an open hand, Soot's face)
+const PadIc = {};
+function padIcon(k) {
+  if (PadIc[k]) return PadIc[k];
+  let c;
+  if (k === 'dash') c = outline(strIcon([
+    '...........kk',
+    '..........khk',
+    '.........khk.',
+    '........khk..',
+    '.......khk...',
+    '......khk....',
+    '...kkkrk.....',
+    '..kyorrk.....',
+    '.kyoyork.....',
+    'kyoyoyk......',
+    'koyoyk.......',
+    'kyoyk........',
+    '.kkk.........'], { k: C.wood0, h: C.wood3, r: C.vel2, y: C.fire0, o: C.fire1 }), C.ink0);
+  else if (k === 'hand') c = outline(strIcon([
+    '...ww.ww....',
+    '...wbwwb.ww.',
+    '.ww.wbwwbwwb',
+    '.wbwwbwwbwwb',
+    '.wbwwbwwbwwb',
+    '.wbwwbwwbwwb',
+    '.wwwwwwwwwwb',
+    'wwwwwwwwwwwb',
+    'wbwwwwwwwwwb',
+    '.wbwwwwwwwb.',
+    '..wwwwwwwbb.',
+    '...wwwwwbb..'], { w: C.bone0, b: C.bone2 }), C.ink0);
+  else if (k === 'cat') c = outline(strIcon([
+    '.k.......k.',
+    '.kk.....kk.',
+    '.kpk...kpk.',
+    '.kkkkkkkkk.',
+    'kkkkkkkkkkk',
+    'kyykkkkyykk',
+    'kyekkkkyekk',
+    'kkkkkpkkkkk',
+    'wkkkkkkkkkw',
+    '.kkkkkkkkk.',
+    '..kkkkkkk..'], { k: C.ink1, p: C.vel2, y: C.eye, e: C.ink0, w: C.bone1 }), C.bone1);
+  return PadIc[k] = c;
 }
 let broomIc = null;
 function broomIcon() { if (!broomIc) broomIc = bake(16, 10, x => { rect(x, C.wood1, 3, 5, 12, 2); rect(x, C.wood3, 3, 5, 12, 1); rect(x, C.fire1, 0, 2, 4, 7); rect(x, C.fire2, 0, 7, 4, 2); rect(x, C.fire0, 1, 3, 2, 2); rect(x, C.bone0, 12, 2, 3, 3); }); return broomIc; }
@@ -3535,20 +3592,46 @@ function drawControls(ctx, sf) {
   for (const b of layoutTouch()) {
     In.buttons.push({ name: b.name, x: b.x, y: b.y, r: b.r });
     const down = !!(In.hold[b.name] && In.tc[b.name]);
-    const icon = b.icon === 'cast' ? (hasSpell(S.eq) ? Icons['sp_' + S.eq] : null) : b.icon === 'act' ? (Game.actIcon || Icons.hand) : b.icon === 'dash' ? broomIcon() : Icons.paw;
-    HiUI.push({ k: 'c', x: b.x, y: b.y, r: b.r, fill: PAD_COL[b.name], down, icon, a: op });
+    HiUI.push({ k: 'c', x: b.x, y: b.y, r: b.r, fill: PAD_COL[b.name], down, icon: padIconFor(b), cap: b.label, a: op });
   }
   if (S.surge >= SURGE_MAX) { const pt = Disp.ptPx, sf2 = safeLo(); const ta = touchAnchor(); let sx = ta.rx - 214 / pt, sy = ta.by - 92 / pt; if (Lay.mode !== 'over') { sx = ta.rx - 30 / pt; sy = ta.by - 196 / pt; } if (In.leftHanded && Lay.mode === 'over') sx = VW - sx; const r = 27 / pt; In.buttons.push({ name: 'surge', x: sx, y: sy, r }); HiUI.push({ k: 'c', x: sx, y: sy, r: r * (1 + 0.06 * Math.sin(Game.t * 8)), fill: Math.floor(Game.t * 4) % 2 ? C.fire2 : C.vel1, down: !!(In.hold.surge && In.tc.surge), icon: bigIcon('star'), a: 1 }); }
   // joystick
   if (In.joy.on) { const j = In.joy; HiUI.push({ k: 'joy', ox: j.ox, oy: j.oy, x: clamp(j.x, j.ox - 28, j.ox + 28), y: clamp(j.y, j.oy - 28, j.oy + 28), knob: true, a: 0.85 }); }
   else if (Game.showStickHint) HiUI.push({ k: 'joy', ox: Lay.mode === 'gutter' ? -Math.round(Lay.l / 2) : 52, oy: Lay.mode === 'below' ? VH + Lay.b - 60 : VH - 50, knob: false, a: 0.45 });
 }
+function padIconFor(b) { return b.icon === 'cast' ? (hasSpell(S.eq) ? Icons['sp_' + S.eq] : null) : b.icon === 'act' ? (!Game.actIcon || Game.actIcon === Icons.hand ? padIcon('hand') : Game.actIcon) : padIcon(b.icon); }
 function updateActIcon() {
   Game.actIcon = Icons.hand; if (P.state !== 'walk') return;
   const fx = P.x + DX[P.dir] * 10, fy = P.y + DY[P.dir] * 10 - 4; let best = 99;
   if (dist(fx, fy, SO.x, SO.y - 4) < 14) { Game.actIcon = Icons.paw; best = 0; }
   for (const n of R.npcs) if (!n.noTalk && dist(fx, fy, n.x, n.y - 8) < 26 && dist(fx, fy, n.x, n.y - 8) < best) { Game.actIcon = Icons.talk; best = 1; }
   for (const p of R.props) { if (p.gone || !(p.def.interact || p.def.search) || p.def.inert && p.def.inert(p)) continue; const d = dist(fx, fy, clamp(fx, p.x, p.x + p.fw * TS), clamp(fy, p.y, p.y + p.fd * TS)); if (d < (p.def.reach || 14) && d < best) { best = d; Game.actIcon = p.def.search ? Icons.mag : p.type === 'gate' ? Icons.door : p.type === 'sign' ? Icons.talk : Icons.hand; } }
+}
+/* ---------- Options > Move buttons: drag the touch buttons where your thumbs like them ---------- */
+function openBtnEdit() { Game.state = 'btnedit'; Aud.sfx('page'); }
+function drawBtnEdit(ctx, dt) {
+  drawWorld(ctx); ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(0, 0, VW, VH);
+  const pt = Disp.ptPx, key = padKey(); OPTS.pad = OPTS.pad || {}; const m = OPTS.pad[key] || (OPTS.pad[key] = {});
+  const base = padBase(); let held = null;
+  for (const p of In.ptrs.values()) {
+    if (p.edit === undefined) { const L0 = layoutTouch(), b = L0.find(b => Math.hypot(p.sx - b.x, p.sy - b.y) <= b.r * 1.4); p.edit = b ? b.name : null; if (b) { p.o0 = (m[b.name] || [0, 0]).slice(); Aud.sfx('select'); } }
+    if (!p.edit) continue; held = p.edit;
+    m[p.edit] = [Math.round(p.o0[0] + (p.x - p.sx) * pt), Math.round(p.o0[1] + (p.y - p.sy) * pt)];
+    // keep the saved offset to where the button can actually go, so dragging back from an edge responds at once
+    const nb = layoutTouch().find(b => b.name === p.edit), bb = base.find(b => b.name === p.edit);
+    m[p.edit] = [Math.round((nb.x - bb.x) * pt), Math.round((nb.y - bb.y) * pt)];
+  }
+  for (const b of layoutTouch()) HiUI.push({ k: 'c', x: b.x, y: b.y, r: b.r, fill: PAD_COL[b.name], down: held === b.name, icon: padIconFor(b), cap: b.label, a: 1 });
+  const w = Math.min(VW - 16, 230), x = Math.round((VW - w) / 2), y = 8;
+  panel(ctx, x, y, w, 58, { fill: C.ink1, border: C.fire1 });
+  T(ctx, 'MOVE BUTTONS', VW / 2, y + 5, C.fire0, { align: 'c' });
+  Font.wrap('Drag a button to where your thumb likes it.', w - 12).forEach((l, i) => T(ctx, l, VW / 2, y + 16 + i * 9, C.bone0, { align: 'c' }));
+  T(ctx, fitStr('Saved for this screen shape.', w - 12), VW / 2, y + 16 + Font.wrap('Drag a button to where your thumb likes it.', w - 12).length * 9, C.bone2, { align: 'c' });
+  uiBegin();
+  const bw = 54, by = y + 42;
+  if (btn(ctx, 'bedreset', VW / 2 - bw - 4, by, bw, 13, 'Reset', { fill: C.vel0 })) { delete OPTS.pad[key]; saveOpts(); toast('Buttons back where they started.'); }
+  if (btn(ctx, 'beddone', VW / 2 + 4, by, bw, 13, 'Done', { fill: C.grn1 }) || In.back()) { if (!Object.keys(m).length) delete OPTS.pad[key]; saveOpts(); Game.state = 'book'; Ui.tab = 7; Aud.sfx('page'); }
+  uiEnd();
 }
 /* ---------- spell ring ---------- */
 function openRing() { if (Game.state !== 'play') return; Game.ring = { t: 0, sel: Math.max(0, knownSpells().indexOf(S.eq)) }; Game.state = 'ring'; Aud.sfx('select'); }
@@ -3846,34 +3929,47 @@ function bookPager(ctx, key, total, per, x, y) {
   Ui.pg[key] = p; return p * per;
 }
 function wrapInk(ctx, s, x, y, w, col, lh) { const L = Font.wrap(s, w); L.forEach((l, i) => inkT(ctx, l, x, y + i * (lh || 9), col)); return y + L.length * (lh || 9); }
+// like wrapInk, but stops (with "..") before running past maxY, so text never runs into the buttons below it
+function wrapInkMax(ctx, s, x, y, w, col, lh, maxY) { lh = lh || 9; const L = Font.wrap(s, w); for (let i = 0; i < L.length; i++) { if (y + lh > maxY) { return y; } const last = i < L.length - 1 && y + 2 * lh > maxY; inkT(ctx, last ? fitStr(L[i] + '..', w) : L[i], x, y, col); y += lh; if (last) return y; } return y; }
+// the long label when it fits, else the short one
+const fitAlt = (long, short, w) => Font.w(long) <= w ? long : fitStr(short, w);
 function bookSpells(B) {
   const { ctx, lx, rx, ly, pw, ph } = B; inkT(ctx, 'SPELLS', lx + 4, ly + 3, C.vel1);
-  const cw = 40, chh = 34; Ui.sel.spell = Ui.sel.spell || 'spark';
+  // three boxes across that always fit inside the left page, however narrow the screen
+  const rows = Math.ceil(SPELL_ORDER.length / 3), cw = Math.min(40, Math.floor((pw - 4) / 3)), chh = Math.min(34, Math.floor((ph - 28) / rows)), iw = cw - 3, ih = chh - 5;
+  Ui.sel.spell = Ui.sel.spell || 'spark';
   SPELL_ORDER.forEach((id, i) => {
     const x = lx + 3 + (i % 3) * cw, y = ly + 14 + Math.floor(i / 3) * chh, sp = S.spells[id], known = hasSpell(id);
-    const sel = Ui.sel.spell === id;
-    rect(ctx, sel ? C.fire1 : C.bone2, x - 1, y - 1, cw - 1, chh - 3); rect(ctx, known ? C.bone0 : sp ? C.bone1 : '#8a7c66', x, y, cw - 3, chh - 5);
-    if (!sp) { for (let k = 0; k < 6; k++) rect(ctx, C.bone0, x + k * 6, y, 3, 1 + (k % 2)); T(ctx, '?', x + 18, y + 10, '#6a5c48', { shadow: false }); }
-    else { ctx.globalAlpha = known ? 1 : 0.4; ctx.drawImage(Icons['sp_' + id], x + 11, y + 3); ctx.globalAlpha = 1; if (!known) { rect(ctx, C.ink0, x + 4, y + 21, cw - 11, 4); rect(ctx, C.fire1, x + 5, y + 22, Math.round((cw - 13) * sp.ink / INK[id]), 2); } else for (let r = 0; r < sp.rank; r++) rect(ctx, C.fire3, x + 14 + r * 4, y + 22, 3, 3); }
+    const sel = Ui.sel.spell === id, mx = x + Math.floor(iw / 2);
+    rect(ctx, sel ? C.fire1 : C.bone2, x - 1, y - 1, cw - 1, chh - 3); rect(ctx, known ? C.bone0 : sp ? C.bone1 : '#8a7c66', x, y, iw, ih);
+    if (!sp) { for (let k = 0; k < Math.floor(iw / 6); k++) rect(ctx, C.bone0, x + k * 6, y, 3, 1 + (k % 2)); T(ctx, '?', mx - 2, y + Math.floor(ih / 2) - 4, '#6a5c48', { shadow: false }); }
+    else {
+      ctx.globalAlpha = known ? 1 : 0.4; ctx.drawImage(Icons['sp_' + id], mx - 8, y + Math.max(1, Math.floor((ih - 24) / 2) + 2)); ctx.globalAlpha = 1;
+      const by = y + ih - 7;
+      if (!known) { rect(ctx, C.ink0, x + 3, by, iw - 6, 4); rect(ctx, C.fire1, x + 4, by + 1, Math.round((iw - 8) * sp.ink / INK[id]), 2); }
+      else for (let r = 0; r < sp.rank; r++) rect(ctx, C.fire3, mx - 5 + r * 4, by, 3, 3);
+    }
     if (In.tapIn(x - 1, y - 1, cw - 1, chh - 3)) { Ui.sel.spell = id; Aud.sfx('select'); }
   });
-  inkT(ctx, 'Weavings: ' + Object.keys(S.weave).length + '/' + Object.keys(WEAVINGS).length, lx + 4, ly + ph - 10, C.grn1);
-  // right page
-  const id = Ui.sel.spell, sp = S.spells[id], known = hasSpell(id);
-  if (!sp) { inkT(ctx, '???', rx + 6, ly + 6, C.vel1); wrapInk(ctx, 'A torn-out page. Somewhere in the house...', rx + 6, ly + 20, pw - 12); return; }
-  inkT(ctx, SPELL_NAME[id].toUpperCase(), rx + 6, ly + 4, C.vel1);
-  inkT(ctx, SPELL_MP[id] + ' MP', rx + pw - 38, ly + 4, C.moon1);
-  // diagram
-  diagram(ctx, id, rx + 6, ly + 16, pw - 12, 40, Game.t);
-  const d = SPELL_DESC[id]; let y = wrapInk(ctx, d[0], rx + 6, ly + 60, pw - 12, C.ink2);
-  inkT(ctx, 'In the house:', rx + 6, y + 2, C.grn1); let ey = y + 12; d[1].forEach(l => { ey = wrapInk(ctx, '- ' + l, rx + 6, ey, pw - 12); });
+  inkT(ctx, fitAlt('Weavings: ' + Object.keys(S.weave).length + '/' + Object.keys(WEAVINGS).length, 'Weave ' + Object.keys(S.weave).length + '/' + Object.keys(WEAVINGS).length, pw - 8), lx + 4, ly + ph - 10, C.grn1);
+  // right page: name, picture, words, then the buttons pinned to the bottom (the words stop before reaching them)
+  const id = Ui.sel.spell, sp = S.spells[id], known = hasSpell(id), tw = pw - 12, narrow = pw < 120;
+  if (!sp) { inkT(ctx, '???', rx + 6, ly + 6, C.vel1); wrapInk(ctx, 'A torn-out page. Somewhere in the house...', rx + 6, ly + 20, tw); return; }
+  const mp = SPELL_MP[id] + ' MP'; inkT(ctx, fitStr(SPELL_NAME[id].toUpperCase(), tw - Font.w(mp) - 4), rx + 6, ly + 4, C.vel1);
+  inkT(ctx, mp, rx + pw - 6 - Font.w(mp), ly + 4, C.moon1);
+  const dh = narrow ? 30 : 40; diagram(ctx, id, rx + 6, ly + 16, tw, dh, Game.t);
+  const lh = narrow ? 8 : 9, maxY = ly + ph - (known && id !== 'farewell' ? (sp.rank < 3 ? 32 : 28) : known ? 14 : 24);
+  const d = SPELL_DESC[id]; let y = wrapInkMax(ctx, d[0], rx + 6, ly + dh + 20, tw, C.ink2, lh, maxY);
+  if (y + 10 + lh <= maxY) { inkT(ctx, 'In the house:', rx + 6, y + 2, C.grn1); let ey = y + 12; for (const l of d[1]) { if (ey + lh > maxY) break; ey = wrapInkMax(ctx, '- ' + l, rx + 6, ey, tw, INKC, lh, maxY); } }
   if (!known) { inkT(ctx, 'Inked ' + sp.ink + '/' + INK[id], rx + 6, ly + ph - 22, C.moon1); }
   else if (id !== 'farewell') {
-    inkT(ctx, 'Rank ' + ['I', 'II', 'III'][sp.rank - 1], rx + 6, ly + ph - 26, C.moon1);
-    if (sp.rank < 3) { const cost = RANK_COST[sp.rank + 1]; if (btn(ctx, 'rank', rx + 46, ly + ph - 30, pw - 50, 15, 'Rank ' + ['II', 'III'][sp.rank - 1] + ' ' + cost, { disabled: S.wisps < cost })) { S.wisps -= cost; sp.rank++; Aud.sfx('learn'); toast(SPELL_NAME[id] + ' is now rank ' + sp.rank + '!'); saveSoon(true); } }
-    else inkT(ctx, 'Max rank', rx + pw - 52, ly + ph - 22, C.grn1);
+    const rk = 'Rank ' + ['I', 'II', 'III'][sp.rank - 1]; inkT(ctx, rk, rx + 6, ly + ph - 26, C.moon1);
+    if (sp.rank < 3) {
+      const cost = RANK_COST[sp.rank + 1], bx = rx + 10 + Font.w(rk), bw = rx + pw - 4 - bx, nx = ['II', 'III'][sp.rank - 1], full = 'Rank ' + nx + ' ' + cost;
+      if (btn(ctx, 'rank', bx, ly + ph - 30, bw, 15, Font.w(full) <= bw - 6 ? full : nx + ' ' + cost, { disabled: S.wisps < cost })) { S.wisps -= cost; sp.rank++; Aud.sfx('learn'); toast(SPELL_NAME[id] + ' is now rank ' + sp.rank + '!'); saveSoon(true); }
+    } else inkT(ctx, 'Max rank', rx + pw - 6 - Font.w('Max rank'), ly + ph - 26, C.grn1);
   }
-  if (known && (B.t = 1) && btn(ctx, 'equip', rx + 6, ly + ph - 12, 52, 11, S.eq === id ? 'Equipped' : 'Equip', { disabled: S.eq === id })) { S.eq = id; }
+  if (known && btn(ctx, 'equip', rx + 6, ly + ph - 12, Math.min(60, tw), 11, S.eq === id ? 'Equipped' : 'Equip', { disabled: S.eq === id })) { S.eq = id; }
 }
 function diagram(ctx, id, x, y, w, h, t) {
   panel(ctx, x - 1, y - 1, w + 2, h + 2, { fill: C.ink1, border: C.wood2, gold: C.wood3 });
@@ -3897,13 +3993,17 @@ function diagram(ctx, id, x, y, w, h, t) {
 }
 function bookSongs(B) {
   const { ctx, lx, rx, ly, pw, ph } = B; inkT(ctx, 'CANTRIPS', lx + 4, ly + 3, C.vel1);
+  const narrow = pw < 120, cbw = narrow ? 28 : 38, nameW = pw - cbw - 10;
+  const noteH = Math.max(...CANTRIPS.map(c => Font.wrap(c.desc, pw - 8).length)) * 8 + (narrow ? 9 : 0);
+  const rh = Math.min(15, Math.floor((ph - 14 - noteH - 6) / CANTRIPS.length));
   CANTRIPS.forEach((c, i) => {
-    const y = ly + 14 + i * 15, owned = S.cant[c.id];
-    inkT(ctx, c.name, lx + 4, y + 1, owned ? C.grn1 : C.ink2);
-    if (owned) inkT(ctx, 'owned', lx + pw - 34, y + 1, C.grn1); else if (btn(ctx, 'cant' + i, lx + pw - 42, y - 2, 38, 13, c.cost + '', { disabled: S.wisps < c.cost })) { S.wisps -= c.cost; S.cant[c.id] = 1; Aud.sfx('learn'); toast(c.name + ' learned!'); saveSoon(true); }
-    if (In.tapIn(lx + 2, y - 2, pw - 50, 14)) Ui.sel.cant = i;
+    const y = ly + 14 + i * rh, owned = S.cant[c.id], sel = (Ui.sel.cant || 0) === i;
+    if (sel) rect(ctx, C.bone1, lx + 2, y - 2, nameW + 4, rh - 1);
+    inkT(ctx, fitStr(c.name, nameW), lx + 4, y + 1, owned ? C.grn1 : C.ink2);
+    if (owned) inkT(ctx, narrow ? 'ok' : 'owned', lx + pw - 4 - Font.w(narrow ? 'ok' : 'owned'), y + 1, C.grn1); else if (btn(ctx, 'cant' + i, lx + pw - cbw - 4, y - 2, cbw, Math.min(13, rh - 1), c.cost + '', { disabled: S.wisps < c.cost })) { S.wisps -= c.cost; S.cant[c.id] = 1; Aud.sfx('learn'); toast(c.name + ' learned!'); saveSoon(true); }
+    if (In.tapIn(lx + 2, y - 2, nameW + 4, rh)) { Ui.sel.cant = i; Aud.sfx('select'); }
   });
-  const sc = CANTRIPS[Ui.sel.cant || 0]; if (sc) wrapInk(ctx, sc.desc, lx + 4, ly + ph - 3 - Font.wrap(sc.desc, pw - 8).length * 8, pw - 8, C.ink3, 8);
+  const sc = CANTRIPS[Ui.sel.cant || 0]; if (sc) { const n = Font.wrap(sc.desc, pw - 8).length, ty = ly + ph - 3 - n * 8; if (narrow) inkT(ctx, fitStr(sc.name, pw - 8), lx + 4, ty - 9, C.vel1); wrapInk(ctx, sc.desc, lx + 4, ty, pw - 8, C.ink3, 8); }
   inkT(ctx, 'SONGS', rx + 6, ly + 3, C.vel1); let y = ly + 16;
   for (const k in SONGS) {
     const known = S.songs[k]; inkT(ctx, known ? SONGS[k].name : '???', rx + 6, y, known ? C.ink2 : C.bone2);
@@ -3936,22 +4036,24 @@ function bookHaunt(B) {
 function bookMap(B) { Ui.tab = Ui.tabBeforeMap || 0; openMap('book'); }
 function roomHasNote(id) { const d = DB.rooms[id]; const ids = []; for (const s of (d.secrets || [])) if (s.item && s.item.startsWith('note_')) ids.push(s.item); for (const p of (d.place || [])) { if (p.item && p.item.startsWith('note_')) ids.push(p.item); if (p.loot && p.loot.item && p.loot.item.startsWith('note_')) ids.push(p.loot.item); } return ids.some(n => !S.notes[n]); }
 function bookKeeps(B) {
-  const { ctx, lx, rx, ly, pw, ph } = B; inkT(ctx, "OLD TOCK'S PARTS", lx + 4, ly + 3, C.vel1);
+  const { ctx, lx, rx, ly, pw, ph } = B; inkT(ctx, fitAlt("OLD TOCK'S PARTS", "TOCK'S PARTS", pw - 6), lx + 4, ly + 3, C.vel1);
   const cx = lx + pw / 2, cy = ly + 62; pxCircle(ctx, cx, cy, 44, C.wood1); pxCircle(ctx, cx, cy, 42, C.bone0); pxCircle(ctx, cx, cy, 40, C.bone1);
   Object.keys(PARTS).forEach((k, i) => { const a = i / 8 * TAU - Math.PI / 2, x = Math.round(cx + Math.cos(a) * 30), y = Math.round(cy + Math.sin(a) * 30); const got = S.parts[k], ret = S.flags['ret_' + k]; pxCircle(ctx, x, y, 7, ret ? C.fire1 : got ? C.moon2 : C.bone2); pxCircle(ctx, x, y, 5, ret ? C.fire0 : got ? C.moon3 : C.bone1); if (got) T(ctx, String(i + 1), x, y - 3, C.ink0, { align: 'c', shadow: false }); else T(ctx, '?', x, y - 3, C.bone2, { align: 'c', shadow: false }); if (In.tapIn(x - 8, y - 8, 16, 16)) Ui.sel.part = k; });
   T(ctx, 'XII', cx, cy - 4, C.ink2, { align: 'c', shadow: false });
-  const sp = Ui.sel.part; inkT(ctx, sp ? (S.parts[sp] ? PARTS[sp] : '???') : 'Tap a part', lx + 4, ly + ph - 20, C.ink2); if (sp && S.parts[sp]) inkT(ctx, S.flags['ret_' + sp] ? 'Back in the clock!' : 'Take it to Tock!', lx + 4, ly + ph - 10, C.grn1);
-  inkT(ctx, 'KEEPSAKES', rx + 6, ly + 3, C.vel1); ctx.drawImage(Icons.key, rx + 6, ly + 16); inkT(ctx, 'Brass keys: ' + S.keys, rx + 18, ly + 16);
-  ctx.drawImage(Icons.heart, rx + 5, ly + 28); inkT(ctx, 'Heart pieces ' + S.hpieces + '/4', rx + 14, ly + 28); ctx.drawImage(Icons.vial, rx + 6, ly + 40); inkT(ctx, 'Moon Vials: ' + S.vials + '/6', rx + 18, ly + 40);
-  inkT(ctx, 'Cat toys: ' + Object.keys(S.toys).length + '/9', rx + 6, ly + 54);
-  const notes = Object.keys(S.notes).sort(); const n0 = bookPager(ctx, 'note', notes.length, 8, rx + pw - 62, ly + 66), nh = 'Notes ' + notes.length + '/30';
-  inkT(ctx, notes.length <= 8 || Font.w(nh) + 10 <= pw - 62 ? nh : 'Notes', rx + 6, ly + 68, C.vel1);
-  notes.slice(n0, n0 + 8).forEach((n, i) => { const nd = DB.notes.find(x => x.id === n); if (btn(ctx, 'note' + i, rx + 6 + (i % 4) * 28, ly + 80 + Math.floor(i / 4) * 15, 26, 13, n.slice(5))) Ui.sel.note = n; });
+  const sp = Ui.sel.part; inkT(ctx, fitStr(sp ? (S.parts[sp] ? PARTS[sp] : '???') : 'Tap a part', pw - 6), lx + 4, ly + ph - 20, C.ink2); if (sp && S.parts[sp]) inkT(ctx, S.flags['ret_' + sp] ? fitAlt('Back in the clock!', 'In the clock!', pw - 6) : fitAlt('Take it to Tock!', 'Give to Tock!', pw - 6), lx + 4, ly + ph - 10, C.grn1);
+  inkT(ctx, 'KEEPSAKES', rx + 6, ly + 3, C.vel1); const kw = pw - 20; ctx.drawImage(Icons.key, rx + 6, ly + 16); inkT(ctx, fitAlt('Brass keys: ' + S.keys, 'Keys: ' + S.keys, kw), rx + 18, ly + 16);
+  ctx.drawImage(Icons.heart, rx + 5, ly + 28); inkT(ctx, fitAlt('Heart pieces ' + S.hpieces + '/4', 'Hearts ' + S.hpieces + '/4', pw - 16), rx + 14, ly + 28); ctx.drawImage(Icons.vial, rx + 6, ly + 40); inkT(ctx, fitAlt('Moon Vials: ' + S.vials + '/6', 'Vials: ' + S.vials + '/6', kw), rx + 18, ly + 40);
+  inkT(ctx, fitAlt('Cat toys: ' + Object.keys(S.toys).length + '/9', 'Toys: ' + Object.keys(S.toys).length + '/9', pw - 8), rx + 6, ly + 54);
+  const per = clamp(Math.floor((pw - 10) / 28), 2, 4), npg = per * 2;
+  const notes = Object.keys(S.notes).sort(); const n0 = bookPager(ctx, 'note', notes.length, npg, rx + pw - 62, ly + 66), nh = 'Notes ' + notes.length + '/30';
+  inkT(ctx, notes.length <= npg && Font.w(nh) + 8 <= pw ? nh : Font.w(nh) + 10 <= pw - 62 ? nh : 'Notes', rx + 6, ly + 68, C.vel1);
+  notes.slice(n0, n0 + npg).forEach((n, i) => { if (btn(ctx, 'note' + i, rx + 6 + (i % per) * 28, ly + 80 + Math.floor(i / per) * 15, 26, 13, n.slice(5), { sel: Ui.sel.note === n })) Ui.sel.note = n; });
   const nd = Ui.sel.note && DB.notes.find(x => x.id === Ui.sel.note); if (nd) Font.wrap(nd.text, pw - 12).slice(0, Math.max(3, Math.floor((ph - 112 - 7) / 8) + 1)).forEach((l, i) => inkT(ctx, l, rx + 6, ly + 112 + i * 8, C.ink2));
 }
 function bookGhosts(B) {
   const { ctx, lx, rx, ly, pw, ph } = B; inkT(ctx, 'GHOSTS', lx + 4, ly + 3, C.vel1);
   const seen = DB.catalogue.filter(c => S.cat[c.id]).length, cnt = seen + '/' + DB.catalogue.length; inkT(ctx, cnt, lx + pw - 4 - Font.w(cnt), ly + 3, C.grn1);
+  if (!Ui.sel.ghost) { const f = DB.catalogue.find(c => S.cat[c.id]); if (f) Ui.sel.ghost = f.id; }
   const cw = Math.floor((pw - 6) / 3), chh = 31, g0 = bookPager(ctx, 'ghost', DB.catalogue.length, 15, lx + 4, ly + ph - 14);
   DB.catalogue.slice(g0, g0 + 15).forEach((c, i) => {
     const x = lx + 3 + (i % 3) * cw, y = ly + 14 + Math.floor(i / 3) * chh, known = S.cat[c.id], sel = Ui.sel.ghost === c.id;
@@ -3966,7 +4068,7 @@ function bookRestore(B) {
   const list = DB.restor; if (!list.length) { inkT(ctx, 'Nothing to restore yet.', lx + 6, ly + 20, C.ink3); return; }
   Ui.sel.rest = Ui.sel.rest || list[0].id;
   const r0 = bookPager(ctx, 'rest', list.length, 10, lx + 4, ly + ph - 14);
-  list.slice(r0, r0 + 10).forEach((r, i) => { const y = ly + 15 + i * 14, sel = Ui.sel.rest === r.id; if (sel) rect(ctx, C.bone1, lx + 2, y - 2, pw - 4, 13); const warm = S.rooms[r.room] && S.rooms[r.room].warm; inkT(ctx, fitStr((S.restored[r.id] ? '♥ ' : '') + r.name, pw - 8), lx + 5, y + 1, S.restored[r.id] ? C.grn1 : warm ? C.ink2 : C.ink4); if (In.tapIn(lx + 2, y - 2, pw - 4, 13)) { Ui.sel.rest = r.id; Aud.sfx('select'); } });
+  list.slice(r0, r0 + 10).forEach((r, i) => { const y = ly + 15 + i * 14, sel = Ui.sel.rest === r.id; if (sel) rect(ctx, C.bone1, lx + 2, y - 2, pw - 4, 13); const warm = S.rooms[r.room] && S.rooms[r.room].warm; inkT(ctx, fitStr((S.restored[r.id] ? '♥ ' : '') + r.name.replace(/^Restore (the )?/i, '').replace(/^./, ch => ch.toUpperCase()), pw - 8), lx + 5, y + 1, S.restored[r.id] ? C.grn1 : warm ? C.ink2 : C.ink4); if (In.tapIn(lx + 2, y - 2, pw - 4, 13)) { Ui.sel.rest = r.id; Aud.sfx('select'); } });
   const r = list.find(x => x.id === Ui.sel.rest); if (!r) return; const warm = S.rooms[r.room] && S.rooms[r.room].warm;
   let y = wrapInk(ctx, r.desc || '', rx + 6, wrapInk(ctx, r.name.toUpperCase(), rx + 6, ly + 4, pw - 12, C.vel1) + 5, pw - 12); y = wrapInk(ctx, 'Perk: ' + r.perk, rx + 6, y + 4, pw - 12, C.grn1); wrapInk(ctx, warm ? 'The room is Warm and ready.' : 'Warm the room first!', rx + 6, y + 4, pw - 12, C.ink3, 8);
   if (S.restored[r.id]) inkT(ctx, 'Restored!', rx + 6, ly + ph - 12, C.grn1);
@@ -3974,26 +4076,33 @@ function bookRestore(B) {
 }
 function bookOptions(B) {
   const { ctx, lx, rx, ly, pw, ph } = B; inkT(ctx, 'OPTIONS', lx + 4, ly + 3, C.vel1);
-  const row = (i, label, val, cb, w) => { const y = ly + 16 + i * 17, bw = w || 46; inkT(ctx, fitStr(label, pw - bw - 8), lx + 4, y + 3); if (btn(ctx, 'opt' + i, lx + pw - bw - 2, y - 1, bw, 14, val)) cb(); };
-  row(0, 'Music', Math.round(OPTS.music * 10) + '/10', () => { OPTS.music = (OPTS.music * 10 + 1) % 11 / 10; Aud.vol.music = OPTS.music; Aud.applyVol(); });
-  row(1, 'Sound', Math.round(OPTS.sfx * 10) + '/10', () => { OPTS.sfx = (OPTS.sfx * 10 + 1) % 11 / 10; Aud.vol.sfx = OPTS.sfx; Aud.applyVol(); Aud.sfx('pop'); });
-  row(2, 'Screen shake', OPTS.shake ? 'On' : 'Off', () => OPTS.shake = !OPTS.shake);
-  row(3, 'Flashes', OPTS.flash ? 'Full' : 'Dim', () => OPTS.flash = !OPTS.flash);
-  row(4, 'Assist mode', OPTS.assist ? 'On' : 'Off', () => OPTS.assist = !OPTS.assist);
-  row(5, 'Left-handed', OPTS.lefty ? 'On' : 'Off', () => { OPTS.lefty = !OPTS.lefty; In.leftHanded = OPTS.lefty; });
-  row(6, 'Button size', ['Small', 'Medium', 'Large'][OPTS.btn], () => OPTS.btn = (OPTS.btn + 1) % 3);
-  row(7, 'Control glow', Math.round(OPTS.opac * 100) + '%', () => { OPTS.opac = OPTS.opac >= 1 ? 0.3 : OPTS.opac + 0.15; });
-  FS.rects.push({ x: lx + pw - 48, y: ly + 16 + 8 * 17 - 1, w: 46, h: 14 });
-  row(8, 'Fullscreen', fsOn() ? 'On' : 'Off', () => { if (performance.now() - FS.handled > 500) toggleFullscreen(); });
-  inkT(ctx, "SOOT'S BACKUP", rx + 6, ly + 3, C.vel1);
-  const bb = (i, label, cb) => { if (btn(ctx, 'bk' + i, rx + 4, ly + 16 + i * 19, pw - 8, 16, label)) cb(); };
-  bb(0, 'Save now', () => { Save.write(true); toast('Saved.'); });
-  bb(1, 'Save to a file', async () => { const ok = await Save.downloadFile(Save.slot); toast(ok ? 'Copy saved to Files.' : 'Could not make a copy.'); });
-  bb(2, 'Copy save code', async () => { const c = await Save.exportCode(Save.slot); if (!c) { toast('No save yet.'); return; } try { await navigator.clipboard.writeText(c); toast('Save code copied!'); } catch (e) { window.prompt('Copy your save code:', c); } });
-  bb(3, 'Load from code', async () => { const code = window.prompt('Paste your save code (this overwrites this file):'); if (!code) return; const rec = await Save.importCode(code); if (!rec) { toast('Not a valid code.'); return; } await Save.importRecord(rec, Save.slot); toast('Loaded! Returning to title...'); setTimeout(() => location.reload(), 900); });
-  bb(4, 'Load from file', async () => { const rec = await pickFileRecord(); if (!rec) { toast('Not a valid file.'); return; } await Save.importRecord(rec, Save.slot); toast('Loaded! Returning to title...'); setTimeout(() => location.reload(), 900); });
-  bb(5, 'Quit to title', () => { Save.write(true); closeBook(); Game.state = 'title'; Aud.stop(0.5); R.rain = false; });
-  wrapInk(ctx, 'Your game saves by itself. Copies keep it safe if Safari clears site data.', rx + 4, ly + 16 + 6 * 19 + 2, pw - 8, C.ink3, 8);
+  const touch = In.mode === 'touch', narrow = pw < 120, bw = narrow ? 40 : 46, nrows = touch ? 10 : 9;
+  const noteL = touch ? Font.wrap(narrow ? 'Layout: drag the buttons where you like them.' : 'Button layout: drag the touch buttons where you like them. Each screen shape keeps its own.', pw - 8) : [];
+  const rh = Math.min(17, Math.floor((ph - 16 - (noteL.length ? noteL.length * 8 + 4 : 0)) / nrows));
+  const row = (i, label, short, val, cb) => { const y = ly + 16 + i * rh; inkT(ctx, fitAlt(label, short, pw - bw - 8), lx + 4, y + 3); if (btn(ctx, 'opt' + i, lx + pw - bw - 2, y - 1, bw, Math.min(14, rh - 2), val)) cb(); };
+  row(0, 'Music', 'Music', Math.round(OPTS.music * 10) + '/10', () => { OPTS.music = (OPTS.music * 10 + 1) % 11 / 10; Aud.vol.music = OPTS.music; Aud.applyVol(); });
+  row(1, 'Sound', 'Sound', Math.round(OPTS.sfx * 10) + '/10', () => { OPTS.sfx = (OPTS.sfx * 10 + 1) % 11 / 10; Aud.vol.sfx = OPTS.sfx; Aud.applyVol(); Aud.sfx('pop'); });
+  row(2, 'Screen shake', 'Shake', OPTS.shake ? 'On' : 'Off', () => OPTS.shake = !OPTS.shake);
+  row(3, 'Flashes', 'Flashes', OPTS.flash ? 'Full' : 'Dim', () => OPTS.flash = !OPTS.flash);
+  row(4, 'Assist mode', 'Assist', OPTS.assist ? 'On' : 'Off', () => OPTS.assist = !OPTS.assist);
+  row(5, 'Left-handed', 'Lefty', OPTS.lefty ? 'On' : 'Off', () => { OPTS.lefty = !OPTS.lefty; In.leftHanded = OPTS.lefty; });
+  row(6, 'Button size', 'Buttons', (narrow ? ['Small', 'Med', 'Large'] : ['Small', 'Medium', 'Large'])[OPTS.btn], () => OPTS.btn = (OPTS.btn + 1) % 3);
+  row(7, 'Control glow', 'Glow', Math.round(OPTS.opac * 100) + '%', () => { OPTS.opac = OPTS.opac >= 1 ? 0.3 : OPTS.opac + 0.15; });
+  FS.rects.push({ x: lx + pw - bw - 2, y: ly + 16 + 8 * rh - 1, w: bw, h: 14 });
+  row(8, 'Fullscreen', 'Full scr', fsOn() ? 'On' : 'Off', () => { if (performance.now() - FS.handled > 500) toggleFullscreen(); });
+  if (touch) {
+    row(9, 'Button layout', 'Layout', 'Edit', () => openBtnEdit());
+    noteL.forEach((l, i) => inkT(ctx, l, lx + 4, ly + 16 + 10 * rh + 2 + i * 8, C.ink3));
+  }
+  inkT(ctx, fitAlt("SOOT'S BACKUP", 'BACKUP', pw - 10), rx + 6, ly + 3, C.vel1);
+  const bb = (i, label, short, cb) => { if (btn(ctx, 'bk' + i, rx + 4, ly + 16 + i * 19, pw - 8, 16, fitAlt(label, short, pw - 14))) cb(); };
+  bb(0, 'Save now', 'Save now', () => { Save.write(true); toast('Saved.'); });
+  bb(1, 'Save to a file', 'Save file', async () => { const ok = await Save.downloadFile(Save.slot); toast(ok ? 'Copy saved to Files.' : 'Could not make a copy.'); });
+  bb(2, 'Copy save code', 'Copy code', async () => { const c = await Save.exportCode(Save.slot); if (!c) { toast('No save yet.'); return; } try { await navigator.clipboard.writeText(c); toast('Save code copied!'); } catch (e) { window.prompt('Copy your save code:', c); } });
+  bb(3, 'Load from code', 'Load code', async () => { const code = window.prompt('Paste your save code (this overwrites this file):'); if (!code) return; const rec = await Save.importCode(code); if (!rec) { toast('Not a valid code.'); return; } await Save.importRecord(rec, Save.slot); toast('Loaded! Returning to title...'); setTimeout(() => location.reload(), 900); });
+  bb(4, 'Load from file', 'Load file', async () => { const rec = await pickFileRecord(); if (!rec) { toast('Not a valid file.'); return; } await Save.importRecord(rec, Save.slot); toast('Loaded! Returning to title...'); setTimeout(() => location.reload(), 900); });
+  bb(5, 'Quit to title', 'Quit', () => { Save.write(true); closeBook(); Game.state = 'title'; Aud.stop(0.5); R.rain = false; });
+  wrapInkMax(ctx, 'Your game saves by itself. Copies keep it safe if Safari clears site data.', rx + 4, ly + 16 + 6 * 19 + 2, pw - 8, C.ink3, 8, ly + ph);
 }
 /* ---------- fullscreen: requested inside the tap itself (Safari only allows it there) ---------- */
 const FS = { rects: [], last: [], handled: 0 };
@@ -4190,7 +4299,8 @@ DB.items.winding_key = { name: 'Winding Key', desc: "One of Old Tock's eight clo
     if (!S.flags.pantry_switch) return { room: 'pantry', at: [13, 5], hint: rsOf('pantry').v ? 'The kitchen wing! The pantry has a cat-flap. Stand by it and ' + catHow() + ': Soot slips through and flips the switch inside.' : 'The kitchen wing is past the Servants\' Corridor. Its floor has a gap, but old boards are hidden there. Veilsight shows them!' };
     if (!S.spells.frost) return { room: 'icehouse', at: [9, 4], hint: 'Past the scullery is the Ice House. Something cold is kept there.' };
     if (!hasSpell('frost')) return { room: 'icehouse', hint: 'Your Frost page needs ink. Gather Wisps!' };
-    if (!S.flags.boss_marrow) return { room: 'greatkitchen', at: [20, 8], hint: 'Freeze the steam wall in the pantry. Madame Marrow has my Winding Key.' };
+    if (!S.flags.boss_marrow && !(rsOf('pantry').gates || {})[2]) return { room: 'pantry', at: [10, 4], hint: "Steam is blocking the pantry's north door. Stand close and cast Frost at it. Madame Marrow is through there, with my Winding Key." };
+    if (!S.flags.boss_marrow) return { room: 'greatkitchen', at: [20, 8], hint: 'Madame Marrow is in the Great Kitchen, through the pantry\'s north door. She has my Winding Key.' };
     if (!S.flags.ret_winding_key) return { room: 'foyer', at: [12, 5], hint: 'Bring me my Winding Key!' };
     return { room: 'landing', hint: 'The ghostfire on the grand stair needs something cold. The upper floor is still asleep, but the house is waking...' };
   }
@@ -4547,7 +4657,10 @@ function resize() {
     if (fw < 256) { s = Math.max(1, Math.floor(W / 256)); fw = Math.floor(W / s); }
     const pt = s / dpr;
     if (coarse) {
-      const g = Math.ceil(170 / pt);
+      let g = Math.ceil(170 / pt);
+      // a touch screen held sideways keeps its controls on both sides: if the biggest zoom leaves no room for both
+      // panels (an iPad going full screen gains height and steps up a zoom), take one zoom step smaller instead
+      if (fw - 256 < 2 * g && s > 2) { const s2 = s - 1, fw2 = Math.floor(W / s2), g2 = Math.ceil(170 / (s2 / dpr)); if (fw2 - 256 >= 2 * g2) { s = s2; fw = fw2; g = g2; } }
       if (fw - 256 >= 2 * g) { vw = clamp(fw - 2 * g, 256, 352); const sd = Math.min(fw - vw, 2 * g + 40); L = { mode: 'gutter', l: Math.floor(sd / 2), r: sd - Math.floor(sd / 2), t: 0, b: 0 }; }
       else if (fw - 256 >= 72) { vw = 256; L = { mode: 'side', l: 0, r: Math.min(fw - 256, 110), t: 0, b: 0 }; }
       else vw = clamp(fw, 256, 352);
@@ -4646,6 +4759,9 @@ function step(dt) {
   // M mutes, but not while typing a name (EMMA would switch the sound off and on)
   if (In.raw.KeyM && Game.state !== 'name') { Aud.setMuted(!Aud.muted); toast(Aud.muted ? 'Muted (press M for sound)' : 'Sound on'); }
   const st = Game.state;
+  // a room's arrival scene (a boss's opening speech) can start talking while the door slide is still running:
+  // the slide keeps moving in any state, and the talking waits until it has finished
+  if (Game.trans && st !== 'play') { Game.trans.t += dt; if (Game.trans.t >= Game.trans.dur) Game.trans = null; }
   if (st === 'play') {
     if (Game.fade) { stepFade(dt); if (Game.fade && Game.fade.phase === 0) { updateParts(dt); return; } }
     if (Game.trans) { Game.trans.t += dt; if (Game.trans.t >= Game.trans.dur) Game.trans = null; updateParts(dt); return; }
@@ -4653,7 +4769,7 @@ function step(dt) {
     const sdt = Game.slow ? dt * Game.slow.scale : dt;
     stepPlay(sdt); updateParts(sdt);
   } else if (st === 'dialogue') {
-    updateDialogue(dt); updateParts(dt * 0.3); R.t += dt * 0.2;
+    if (!Game.trans) updateDialogue(dt); updateParts(dt * 0.3); R.t += dt * 0.2;
     if (Game.fade) stepFade(dt);
   } else if (st === 'item' || st === 'learn') { P.itemT += dt; updateParts(dt); R.t += dt;
   } else if (st === 'ring') { /* slow */ updateParts(dt * 0.2); }
@@ -4683,6 +4799,7 @@ function sceneRender(ctx, dt) {
   if (st === 'name') { drawName(ctx, dt); return; }
   if (st === 'recap') { drawRecap(ctx, dt); return; }
   if (st === 'book') { drawBook(ctx, dt); return; }
+  if (st === 'btnedit') { drawBtnEdit(ctx, dt); return; }
   if (st === 'map') { drawMapScreen(ctx, dt); return; }
   if (st === 'gameover') { updateGameOver(ctx, dt); return; }
   if (st === 'credits') { drawCredits(ctx, dt); return; }
@@ -4737,6 +4854,7 @@ function frame(ts) {
   if (isPregame() !== !!Lay.pre) resize();
   const ctx = Scr.ctx; ctx.imageSmoothingEnabled = false;
   HiUI.q.length = 0; HiUI.fade = 0; FS.last = FS.rects; FS.rects = [];
+  In.playActive = false; In.buttons = []; // set again by the HUD when there is play on screen
   beginUiLayer();
   sceneRender(ctx, dtr);
   if (Lay.mode === 'side' && ['recap', 'credits', 'encore', 'gameover', 'dev'].includes(Game.state)) drawSideArt(dtr);
@@ -5646,8 +5764,15 @@ function hudMenu(ctx, x, y, w) {
 function hudMap(ctx, x, y, w, h) {
   drawMinimap(ctx, x + 2, y + 2, w - 4, h);
   if (In.tapIn(x, y, w, h + 4)) openMap();
-  const d = DB.rooms[R.id]; if (d) T(ctx, fitStr(d.name, w), x + w / 2, y + h + 6, C.fire0, { align: 'c' });
-  return h + 16;
+  const d = DB.rooms[R.id]; if (!d) return h + 16;
+  const nm = d.name; let extra = 0;
+  if (Font.w(nm) <= w) T(ctx, nm, x + w / 2, y + h + 6, C.fire0, { align: 'c' });
+  else {
+    const L = Font.wrap(nm, w);
+    if (L.length <= 2 && L.every(l => Font.w(l) <= w)) { L.forEach((l, i) => T(ctx, l, x + w / 2, y + h + 6 + i * 9, C.fire0, { align: 'c' })); extra = 9 * (L.length - 1); }
+    else { const M = Mini.wrap(nm, Math.max(1, Math.floor((w + 1) / 4)), 2); M.forEach((l, i) => Mini.draw(ctx, l, Math.round(x + w / 2 - Mini.w(l) / 2), y + h + 7 + i * 7, C.fire0)); extra = M.length > 1 ? 5 : 0; }
+  }
+  return h + 16 + extra;
 }
 // the HUD when there is a panel to put it in; returns where the in-game extras (surge meter, combo, dev) should start
 function drawPanelHUD() {
