@@ -219,6 +219,63 @@ body.compact #tDir{font-size:10px} body.compact #tStreet{font-size:11px} body.co
 .seg button{font-size:9px;padding:8px 9px;background:var(--panel-hi);color:var(--cream);border:2px solid #000}
 .seg button.on{background:var(--butter);color:var(--ink)}
 .lore{font-size:15px;line-height:1.4;color:var(--haint);border-left:3px solid var(--butter);padding:4px 0 4px 10px;margin:10px 0 0;font-style:italic}
+/* Holy City Motors: bright glass showroom */
+#dealer{background:#dfe8ee}
+#dealerBg{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:0}
+#dealer .panel{position:relative;z-index:1;background:linear-gradient(160deg,rgba(255,255,255,.66),rgba(232,242,248,.42));
+  -webkit-backdrop-filter:blur(3px) saturate(1.3);backdrop-filter:blur(3px) saturate(1.3);color:#16224a;
+  border:2px solid rgba(255,255,255,.95);box-shadow:0 0 0 2px rgba(31,47,90,.35),0 18px 40px rgba(11,16,34,.35),inset 0 1px 0 #fff}
+#dealer .panel::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,rgba(255,255,255,0) 30%,rgba(255,255,255,.45) 38%,rgba(255,255,255,0) 46%);background-size:250% 100%;animation:gloss 7s ease-in-out infinite}
+@keyframes gloss{0%,60%{background-position:120% 0}100%{background-position:-60% 0}}
+#dealer .eyebrow{color:#3f6a7a}
+#dealer .wordmark{font-family:var(--f-display);font-size:16px;color:#1f2f5a;letter-spacing:.12em;margin:0;line-height:1.4}
+#dealer .wordmark span{color:#3f8a9a}
+#dealer .wallet{background:rgba(255,255,255,.8);border:2px solid #1f2f5a;color:#2f6b46}
+#dealer .caritem{background:rgba(255,255,255,.78);color:#16224a;border:2px solid rgba(255,255,255,.95);box-shadow:0 2px 0 rgba(31,47,90,.18)}
+#dealer .caritem.sel{border-color:#1f2f5a;background:rgba(255,255,255,.92);box-shadow:0 0 0 2px #9fd8dc,0 4px 10px rgba(31,47,90,.25)}
+#dealer .caritem .price{color:#2f6b46}
+#dealer .caritem .price.own{color:#3f6a7a}
+#dealer .showroom{background:transparent;border:2px solid rgba(255,255,255,.95);box-shadow:0 0 0 2px rgba(31,47,90,.3);padding:0}
+#dealer #showCanvas{max-width:none}
+#dealer h2#dName{color:#1f2f5a}
+#dealer .cardesc{color:#2a3550;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+#dealer .stats span,#dealer .upg .nm{text-shadow:0 1px 0 rgba(255,255,255,.8)}
+#dealer .stats{color:#16224a}
+#dealer .bar{background:rgba(31,47,90,.12);border:2px solid #1f2f5a}
+#dealer .bar i{background:#3f8a9a} #dealer .bar i.up{background:#f0b84a}
+#dealer .upg .nm{color:#16224a}
+#dealer .pips i{background:rgba(31,47,90,.12);border-color:#1f2f5a} #dealer .pips i.on{background:#f0b84a}
+#dealer .btn.ghost{color:#1f2f5a;border-color:#1f2f5a;background:rgba(255,255,255,.6)}
+#dealer .btn[disabled]{background:#c8cfdb;color:#6a7390}
+/* 8-bit hero card */
+#carCard{flex-direction:column;background:radial-gradient(ellipse at 50% 40%,rgba(31,47,90,.82),rgba(6,9,22,.95));z-index:30}
+.hcard{position:relative;width:min(320px,82vw);background:var(--rc,#9fd8dc);padding:8px;box-shadow:0 0 0 4px #0b1022,0 0 0 8px var(--rc,#9fd8dc),0 0 40px var(--rc,#9fd8dc);
+  animation:hcIn .55s cubic-bezier(.2,1.6,.4,1) both;image-rendering:pixelated}
+.hcard>*{position:relative}
+.hc-top{display:flex;justify-content:space-between;font-family:var(--f-display);font-size:9px;color:#0b1022;padding:2px 2px 6px}
+.hc-art{background:#0b1022;border:4px solid #0b1022;overflow:hidden;position:relative}
+#hcCanvas{display:block;width:100%;height:auto;image-rendering:pixelated}
+.hc-shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.55) 45%,transparent 55%);background-size:300% 100%;animation:hcShine 2.6s ease-in-out infinite}
+.hc-name{font-family:var(--f-display);font-size:14px;color:#0b1022;margin:10px 2px 4px;line-height:1.35}
+.hc-tag{display:inline-block;font-family:var(--f-display);font-size:8px;color:#fff;background:#0b1022;padding:4px 6px;margin:0 2px 8px}
+.hc-stats{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;background:rgba(255,255,255,.55);border:3px solid #0b1022;padding:6px 8px;font-family:var(--f-display);font-size:8px;color:#0b1022}
+.hc-stats .pb{display:flex;gap:2px}.hc-stats .pb i{width:10px;height:8px;background:rgba(11,16,34,.15);border:1px solid #0b1022}.hc-stats .pb i.on{background:#0b1022}
+.hc-flav{font-family:var(--f-body);font-size:14px;line-height:1.3;color:#0b1022;margin:8px 2px 4px}
+.hc-new{font-family:var(--f-display);font-size:9px;text-align:center;color:#0b1022;padding:4px;animation:blink 1s steps(2) infinite}
+@keyframes hcIn{0%{transform:scale(.3) rotate(-12deg);opacity:0}100%{transform:none;opacity:1}}
+@keyframes hcShine{0%,40%{background-position:120% 0}100%{background-position:-60% 0}}
+@media (prefers-reduced-motion:reduce){.hcard,.hc-shine,.hc-new{animation:none}}
+#carCard{justify-content:flex-start}
+#carCard .hcard{margin-top:auto}
+#carCard>.btns{margin-bottom:auto}
+@media (max-height:560px){
+  .hcard{width:min(600px,90vw);display:grid;grid-template-columns:1.15fr 1fr;column-gap:10px;align-items:start}
+  .hc-top{grid-column:1/-1}
+  .hc-art{grid-row:2/6}
+  .hc-name{margin-top:0;font-size:12px}
+  .hc-flav{font-size:12px;margin:6px 2px 0}
+  .hc-new{grid-column:1/-1}
+}
 .keys{font-size:15px;line-height:1.5;color:#d8dcef}
 kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px solid #2d3d70;padding:2px 4px}
 #rotateHint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 200px);transform:translateX(-50%);font-size:14px;background:rgba(11,16,34,.85);border:2px solid var(--haint);padding:6px 10px;display:none;pointer-events:none;white-space:nowrap}
@@ -331,10 +388,11 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
   </div>
 
   <!-- Dealership -->
-  <div class="screen dim" id="dealer" hidden>
+  <div class="screen" id="dealer" hidden>
+    <canvas id="dealerBg" aria-hidden="true"></canvas>
     <div class="panel">
       <div class="topbar" style="margin-bottom:10px">
-        <div><div class="eyebrow">Savannah Hwy · West Ashley</div><h2 style="margin:0">HOLY CITY MOTORS</h2></div>
+        <div><div class="eyebrow">Showroom · Savannah Hwy · West Ashley</div><h2 class="wordmark">HOLY CITY <span>MOTORS</span></h2></div>
         <div class="wallet" id="dWallet">$0</div>
       </div>
       <div class="dealgrid">
@@ -349,6 +407,23 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
         </div>
       </div>
       <div class="btns"><button class="btn ghost" id="dBack">◀ BACK</button></div>
+    </div>
+  </div>
+
+  <!-- Hero card for new cars -->
+  <div class="screen" id="carCard" hidden>
+    <div class="hcard" id="hcard">
+      <div class="hc-top"><span id="hcRare">RARE</span><span id="hcNo">No. 03</span></div>
+      <div class="hc-art"><canvas id="hcCanvas" width="160" height="96"></canvas><i class="hc-shine"></i></div>
+      <div class="hc-name" id="hcName">Mini JCW</div>
+      <div class="hc-tag" id="hcTag">HOT HATCH</div>
+      <div class="hc-stats" id="hcStats"></div>
+      <p class="hc-flav" id="hcFlav"></p>
+      <div class="hc-new" id="hcNew">NEW IN YOUR DRIVEWAY</div>
+    </div>
+    <div class="btns" style="justify-content:center;margin-top:16px;position:relative;z-index:2">
+      <button class="btn" id="hcDrive">DRIVE IT</button>
+      <button class="btn ghost" id="hcClose">BACK TO SHOWROOM</button>
     </div>
   </div>
 
@@ -1278,6 +1353,47 @@ function iconSprite(name, col) {
   g.fillStyle = '#000'; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (rows[y][x] === '#') { g.fillRect(x, y + 1, 1, 1); g.fillRect(x + 1, y, 1, 1); g.fillRect(x + 2, y + 1, 1, 1); g.fillRect(x + 1, y + 2, 1, 1); }
   g.fillStyle = col; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (rows[y][x] === '#') g.fillRect(x + 1, y + 1, 1, 1);
   return iconCache[k] = c;
+}
+
+/* side-view 8-bit portraits for hero cards (car faces right, 64x32) */
+const CARD_INFO = {
+  volvo: { tag: 'FAMILY CLASSIC', rare: 'COMMON', rc: '#9fd8dc' },
+  smart: { tag: 'POCKET ROCKET', rare: 'COMMON', rc: '#9fd8dc' },
+  ranger: { tag: 'WORKHORSE', rare: 'RARE', rc: '#7fd38a' },
+  clubman: { tag: 'GO-KART WAGON', rare: 'RARE', rc: '#7fd38a' },
+  jcw: { tag: 'HOT HATCH', rare: 'EPIC', rc: '#d9b8ec' },
+  alfa: { tag: 'THE COMMODORE\u2019S PRIDE', rare: 'LEGENDARY', rc: '#f6d77a' },
+};
+const sideCache = {};
+function sideArt(id) {
+  if (sideCache[id]) return sideCache[id];
+  const v = VEHICLES[id]; const c = mkCanvas(64, 32), g = c.getContext('2d');
+  const P = (pts, col) => { g.fillStyle = col; g.beginPath(); pts.forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.closePath(); g.fill(); };
+  const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+  const body = v.body, dark = v.dark, roof = v.roof || v.body, glass = '#8fc4e6', glassD = '#3f6a8a', chrome = '#d8dde3';
+  let wf = 14, wr = 50, bodyTop = 15;
+  const st = v.style;
+  if (st === 'wagon' && id === 'volvo') { P([[3, 22], [3, 15], [10, 14], [12, 7], [44, 7], [52, 14], [61, 16], [61, 22]], body); P([[13, 8], [44, 8], [50, 14], [13, 14]], glass); R(22, 8, 2, 6, body); R(34, 8, 2, 6, body); R(12, 5, 32, 1, chrome); R(14, 6, 1, 1, chrome); R(40, 6, 1, 1, chrome); R(3, 18, 58, 1, dark); }
+  else if (st === 'wagon') { wf = 15; wr = 49; P([[5, 22], [5, 9], [8, 6], [42, 6], [50, 14], [60, 16], [60, 22]], body); R(7, 5, 36, 2, roof); P([[8, 8], [42, 8], [48, 14], [8, 14]], glass); R(20, 8, 2, 6, roof); R(32, 8, 2, 6, roof); R(5, 8, 1, 13, dark); R(6, 15, 1, 7, dark); }
+  else if (st === 'smart') { wf = 20; wr = 44; P([[16, 22], [16, 8], [20, 4], [38, 4], [46, 13], [50, 16], [50, 22]], body); P([[19, 6], [37, 6], [44, 13], [19, 13]], glass); R(29, 5, 4, 17, '#a8a8a8'); R(16, 14, 34, 1, '#a8a8a8'); }
+  else if (st === 'truck') { P([[3, 22], [3, 12], [30, 12], [32, 6], [44, 6], [49, 13], [61, 14], [61, 22]], body); P([[33, 7], [43, 7], [47, 13], [33, 13]], glass); R(3, 11, 27, 2, dark); R(3, 12, 2, 10, dark); R(28, 12, 1, 10, dark); R(3, 17, 58, 1, dark); R(60, 15, 2, 4, chrome); }
+  else if (st === 'hatch') { wf = 15; wr = 48; P([[6, 22], [6, 12], [10, 7], [40, 6], [48, 13], [59, 15], [59, 22]], body); R(10, 5, 30, 2, roof); P([[11, 8], [39, 8], [46, 13], [11, 13]], glass); R(26, 8, 2, 5, body); if (v.stripe) { R(48, 14, 10, 1, v.stripe); R(48, 16, 10, 1, v.stripe); } R(54, 15, 3, 2, '#e2574c'); }
+  else if (st === 'spider') { wf = 15; wr = 49; P([[4, 22], [3, 17], [6, 15], [24, 15], [28, 13], [34, 13], [40, 14], [62, 16], [62, 22]], body); R(26, 9, 2, 5, glassD); P([[36, 8], [38, 8], [42, 14], [40, 14]], glass); R(20, 11, 6, 4, v.seats); R(14, 12, 5, 3, v.seats); R(2, 19, 4, 2, chrome); R(60, 19, 3, 2, chrome); R(3, 18, 59, 1, dark); }
+  // wheels: tire, rim, hub
+  for (const wx of [wf, wr]) { g.fillStyle = '#16161a'; g.beginPath(); g.arc(wx, 23, 6, 0, TAU); g.fill(); g.fillStyle = '#9aa0a8'; g.beginPath(); g.arc(wx, 23, 3.4, 0, TAU); g.fill(); R(wx - 1, 22, 2, 2, '#5c6068'); g.fillStyle = dark; g.beginPath(); g.arc(wx, 22, 7.5, Math.PI, 0); g.lineTo(wx + 7.5, 22); g.fill(); g.fillStyle = '#16161a'; g.beginPath(); g.arc(wx, 23, 6, Math.PI * 1.05, -0.05); g.fill(); g.fillStyle = '#9aa0a8'; g.beginPath(); g.arc(wx, 23, 3.4, 0, TAU); g.fill(); R(wx - 1, 22, 2, 2, '#5c6068'); }
+  // lights
+  R(st === 'smart' ? 48 : 59, 16, 2, 2, '#fff6c8'); R(st === 'smart' ? 16 : 4, 16, 2, 2, '#e2574c');
+  // crisp + outline
+  const d = g.getImageData(0, 0, 64, 32); const a = d.data;
+  for (let i = 3; i < a.length; i += 4) a[i] = a[i] > 100 ? 255 : 0;
+  const op = (x, y) => x >= 0 && y >= 0 && x < 64 && y < 32 && a[(y * 64 + x) * 4 + 3] === 255;
+  const out = [];
+  for (let y = 0; y < 32; y++) for (let x = 0; x < 64; x++) if (!op(x, y) && (op(x + 1, y) || op(x - 1, y) || op(x, y + 1) || op(x, y - 1))) out.push([x, y]);
+  for (const [x, y] of out) { const i = (y * 64 + x) * 4; a[i] = 11; a[i + 1] = 16; a[i + 2] = 34; a[i + 3] = 255; }
+  // top highlight
+  for (let x = 0; x < 64; x++) for (let y = 0; y < 32; y++) { const i = (y * 64 + x) * 4; if (a[i + 3] === 255 && !(a[i] === 11 && a[i + 1] === 16) && y > 0 && a[((y - 1) * 64 + x) * 4] === 11 && a[((y - 1) * 64 + x) * 4 + 1] === 16) { a[i] = Math.min(255, a[i] + 50); a[i + 1] = Math.min(255, a[i + 1] + 50); a[i + 2] = Math.min(255, a[i + 2] + 50); } }
+  g.putImageData(d, 0, 0);
+  return sideCache[id] = c;
 }
 
 /* =================== game simulation =================== */
@@ -2866,7 +2982,7 @@ function musicTick() {
 
 /* =================== screens =================== */
 let mode = 'title'; let selMission = 0; let lastResult = null;
-const SCREENS = ['title', 'mapScreen', 'brief', 'results', 'dealer', 'settings', 'pause'];
+const SCREENS = ['title', 'mapScreen', 'brief', 'results', 'dealer', 'settings', 'pause', 'carCard'];
 function showScreen(id) { for (const s of SCREENS) $('#' + s).hidden = s !== id; }
 function setHud(on) { $('#hud').hidden = !on; $('#minimap').hidden = !on; $('#touch').classList.toggle('on', on); document.body.classList.toggle('playing', on); }
 function fmtMoney(n) { return (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString(); }
@@ -2962,7 +3078,7 @@ function showResults() {
     ledger.push({ label: ['1st place', '2nd place', '3rd place', '4th place'][place - 1] + ' prize', amt: pays[place - 1] });
     medal = place <= 3 ? 4 - place : 0;
     title = place === 1 ? (m.id === 'kingtide' ? 'You beat the Commodore!' : 'First to the swings!') : place === 2 ? 'So close! Second place.' : 'Finished ' + ['', '', '2nd', '3rd', '4th'][place];
-    if (m.id === 'kingtide' && place === 1) { if (!SAVE.owned.alfa) { SAVE.owned.alfa = true; SAVE.upgrades.alfa = SAVE.upgrades.alfa || {}; note = 'The Commodore hands over the keys to his 1980 Alfa Romeo Spider. It’s waiting at Holy City Motors.'; } else note = 'The Commodore wants a rematch.'; }
+    if (m.id === 'kingtide' && place === 1) { if (!SAVE.owned.alfa) { SAVE.owned.alfa = true; SAVE.upgrades.alfa = SAVE.upgrades.alfa || {}; note = 'The Commodore hands over the keys to his 1980 Alfa Romeo Spider. It’s waiting at Holy City Motors.'; setTimeout(() => showCarCard('alfa', true, 'results'), 900); } else note = 'The Commodore wants a rematch.'; }
   } else {
     const onTime = G.finishedAt <= G.limit; const r = G.finishedAt / G.limit;
     medal = !onTime ? 0 : r <= 0.78 ? 3 : r <= 0.9 ? 2 : 1;
@@ -3008,7 +3124,7 @@ function renderDealer() {
     const v = VEHICLES[id]; const owned = !!SAVE.owned[id]; const secret = id === 'alfa' && !owned;
     const b = document.createElement('button'); b.className = 'caritem' + (dealSel === id ? ' sel' : '');
     const cv = mkCanvas(48, 48); const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
-    if (!secret) g.drawImage(vehicleSprite(v, 28, id), 10, 10, 24, 24, 0, 0, 48, 48); else { g.fillStyle = '#333a55'; g.fillRect(14, 18, 20, 12); pixText(g, '?', 22, 21, '#9fd8dc'); }
+    if (!secret) g.drawImage(sideArt(id), 0, 4, 64, 28, 0, 10, 48, 21); else { g.fillStyle = '#333a55'; g.fillRect(14, 18, 20, 12); pixText(g, '?', 22, 21, '#9fd8dc'); }
     b.appendChild(cv);
     const nm = document.createElement('span'); nm.textContent = secret ? '???' : v.name; b.appendChild(nm);
     const pr = document.createElement('span'); pr.className = 'price' + (owned ? ' own' : '');
@@ -3025,9 +3141,10 @@ function renderDealer() {
   if (owned) {
     const b = document.createElement('button'); b.className = 'btn'; b.textContent = SAVE.car === dealSel ? 'IN YOUR DRIVEWAY' : 'DRIVE THIS ONE'; b.disabled = SAVE.car === dealSel;
     b.onclick = () => { SAVE.car = dealSel; writeSave(); sfx('buy'); renderDealer(); }; act.appendChild(b);
+    const vc = document.createElement('button'); vc.className = 'btn ghost'; vc.textContent = 'VIEW CARD'; vc.onclick = () => showCarCard(dealSel, false, 'dealer'); act.appendChild(vc);
   } else if (!secret) {
     const b = document.createElement('button'); b.className = 'btn'; b.textContent = 'BUY ' + fmtMoney(v.price); b.disabled = SAVE.money < v.price;
-    b.onclick = () => { if (SAVE.money < v.price) return; SAVE.money -= v.price; SAVE.owned[dealSel] = true; SAVE.upgrades[dealSel] = SAVE.upgrades[dealSel] || {}; SAVE.car = dealSel; writeSave(); sfx('buy'); renderDealer(); };
+    b.onclick = () => { if (SAVE.money < v.price) return; SAVE.money -= v.price; SAVE.owned[dealSel] = true; SAVE.upgrades[dealSel] = SAVE.upgrades[dealSel] || {}; SAVE.car = dealSel; writeSave(); sfx('buy'); renderDealer(); showCarCard(dealSel, true, 'dealer'); };
     act.appendChild(b);
     if (SAVE.money < v.price) { const s2 = document.createElement('span'); s2.style.cssText = 'font-size:14px;align-self:center;color:#9fd8dc'; s2.textContent = 'Need ' + fmtMoney(v.price - SAVE.money) + ' more'; act.appendChild(s2); }
   }
@@ -3046,17 +3163,101 @@ function renderDealer() {
     }
   }
 }
+/* showroom art: glass curtain wall, polished floor, spotlights, cars on display */
+function drawDealerBg(now) {
+  const cv = $('#dealerBg'); const W = 320, H = Math.max(180, Math.min(420, Math.round(320 * innerHeight / innerWidth)));
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+  const floorY = Math.round(H * 0.62), ceil = Math.round(H * 0.1);
+  // outside through the glass: sky, palmettos, Savannah Hwy traffic
+  const sky = g.createLinearGradient(0, ceil, 0, floorY); sky.addColorStop(0, '#9fd3ea'); sky.addColorStop(1, '#dff1f6'); g.fillStyle = sky; g.fillRect(0, ceil, W, floorY - ceil);
+  g.fillStyle = '#7fb089'; g.fillRect(0, floorY - 26, W, 10); g.fillStyle = '#5c6068'; g.fillRect(0, floorY - 16, W, 10); g.fillStyle = '#e8c547'; for (let x = 0; x < W; x += 12) g.fillRect(x, floorY - 11, 6, 1);
+  for (let i = 0; i < 4; i++) { const cx = ((now * (22 + i * 9) * (i % 2 ? -1 : 1)) % (W + 40) + W + 40) % (W + 40) - 20; g.fillStyle = ['#e2574c', '#22356a', '#c7c9cc', '#2f6b46'][i]; g.fillRect(Math.round(cx), floorY - (i % 2 ? 15 : 12), 12, 4); g.fillStyle = '#8fb6d8'; g.fillRect(Math.round(cx) + 3, floorY - (i % 2 ? 16 : 13), 5, 1); }
+  for (let i = 0; i < 7; i++) { const px = 18 + i * 48 + (i % 2) * 10, ph = 34 + (i % 3) * 6; g.fillStyle = '#7a6448'; g.fillRect(px, floorY - 26 - ph, 2, ph); g.fillStyle = '#2f6b46'; for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; g.fillRect(px + Math.round(Math.cos(a) * 7) - 2, floorY - 26 - ph + Math.round(Math.sin(a) * 3), 5, 2); } }
+  // glass mullions + gloss sweep
+  g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(0, ceil, W, floorY - ceil);
+  const sweep = ((now * 40) % (W * 2)) - W * 0.5; g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.moveTo(sweep, ceil); g.lineTo(sweep + 24, ceil); g.lineTo(sweep - 20, floorY); g.lineTo(sweep - 44, floorY); g.fill();
+  g.fillStyle = '#3a3f4a'; for (let x = 0; x <= W; x += 40) g.fillRect(x, ceil, 3, floorY - ceil); g.fillRect(0, Math.round((ceil + floorY) / 2), W, 2);
+  // ceiling with recessed lights
+  g.fillStyle = '#f4f6f8'; g.fillRect(0, 0, W, ceil); g.fillStyle = '#d8dde3'; g.fillRect(0, ceil - 2, W, 2);
+  g.fillStyle = '#fffbe6'; for (let x = 20; x < W; x += 60) g.fillRect(x, ceil - 4, 14, 2);
+  // polished floor with the scene reflected in it
+  g.fillStyle = '#e6eaee'; g.fillRect(0, floorY, W, H - floorY);
+  g.save(); g.globalAlpha = 0.22; g.translate(0, floorY * 2); g.scale(1, -1); g.drawImage(cv, 0, ceil, W, floorY - ceil, 0, ceil, W, floorY - ceil); g.restore();
+  g.fillStyle = 'rgba(190,200,210,.55)'; for (let x = 0; x < W; x += 32) g.fillRect(x, floorY, 1, H - floorY); for (let y = floorY + 10; y < H; y += Math.max(10, (y - floorY) * 0.6)) g.fillRect(0, Math.round(y), W, 1);
+  // spotlight cones
+  g.globalCompositeOperation = 'lighter';
+  for (const sx of [56, 160, 264]) { const gr = g.createLinearGradient(0, ceil, 0, H); gr.addColorStop(0, 'rgba(255,248,220,.35)'); gr.addColorStop(1, 'rgba(255,248,220,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(sx - 4, ceil); g.lineTo(sx + 4, ceil); g.lineTo(sx + 38, H); g.lineTo(sx - 38, H); g.fill(); }
+  g.globalCompositeOperation = 'source-over';
+  // cars on the floor, each with a mirror reflection
+  const show = [['volvo', 2, 56], ['clubman', 30, 160], ['ranger', 4, 264]];
+  for (const [id, ai, cx] of show) {
+    const spr = vehicleSprite(VEHICLES[id], ai, id); const sz = 88, y = floorY + 6;
+    g.fillStyle = 'rgba(31,47,90,.18)'; g.beginPath(); g.ellipse(cx, y + 30, 30, 6, 0, 0, TAU); g.fill();
+    g.save(); g.globalAlpha = 0.25; g.translate(0, (y + 34) * 2); g.scale(1, -1); g.drawImage(spr, cx - sz / 2, y - 10, sz, sz); g.restore();
+    g.drawImage(spr, cx - sz / 2, y - 10, sz, sz);
+  }
+  // reception desk, potted palm, sweet tea station, a banner
+  const dx = W - 74, dy = floorY - 4; g.fillStyle = '#ffffff'; g.fillRect(dx, dy - 14, 52, 18); g.fillStyle = '#c99a62'; g.fillRect(dx - 2, dy - 16, 56, 3); g.fillStyle = '#1f2f5a'; g.fillRect(dx + 14, dy - 9, 24, 6); pixText(g, 'HCM', dx + 20, dy - 9, '#fbf3df');
+  g.fillStyle = '#e8e6de'; g.fillRect(14, floorY - 12, 12, 14); g.fillStyle = '#2f6b46'; for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI + Math.PI; g.fillRect(20 + Math.round(Math.cos(a) * 9) - 2, floorY - 14 + Math.round(Math.sin(a) * 9), 5, 2); }
+  g.fillStyle = '#b8642a'; g.fillRect(W - 112, floorY - 14, 8, 12); g.fillStyle = '#e8e6de'; g.fillRect(W - 112, floorY - 16, 8, 3); pixText(g, 'TEA', W - 114, floorY - 22, '#1f2f5a');
+  g.fillStyle = '#1f2f5a'; g.fillRect(W / 2 - 62, ceil + 4, 124, 12); pixText(g, 'LOWCOUNTRY CERTIFIED', W / 2 - 39, ceil + 7, '#f6d77a');
+}
 function drawShowroom(now) {
-  if (mode !== 'dealer') return; const cv = $('#showCanvas'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
-  g.fillStyle = '#0b1730'; g.fillRect(0, 0, 150, 100);
-  g.fillStyle = '#16224a'; for (let i = 0; i < 10; i++) g.fillRect(0, 60 + i * 4, 150, 2);
-  g.fillStyle = 'rgba(159,216,220,.15)'; g.beginPath(); g.ellipse(75, 66, 52, 16, 0, 0, TAU); g.fill();
+  if (mode !== 'dealer') return;
+  drawDealerBg(now);
+  const cv = $('#showCanvas'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false; const W = 150, H = 100, fy = 64;
+  const wall = g.createLinearGradient(0, 0, 0, fy); wall.addColorStop(0, '#f4f7fa'); wall.addColorStop(1, '#dfe7ee'); g.fillStyle = wall; g.fillRect(0, 0, W, fy);
+  g.fillStyle = '#c9d3dc'; for (let x = 0; x < W; x += 30) g.fillRect(x, 0, 2, fy);
+  g.fillStyle = '#e9edf1'; g.fillRect(0, fy, W, H - fy); g.fillStyle = 'rgba(180,192,204,.6)'; for (let x = 0; x < W; x += 25) g.fillRect(x, fy, 1, H - fy);
+  // turntable
+  g.fillStyle = '#c8d0d8'; g.beginPath(); g.ellipse(75, fy + 10, 56, 14, 0, 0, TAU); g.fill(); g.fillStyle = '#dde3e9'; g.beginPath(); g.ellipse(75, fy + 9, 54, 12, 0, 0, TAU); g.fill();
+  g.strokeStyle = 'rgba(31,47,90,.25)'; g.lineWidth = 1; g.beginPath(); g.ellipse(75, fy + 9, 40, 9, (now * 0.8) % TAU, 0, 1.2); g.stroke();
   const v = VEHICLES[dealSel]; const secret = dealSel === 'alfa' && !SAVE.owned.alfa;
   const ai = Math.floor(now * 4) % ANG; const spr = vehicleSprite(v, ai, dealSel);
-  g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(76, 70, 26, 10, 0, 0, TAU); g.fill();
-  if (secret) { g.globalCompositeOperation = 'source-over'; g.filter = 'brightness(0)'; }
-  g.drawImage(spr, 75 - 66, 60 - 66 - 4, 132, 132); g.filter = 'none';
+  if (secret) g.filter = 'brightness(0) opacity(.75)';
+  g.save(); g.globalAlpha = 0.25; g.translate(0, (fy + 12) * 2); g.scale(1, -1); g.drawImage(spr, 75 - 66, fy + 12 - 66 - 4 - 6, 132, 132); g.restore();
+  g.fillStyle = 'rgba(31,47,90,.22)'; g.beginPath(); g.ellipse(76, fy + 10, 26, 7, 0, 0, TAU); g.fill();
+  g.drawImage(spr, 75 - 66, fy - 66 - 4 - 6 + 4, 132, 132); g.filter = 'none';
+  // spotlight
+  g.globalCompositeOperation = 'lighter'; const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(255,248,220,.4)'); gr.addColorStop(1, 'rgba(255,248,220,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(68, 0); g.lineTo(82, 0); g.lineTo(130, H); g.lineTo(20, H); g.fill(); g.globalCompositeOperation = 'source-over';
+  // glass glare
+  const sw = ((now * 50) % 300) - 60; g.fillStyle = 'rgba(255,255,255,.4)'; g.beginPath(); g.moveTo(sw, 0); g.lineTo(sw + 10, 0); g.lineTo(sw - 30, H); g.lineTo(sw - 40, H); g.fill();
 }
+
+/* hero card */
+let cardCar = null, cardFrom = 'dealer';
+function drawCardScene(id, now) {
+  const cv = $('#hcCanvas'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false; const W = 160, H = 96;
+  const bands = ['#2a2350', '#5a3a6e', '#a8466e', '#e2735a', '#f0a65a', '#f6d77a'];
+  bands.forEach((c, i) => { g.fillStyle = c; g.fillRect(0, i * 9, W, 9); if (i) { g.fillStyle = bands[i - 1]; for (let x = (i % 2) * 2; x < W; x += 4) g.fillRect(x, i * 9, 2, 1); } });
+  g.fillStyle = '#fff3c4'; g.beginPath(); g.arc(118, 50, 13, Math.PI, 0); g.fill(); g.fillStyle = '#f6d77a'; for (let y = 38; y < 50; y += 3) g.fillRect(105, y, 26, 1);
+  // Ravenel towers and cables in silhouette
+  g.fillStyle = '#2a2350'; for (const tx of [38, 92]) { g.fillRect(tx - 1, 18, 3, 36); g.beginPath(); g.moveTo(tx - 8, 54); g.lineTo(tx, 20); g.lineTo(tx + 8, 54); g.lineTo(tx + 6, 54); g.lineTo(tx, 28); g.lineTo(tx - 6, 54); g.fill(); g.strokeStyle = 'rgba(42,35,80,.7)'; g.lineWidth = 1; for (let k = 1; k < 6; k++) { g.beginPath(); g.moveTo(tx, 22 + k); g.lineTo(tx - k * 6, 54); g.moveTo(tx, 22 + k); g.lineTo(tx + k * 6, 54); g.stroke(); } }
+  g.fillRect(0, 53, W, 3);
+  g.fillStyle = '#2f5a6e'; g.fillRect(0, 56, W, 10); g.fillStyle = 'rgba(246,215,122,.5)'; for (let x = 100; x < 140; x += 5) g.fillRect(x + Math.round(Math.sin(now * 2 + x) * 2), 58 + (x % 3) * 2, 3, 1);
+  g.fillStyle = '#5a7a3a'; g.fillRect(0, 64, W, 4); g.fillStyle = '#4a4c55'; g.fillRect(0, 68, W, 28); g.fillStyle = '#e8c547'; for (let x = (-now * 60) % 16; x < W; x += 16) g.fillRect(Math.round(x), 84, 8, 2);
+  const art = sideArt(id); const bob = Math.round(Math.sin(now * 6) * 0.6);
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(24, 88, 112, 4);
+  g.drawImage(art, 16, 30 + bob, 128, 64);
+  // sparkles
+  g.fillStyle = '#fff'; for (let i = 0; i < 5; i++) { const ph = (now * 1.5 + i * 0.37) % 1; if (ph < 0.3) { const sx = 20 + (i * 37) % 120, sy = 30 + (i * 23) % 40; g.fillRect(sx, sy - 2, 1, 5); g.fillRect(sx - 2, sy, 5, 1); } }
+}
+function showCarCard(id, isNew, from) {
+  cardCar = id; cardFrom = from || mode; mode = 'card'; showScreen('carCard'); sfx(isNew ? 'win' : 'click');
+  const v = VEHICLES[id], ci = CARD_INFO[id], s = SAVE.owned[id] ? statsFor(id) : v;
+  $('#hcard').style.setProperty('--rc', ci.rc);
+  $('#hcRare').textContent = ci.rare; $('#hcNo').textContent = 'No. ' + String(VORDER.indexOf(id) + 1).padStart(2, '0') + ' / ' + String(VORDER.length).padStart(2, '0');
+  $('#hcName').textContent = v.name; $('#hcTag').textContent = ci.tag; $('#hcFlav').textContent = v.desc;
+  const pips = (n) => '<span class="pb">' + Array.from({ length: 8 }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('') + '</span>';
+  $('#hcStats').innerHTML = 'SPEED' + pips(Math.round((s.speed - 150) / 140 * 8)) + 'GRIP' + pips(Math.round((s.grip - 5) / 5 * 8)) + 'TOUGH' + pips(Math.round(s.tough / 2.4 * 8)) + 'WADE' + pips(Math.round(s.wade / 1.4 * 8));
+  $('#hcNew').hidden = !isNew;
+  $('#hcDrive').textContent = SAVE.car === id ? 'DRIVING IT' : 'DRIVE IT'; $('#hcDrive').disabled = !SAVE.owned[id] || SAVE.car === id;
+  $('#hcClose').textContent = cardFrom === 'results' ? 'BACK TO RESULTS' : 'BACK TO SHOWROOM';
+}
+function closeCarCard() { sfx('click'); if (cardFrom === 'results') { mode = 'results'; showScreen('results'); } else { mode = 'dealer'; showScreen('dealer'); renderDealer(); } }
+$('#hcClose').onclick = closeCarCard;
+$('#hcDrive').onclick = () => { if (!cardCar || !SAVE.owned[cardCar]) return; SAVE.car = cardCar; writeSave(); sfx('buy'); $('#hcDrive').textContent = 'DRIVING IT'; $('#hcDrive').disabled = true; };
 
 /* settings */
 function openSettings() { sfx('click'); mode = 'settings'; showScreen('settings'); $('#sConfirm').hidden = true; syncSettings(); }
@@ -3150,7 +3351,7 @@ let lastT = 0, acc = 0;
 function frame(ts) {
   const t = ts / 1000; let dt = Math.min(0.1, t - (lastT || t)); lastT = t;
   if (mode !== 'pause' && mode !== 'results' && G) { acc += dt; let n = 0; while (acc >= 1 / 60 && n < 5) { tick(1 / 60); acc -= 1 / 60; n++; } if (n === 5) acc = 0; }
-  if (G) render(); updateHud(); updateEngine(); drawShowroom(t);
+  if (G) render(); updateHud(); updateEngine(); drawShowroom(t); if (mode === 'card' && cardCar) drawCardScene(cardCar, t);
   requestAnimationFrame(frame);
 }
 function boot() {
