@@ -68,6 +68,17 @@ body.touch #touch.on{display:block}
 #bBrake{right:calc(max(22px,env(safe-area-inset-right,0px)) + 104px);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);width:66px;height:66px;background:#e2574c;color:#fff}
 #bNitro{right:calc(max(22px,env(safe-area-inset-right,0px)) + 8px);bottom:calc(env(safe-area-inset-bottom,0px) + 134px);width:66px;height:66px;background:#f08a6b}
 #bHonk{right:calc(max(22px,env(safe-area-inset-right,0px)) + 92px);bottom:calc(env(safe-area-inset-bottom,0px) + 98px);width:58px;height:58px;background:#f6d77a}
+/* 8-bit controls: pixel-art images drawn at runtime, scaled up crisp */
+#stick,#knob,.tbtn{border:none!important;border-radius:0!important;box-shadow:none!important;background-color:transparent!important;
+  background-repeat:no-repeat;background-size:100% 100%;image-rendering:pixelated;image-rendering:crisp-edges;color:transparent!important;font-size:0!important}
+.tbtn.down{transform:none;filter:none}
+#touch.edit #stick,#touch.edit .tbtn{outline:2px dashed var(--butter);outline-offset:4px;cursor:grab}
+#touch.edit #stick *{pointer-events:none}
+#layoutBar{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);z-index:20;pointer-events:auto;
+  background:var(--panel);border:4px solid var(--haint);box-shadow:0 0 0 4px var(--navy-deep);padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+  max-width:calc(100vw - 32px);font-size:15px;text-align:center}
+#layoutBar .btn{font-size:9px;padding:8px 10px}
+#layoutBar[hidden]{display:none!important}
 @media (max-height:430px){
   #stick{width:120px;height:120px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
   #bGas{width:78px;height:78px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
@@ -214,6 +225,12 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
     <div class="tbtn" id="bHonk">HONK</div>
   </div>
 
+  <div id="layoutBar" hidden>
+    <span>Drag the controls where your thumbs like them.</span>
+    <button class="btn ghost" id="lReset">RESET</button>
+    <button class="btn" id="lDone">DONE</button>
+  </div>
+
   <!-- Title -->
   <div class="screen" id="title">
     <h1 class="logo">HOLY CITY<br>HUSTLE<span>CHARLESTON · SC</span></h1>
@@ -306,8 +323,11 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
       <div class="setrow"><span>Difficulty</span><div class="seg" id="sDiff"><button data-v="easy">EASY</button><button data-v="normal">NORMAL</button><button data-v="hard">HARD</button></div></div>
       <div class="setrow"><span>Music</span><div class="seg" id="sMusic"><button data-v="1">ON</button><button data-v="0">OFF</button></div></div>
       <div class="setrow"><span>Sound effects</span><div class="seg" id="sSfx"><button data-v="1">ON</button><button data-v="0">OFF</button></div></div>
+      <div class="setrow"><span>Touch buttons</span><div class="seg" id="sBtnSize"><button data-v="0.8">SMALL</button><button data-v="1">MEDIUM</button><button data-v="1.25">LARGE</button></div></div>
+      <div class="setrow"><span>Button layout</span><button class="btn alt" id="sLayout" style="font-size:9px;padding:8px 10px">ARRANGE…</button></div>
+      <div class="setrow"><span>Driving help</span><div class="seg" id="sAssist"><button data-v="1">ON</button><button data-v="0">OFF</button></div></div>
       <div class="setrow"><span>Steering stick</span><div class="seg" id="sSteer"><button data-v="point">POINT</button><button data-v="turn">TURN</button></div></div>
-      <p class="keys" style="margin-top:12px"><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> steer · <kbd>↑</kbd>/<kbd>W</kbd> gas · <kbd>↓</kbd>/<kbd>S</kbd> brake &amp; reverse · <kbd>SPACE</kbd> sweet tea boost · <kbd>H</kbd> honk · <kbd>P</kbd> pause. A gamepad works too. On a touch screen, POINT steers the car toward the stick; TURN rotates it like the old RC cars.</p>
+      <p class="keys" style="margin-top:12px"><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> steer · <kbd>↑</kbd>/<kbd>W</kbd> gas · <kbd>↓</kbd>/<kbd>S</kbd> brake &amp; reverse · <kbd>SPACE</kbd> sweet tea boost · <kbd>H</kbd> honk · <kbd>P</kbd> pause. A gamepad works too. On a touch screen, POINT steers the car toward the stick; TURN rotates it like the old RC cars. Driving help keeps the car straight along the road whenever you let go of the steering.</p>
       <div class="setrow" style="border:none"><span>Erase all progress</span><button class="btn warn" id="sReset" style="font-size:9px;padding:8px 10px">ERASE…</button></div>
       <div id="sConfirm" hidden style="background:#3a1620;border:2px solid var(--bad);padding:10px;margin-top:6px">
         <p style="font-size:16px">Erase every dollar, car and medal? This can't be undone.</p>
@@ -344,7 +364,7 @@ function hash2(x, y) { let h = (x * 374761393 + y * 668265263) | 0; h = Math.imu
 const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= TAU; while (d < -Math.PI) d += TAU; return d; };
 const dist = (ax, ay, bx, by) => Math.hypot(bx - ax, by - ay);
 
-const S = 3, C = 12, LW = 11;
+const S = 3, C = 12, LW = 16;
 const WW = 4800 * S, WH = 3200 * S, GW = WW / C | 0, GH = WH / C | 0;
 const T = { WATER: 0, LAND: 1, MARSH: 2, SAND: 3, PARK: 4, ROAD: 5, BRIDGE: 6, RAIL: 7, BUILD: 8, TREE: 9, DRAW: 10, LOT: 11, WALK: 12, COBBLE: 13, SWING: 14 };
 const SOLID = new Uint8Array(16); SOLID[T.RAIL] = SOLID[T.BUILD] = SOLID[T.TREE] = 1;
@@ -1139,8 +1159,8 @@ const SURF = {};
 (function () {
   const d = (max, accel, grip, drag) => ({ max, accel, grip, drag });
   SURF[T.ROAD] = SURF[T.BRIDGE] = SURF[T.LOT] = SURF[T.DRAW] = SURF[T.SWING] = d(1, 1, 1, 0);
-  SURF[T.WALK] = d(0.85, 0.9, 0.95, 0.3); SURF[T.COBBLE] = d(0.62, 0.8, 0.9, 0.6);
-  SURF[T.LAND] = SURF[T.PARK] = d(0.55, 0.6, 0.7, 1.1); SURF[T.SAND] = d(0.45, 0.5, 0.6, 1.5);
+  SURF[T.WALK] = d(0.92, 0.95, 1, 0.2); SURF[T.COBBLE] = d(0.62, 0.8, 0.9, 0.6);
+  SURF[T.LAND] = SURF[T.PARK] = d(0.7, 0.72, 0.8, 0.8); SURF[T.SAND] = d(0.45, 0.5, 0.6, 1.5);
   SURF[T.MARSH] = d(0.34, 0.45, 0.42, 1.8); SURF[T.WATER] = d(0.3, 0.3, 0.3, 2);
   SURF[T.RAIL] = SURF[T.BUILD] = SURF[T.TREE] = d(1, 1, 1, 0);
 })();
@@ -1171,10 +1191,10 @@ function statsFor(vid) {
 }
 
 /* ---------- save ---------- */
-const DEFAULT_SAVE = () => ({ v: 1, money: 0, owned: { volvo: true }, car: 'volvo', upgrades: { volvo: {} }, best: {}, settings: { diff: 'normal', music: 1, sfx: 1, steer: 'point' }, seenIntro: false });
+const DEFAULT_SAVE = () => ({ v: 1, money: 0, owned: { volvo: true }, car: 'volvo', upgrades: { volvo: {} }, best: {}, settings: { diff: 'normal', music: 1, sfx: 1, steer: 'point', btnSize: 1, layout: {}, assist: 1 }, seenIntro: false });
 let SAVE = DEFAULT_SAVE();
 function loadSave() {
-  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) { const s = JSON.parse(raw); const d = DEFAULT_SAVE(); SAVE = Object.assign(d, s); SAVE.settings = Object.assign(d.settings, s.settings || {}); SAVE.owned = Object.assign({ volvo: true }, s.owned || {}); SAVE.upgrades = s.upgrades || {}; if (!VEHICLES[SAVE.car] || !SAVE.owned[SAVE.car]) SAVE.car = 'volvo'; } } catch (e) { SAVE = DEFAULT_SAVE(); }
+  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) { const s = JSON.parse(raw); const d = DEFAULT_SAVE(); SAVE = Object.assign(d, s); SAVE.settings = Object.assign(d.settings, s.settings || {}); if (!SAVE.settings.layout || typeof SAVE.settings.layout !== 'object') SAVE.settings.layout = {}; SAVE.owned = Object.assign({ volvo: true }, s.owned || {}); SAVE.upgrades = s.upgrades || {}; if (!VEHICLES[SAVE.car] || !SAVE.owned[SAVE.car]) SAVE.car = 'volvo'; } } catch (e) { SAVE = DEFAULT_SAVE(); }
 }
 function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) { } }
 
@@ -1590,6 +1610,14 @@ function updateCar(c, inp, dt) {
     if (vF < -3) turn = -turn;
     c.h += turn * dt;
   } else c.h += inp.steer * 1.2 * dt;
+  if (c.isPlayer && grounded && SAVE.settings.assist !== 0 && Math.abs(inp.steer) < 0.2 && Math.abs(vF) > 40 && !G.autopilot) {
+    c.assistT = (c.assistT || 0) - 1; if (c.assistT <= 0) { c.assistT = 4; c.assistE = nearestEdge(c.x, c.y, 50); }
+    const ne = c.assistE; if (ne && !isBridge(ne.e) || (ne && ne.e)) { const e = ne.e; const a1 = Math.atan2(e.uy, e.ux), a2 = a1 + Math.PI; const d1 = angDiff(c.h, a1), d2 = angDiff(c.h, a2); const d = Math.abs(d1) < Math.abs(d2) ? d1 : d2;
+      if (Math.abs(d) < 0.55) c.h += d * Math.min(1, 4.5 * dt);
+      // gently drift back toward the right-hand lanes when wandering onto the edge
+      const along = (c.x - e.ax) * e.ux + (c.y - e.ay) * e.uy, lat = (c.x - e.ax) * e.nx + (c.y - e.ay) * e.ny; const dirS = Math.abs(d1) < Math.abs(d2) ? 1 : -1; const latD = lat * dirS;
+      if (along > 0 && along < e.len && latD > e.w / 2 - 3) c.h += -0.25 * dirS * Math.min(1, 4 * dt) * (vF > 0 ? 1 : -1) * 0; }
+  }
   const fx = Math.cos(c.h), fy = Math.sin(c.h), rx = -fy, ry = fx;
   vF = c.vx * fx + c.vy * fy; let vR = c.vx * rx + c.vy * ry;
   if (grounded) {
@@ -1617,9 +1645,9 @@ function updateCar(c, inp, dt) {
   }
   // move with collision
   const nx = c.x + c.vx * dt;
-  if (hitsSolid(c, nx, c.y)) { bump(c, Math.abs(c.vx)); c.vx = -c.vx * 0.35; } else c.x = nx;
+  if (hitsSolid(c, nx, c.y)) { bump(c, Math.abs(c.vx)); c.vx = -c.vx * 0.12; c.vy *= 0.92; } else c.x = nx;
   const ny = c.y + c.vy * dt;
-  if (hitsSolid(c, c.x, ny)) { bump(c, Math.abs(c.vy)); c.vy = -c.vy * 0.35; } else c.y = ny;
+  if (hitsSolid(c, c.x, ny)) { bump(c, Math.abs(c.vy)); c.vy = -c.vy * 0.12; c.vx *= 0.92; } else c.y = ny;
   if (hitsSolid(c, c.x, c.y)) { // rotated into a wall: push out
     for (let k = 1; k < 6; k++) { let ok = false; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!hitsSolid(c, c.x + dx * k * 2, c.y + dy * k * 2)) { c.x += dx * k * 2; c.y += dy * k * 2; ok = true; break; } if (ok) break; }
   }
@@ -1988,7 +2016,7 @@ function tick(dt) {
   if (p.skid > 0.4 && Math.random() < 0.5) G.particles.push({ x: p.x - Math.cos(p.h) * 7, y: p.y - Math.sin(p.h) * 7, vx: 0, vy: 0, vz: 10, z: 0, life: 0.4, col: '#9a9890', s: 2 });
   if (p.nitroT > 0) for (let i = 0; i < 2; i++) G.particles.push({ x: p.x - Math.cos(p.h) * 10, y: p.y - Math.sin(p.h) * 10, vx: -Math.cos(p.h) * 60 + (Math.random() - .5) * 20, vy: -Math.sin(p.h) * 60 + (Math.random() - .5) * 20, vz: 10, z: p.z + 2, life: 0.25, col: i ? '#f6d77a' : '#f08a6b', s: 2 });
   // camera
-  const look = 0.32; const tx = p.x + clamp(p.vx * look, -80, 80), ty = p.y + clamp(p.vy * look, -60, 60) - p.z * 0.3;
+  const look = 0.45; const tx = p.x + clamp(p.vx * look, -110, 110), ty = p.y + clamp(p.vy * look, -80, 80) - p.z * 0.3;
   cam.x += (tx - cam.x) * (1 - Math.exp(-5 * dt)); cam.y += (ty - cam.y) * (1 - Math.exp(-5 * dt));
   cam.shake *= Math.exp(-6 * dt);
   if (msgT > 0) { msgT -= dt; if (msgT <= 0) $('#hMsg').style.opacity = 0; }
@@ -2303,17 +2331,113 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { keys[e.code] = false; });
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 if (isTouch) document.body.classList.add('touch');
+/* ---------- 8-bit touch controls + layout editor ---------- */
+function pixelButtonArt(label, base, light, dark, ink, N) {
+  const out = {};
+  for (const pressed of [0, 1]) {
+    const c = mkCanvas(N, N), g = c.getContext('2d'); const r = N / 2 - 0.5, cx = N / 2 - 0.5, cy = N / 2 - 0.5;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const d = Math.hypot(x - cx, y - cy); if (d > r + 0.3) continue;
+      let col = base;
+      if (d > r - 1.1) col = '#000';
+      else if (!pressed && y >= N - 4 && d > r - 3.2) col = dark; // drop edge
+      else if (pressed ? (x + y < N * 0.55 && d > r - 3) : (x + y < N * 0.7 && d > r - 2.6)) col = pressed ? dark : light;
+      else if (!pressed && x + y > N * 1.35 && d > r - 2.6) col = dark;
+      if (col === base && ((x + y) % 2 === 0) && x + y > N * 1.2 && d > r - 5 && d <= r - 2.6) col = dark; // dither
+      g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    }
+    if (!pressed) { g.fillStyle = '#fff'; g.fillRect(Math.round(N * 0.28), Math.round(N * 0.22), 2, 1); g.fillRect(Math.round(N * 0.24), Math.round(N * 0.27), 1, 1); }
+    const w = pixTextW(label); pixText(g, label, Math.round((N - w) / 2), Math.round(N / 2 - 3 + (pressed ? 1 : 0)), ink);
+    out[pressed ? 'down' : 'up'] = c.toDataURL();
+  }
+  return out;
+}
+function stickArt() {
+  const N = 40, c = mkCanvas(N, N), g = c.getContext('2d'), r = 19.5, ce = 19.5;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const d = Math.hypot(x - ce, y - ce); if (d > r + 0.3) continue;
+    let col = (x + y) % 2 ? 'rgba(11,16,34,.55)' : 'rgba(31,47,90,.55)';
+    if (d > r - 1.1) col = '#000'; else if (d > r - 3) col = (y < ce ? '#9fd8dc' : '#4f8f96');
+    g.fillStyle = col; g.fillRect(x, y, 1, 1);
+  }
+  g.fillStyle = '#9fd8dc';
+  for (const [a, b] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) for (let i = 0; i < 3; i++) for (let j = -i; j <= i; j++) { const px = ce + a * (13 - i) + (a ? 0 : j), py = ce + b * (13 - i) + (b ? 0 : j); g.fillRect(Math.round(px), Math.round(py), 1, 1); }
+  const k = mkCanvas(16, 16), h = k.getContext('2d');
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const d = Math.hypot(x - 7.5, y - 7.5); if (d > 7.8) continue; let col = '#f6d77a'; if (d > 6.7) col = '#000'; else if (x + y < 11 && d > 4) col = '#fff3c4'; else if (x + y > 19 && d > 4) col = '#c99a2e'; h.fillStyle = col; h.fillRect(x, y, 1, 1); }
+  return { base: c.toDataURL(), knob: k.toDataURL() };
+}
+const CTRL = [
+  { id: 'stick', size: 150, def: (ins, sc) => ({ x: ins.l + 18 + 75 * sc, y: innerHeight - ins.b - 18 - 75 * sc }) },
+  { id: 'bGas', size: 92, def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 46 * sc, y: innerHeight - ins.b - 30 - 46 * sc }) },
+  { id: 'bBrake', size: 66, def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 104 * sc - 33 * sc, y: innerHeight - ins.b - 18 - 33 * sc }) },
+  { id: 'bNitro', size: 66, def: (ins, sc) => ({ x: innerWidth - ins.r - 30 - 33 * sc, y: innerHeight - ins.b - 134 * sc - 33 * sc }) },
+  { id: 'bHonk', size: 58, def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 92 * sc - 29 * sc, y: innerHeight - ins.b - 98 * sc - 29 * sc }) },
+];
+function safeInsets() {
+  let p = document.getElementById('insetProbe');
+  if (!p) { p = document.createElement('div'); p.id = 'insetProbe'; p.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)'; document.body.appendChild(p); }
+  const cs = getComputedStyle(p); return { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+}
+function orientKey() { return innerWidth >= innerHeight ? 'L' : 'P'; }
+function ctrlScale() { return (SAVE.settings.btnSize || 1) * (innerHeight < 430 ? 0.8 : 1); }
+function layoutControls() {
+  const ins = safeInsets(), sc = ctrlScale(), L = (SAVE.settings.layout || {})[orientKey()] || {};
+  for (const c of CTRL) {
+    const el = $('#' + c.id), sz = Math.round(c.size * sc);
+    let p = L[c.id] ? { x: L[c.id][0] * innerWidth, y: L[c.id][1] * innerHeight } : c.def(ins, sc);
+    p.x = clamp(p.x, sz / 2 + 4, innerWidth - sz / 2 - 4); p.y = clamp(p.y, sz / 2 + 4, innerHeight - sz / 2 - 4);
+    Object.assign(el.style, { left: (p.x - sz / 2) + 'px', top: (p.y - sz / 2) + 'px', right: 'auto', bottom: 'auto', width: sz + 'px', height: sz + 'px' });
+  }
+  const k = $('#knob'), ks = Math.round(58 * sc); Object.assign(k.style, { width: ks + 'px', height: ks + 'px', margin: (-ks / 2) + 'px 0 0 ' + (-ks / 2) + 'px' });
+}
+const ART = {};
+function makeControlArt() {
+  ART.gas = pixelButtonArt('GAS', '#7fd38a', '#c8f2c8', '#3f8a4c', '#0b1022', 26);
+  ART.brake = pixelButtonArt('BRAKE', '#e2574c', '#f6a49a', '#8a2a24', '#fff', 26);
+  ART.nitro = pixelButtonArt('TEA', '#f08a6b', '#ffd2a8', '#a8553e', '#0b1022', 22);
+  ART.honk = pixelButtonArt('HONK', '#f6d77a', '#fff3c4', '#b8952e', '#0b1022', 22);
+  const st = stickArt();
+  $('#stick').style.backgroundImage = `url(${st.base})`; $('#knob').style.backgroundImage = `url(${st.knob})`;
+  for (const el of ['stick', 'knob', 'bGas', 'bBrake', 'bNitro', 'bHonk'].map(i => $('#' + i))) Object.assign(el.style, { backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent' });
+  for (const [id, k] of [['bGas', 'gas'], ['bBrake', 'brake'], ['bNitro', 'nitro'], ['bHonk', 'honk']]) $('#' + id).style.backgroundImage = `url(${ART[k].up})`;
+}
+function setPressed(id, k, on) { const el = $('#' + id); el.classList.toggle('down', on); el.style.backgroundImage = `url(${ART[k][on ? 'down' : 'up']})`; }
+let layoutEditing = false, layoutFrom = 'settings';
+function openLayoutEditor() {
+  sfx('click'); layoutEditing = true; mode = 'layout'; showScreen(null);
+  $('#touch').classList.add('on', 'edit'); document.body.classList.add('touch-edit');
+  $('#touch').style.display = 'block'; $('#layoutBar').hidden = false;
+}
+function closeLayoutEditor() {
+  layoutEditing = false; $('#touch').classList.remove('on', 'edit'); $('#touch').style.display = ''; $('#layoutBar').hidden = true;
+  writeSave(); openSettings();
+}
+(function setupLayoutDrag() {
+  for (const c of CTRL) {
+    const el = $('#' + c.id); let drag = null;
+    el.addEventListener('pointerdown', e => { if (!layoutEditing) return; drag = { id: e.pointerId, dx: e.clientX - (el.offsetLeft + el.offsetWidth / 2), dy: e.clientY - (el.offsetTop + el.offsetHeight / 2) }; el.setPointerCapture(e.pointerId); e.stopImmediatePropagation(); e.preventDefault(); }, true);
+    el.addEventListener('pointermove', e => {
+      if (!layoutEditing || !drag || e.pointerId !== drag.id) return;
+      const k = orientKey(); const L = SAVE.settings.layout = SAVE.settings.layout || {}; L[k] = L[k] || {};
+      L[k][c.id] = [(e.clientX - drag.dx) / innerWidth, (e.clientY - drag.dy) / innerHeight]; layoutControls();
+    }, true);
+    const end = e => { if (drag && e.pointerId === drag.id) { drag = null; writeSave(); } };
+    el.addEventListener('pointerup', end, true); el.addEventListener('pointercancel', end, true);
+  }
+  $('#lReset').onclick = () => { if (SAVE.settings.layout) delete SAVE.settings.layout[orientKey()]; writeSave(); layoutControls(); sfx('click'); };
+  $('#lDone').onclick = () => { sfx('click'); closeLayoutEditor(); };
+})();
 (function setupTouch() {
   const stick = $('#stick'), knob = $('#knob'); let pid = null;
   const setStick = (e) => { const r = stick.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2; let dx = (e.clientX - cx) / (r.width / 2), dy = (e.clientY - cy) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } touch.sx = dx; touch.sy = dy; knob.style.transform = `translate(${dx * r.width * 0.33}px,${dy * r.height * 0.33}px)`; };
-  stick.addEventListener('pointerdown', e => { pid = e.pointerId; stick.setPointerCapture(pid); touch.active = true; setStick(e); audioInit(); e.preventDefault(); });
+  stick.addEventListener('pointerdown', e => { if (layoutEditing) return; pid = e.pointerId; stick.setPointerCapture(pid); touch.active = true; setStick(e); audioInit(); e.preventDefault(); });
   stick.addEventListener('pointermove', e => { if (e.pointerId === pid) setStick(e); });
   const end = e => { if (e.pointerId !== pid) return; pid = null; touch.active = false; touch.sx = touch.sy = 0; knob.style.transform = ''; };
   stick.addEventListener('pointerup', end); stick.addEventListener('pointercancel', end);
   for (const [id, k] of [['bGas', 'gas'], ['bBrake', 'brake'], ['bNitro', 'nitro'], ['bHonk', 'honk']]) {
     const b = $('#' + id);
-    b.addEventListener('pointerdown', e => { b.setPointerCapture(e.pointerId); touch[k] = true; b.classList.add('down'); if (k === 'nitro') edgeNitro = true; if (k === 'honk') edgeHonk = true; audioInit(); e.preventDefault(); });
-    const up = () => { touch[k] = false; b.classList.remove('down'); };
+    b.addEventListener('pointerdown', e => { if (layoutEditing) return; b.setPointerCapture(e.pointerId); touch[k] = true; setPressed(id, k, true); if (k === 'nitro') edgeNitro = true; if (k === 'honk') edgeHonk = true; audioInit(); e.preventDefault(); });
+    const up = () => { if (layoutEditing) return; touch[k] = false; setPressed(id, k, false); };
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
   }
 })();
@@ -2327,7 +2451,7 @@ function readInput(car) {
     if (SAVE.settings.steer === 'turn') inp.steer = clamp(touch.sx * 1.3, -1, 1);
     else if (m > 0.28) {
       const want = Math.atan2(touch.sy, touch.sx); const d = angDiff(car.h, want);
-      inp.steer = clamp(d * 2.4, -1, 1);
+      inp.steer = clamp(d * 1.9, -1, 1);
       if (!touch.brake) { if (Math.abs(d) < 2.5) inp.gas = Math.max(inp.gas, clamp(m * 1.2, 0, 1)); else if (Math.hypot(car.vx, car.vy) < 30) { inp.brake = 1; inp.steer = -inp.steer; } }
     }
   }
@@ -2597,7 +2721,7 @@ function openSettings() { sfx('click'); mode = 'settings'; showScreen('settings'
 function syncSettings() {
   const st = SAVE.settings;
   const seg = (id, val) => $('#' + id).querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === String(val)));
-  seg('sDiff', st.diff); seg('sMusic', st.music); seg('sSfx', st.sfx); seg('sSteer', st.steer);
+  seg('sDiff', st.diff); seg('sMusic', st.music); seg('sSfx', st.sfx); seg('sSteer', st.steer); seg('sBtnSize', st.btnSize || 1); seg('sAssist', st.assist == null ? 1 : st.assist);
 }
 function bindSeg(id, key, num) { $('#' + id).querySelectorAll('button').forEach(b => b.onclick = () => { SAVE.settings[key] = num ? +b.dataset.v : b.dataset.v; writeSave(); syncSettings(); if (AC) { musicGain.gain.value = SAVE.settings.music ? 0.3 : 0; sfxGain.gain.value = SAVE.settings.sfx ? 0.55 : 0; } sfx('click'); }); }
 let settingsFrom = 'title';
@@ -2628,10 +2752,10 @@ function updateHud() {
 /* resize */
 function resize() {
   const w = innerWidth, h = innerHeight;
-  if (w >= h) { VH = 264; VW = clamp(Math.round(264 * w / h), 320, 600); } else { VW = 280; VH = clamp(Math.round(280 * h / w), 280, 600); }
+  if (w >= h) { VH = 300; VW = clamp(Math.round(300 * w / h), 360, 680); } else { VW = 320; VH = clamp(Math.round(320 * h / w), 320, 680); }
   canvas.width = VW; canvas.height = VH; ctx.imageSmoothingEnabled = false;
 }
-addEventListener('resize', resize);
+addEventListener('resize', () => { resize(); layoutControls(); });
 
 /* buttons */
 $('#tPlay').onclick = goMap; $('#tDealer').onclick = openDealer; $('#tSettings').onclick = () => { settingsFrom = 'title'; openSettings(); };
@@ -2643,7 +2767,9 @@ $('#sBack').onclick = () => { sfx('click'); settingsFrom === 'title' ? goTitle()
 $('#pauseBtn').onclick = pauseGame; $('#pResume').onclick = resumeGame; $('#pRestart').onclick = () => beginMission(G.idx); $('#pQuit').onclick = goMap;
 $('#sReset').onclick = () => { $('#sConfirm').hidden = false; }; $('#sResetNo').onclick = () => { $('#sConfirm').hidden = true; };
 $('#sResetYes').onclick = () => { SAVE = DEFAULT_SAVE(); writeSave(); $('#sConfirm').hidden = true; syncSettings(); sfx('click'); };
-bindSeg('sDiff', 'diff'); bindSeg('sMusic', 'music', 1); bindSeg('sSfx', 'sfx', 1); bindSeg('sSteer', 'steer');
+bindSeg('sDiff', 'diff'); bindSeg('sMusic', 'music', 1); bindSeg('sSfx', 'sfx', 1); bindSeg('sSteer', 'steer'); bindSeg('sBtnSize', 'btnSize', 1); bindSeg('sAssist', 'assist', 1);
+$('#sLayout').onclick = openLayoutEditor;
+$('#sBtnSize').addEventListener('click', () => layoutControls());
 if (isTouch) $('#tHint').textContent = 'TAP START YOUR ENGINE';
 
 /* main loop */
@@ -2655,7 +2781,7 @@ function frame(ts) {
   requestAnimationFrame(frame);
 }
 function boot() {
-  loadSave(); resize(); makeTextures(ctx); makeGlow();
+  loadSave(); resize(); makeTextures(ctx); makeGlow(); makeControlArt(); layoutControls();
   buildWorld(); bucketize(); buildOverview();
   goTitle();
   requestAnimationFrame(frame);
