@@ -377,7 +377,7 @@ function hash2(x, y) { let h = (x * 374761393 + y * 668265263) | 0; h = Math.imu
 const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= TAU; while (d < -Math.PI) d += TAU; return d; };
 const dist = (ax, ay, bx, by) => Math.hypot(bx - ax, by - ay);
 
-const S = 3, C = 12, LW = 16;
+const S = 3, C = 12, LW = 22;
 const WW = 4800 * S, WH = 3200 * S, GW = WW / C | 0, GH = WH / C | 0;
 const T = { WATER: 0, LAND: 1, MARSH: 2, SAND: 3, PARK: 4, ROAD: 5, BRIDGE: 6, RAIL: 7, BUILD: 8, TREE: 9, DRAW: 10, LOT: 11, WALK: 12, COBBLE: 13, SWING: 14 };
 const SOLID = new Uint8Array(16); SOLID[T.RAIL] = SOLID[T.BUILD] = SOLID[T.TREE] = 1;
@@ -898,7 +898,8 @@ function drawMarkings(g, e) {
   else { seg(-1, '#e8c547'); seg(1, '#e8c547', e.kind === 'st' && !e.walk ? [6, 6] : []); }
   const med = e.L >= 2 ? 3 : 0;
   for (let i = 1; i < e.L; i++) { seg(med + i * LW, '#d8d8d0', [8, 10]); seg(-(med + i * LW), '#d8d8d0', [8, 10]); }
-  if (e.L >= 2 || isBr) { seg(hw - 2, '#d8d8d0'); seg(-(hw - 2), '#d8d8d0'); }
+  if (e.L >= 2 || isBr) { seg(hw - 3, '#d8d8d0'); seg(-(hw - 3), '#d8d8d0'); }
+  if (!isBr && !e.walk) { for (const o of [hw - 0.5, -(hw - 0.5), hw - 1.5, -(hw - 1.5)]) seg(o, Math.abs(o) > hw - 1 ? '#8f8a7e' : '#cfc9bb'); }
   // crosswalks downtown
   if (e.walk && !isBr) for (const [t, n] of [[t0, A], [t1, B]]) {
     if (n.edges.length < 3) continue;
@@ -1656,11 +1657,15 @@ function updateCar(c, inp, dt) {
       c.airT = 0;
     }
   }
-  // move with collision
+  // move with collision; curbs hold you on the pavement unless you hit them hard enough to hop
   const nx = c.x + c.vx * dt;
-  if (hitsSolid(c, nx, c.y)) { bump(c, Math.abs(c.vx)); c.vx = -c.vx * 0.12; c.vy *= 0.92; } else c.x = nx;
+  if (hitsSolid(c, nx, c.y)) { bump(c, Math.abs(c.vx)); c.vx = -c.vx * 0.12; c.vy *= 0.92; }
+  else if (curbBlocks(c, nx, c.y, Math.abs(c.vx))) { c.vx = -c.vx * 0.08; }
+  else c.x = nx;
   const ny = c.y + c.vy * dt;
-  if (hitsSolid(c, c.x, ny)) { bump(c, Math.abs(c.vy)); c.vy = -c.vy * 0.12; c.vx *= 0.92; } else c.y = ny;
+  if (hitsSolid(c, c.x, ny)) { bump(c, Math.abs(c.vy)); c.vy = -c.vy * 0.12; c.vx *= 0.92; }
+  else if (curbBlocks(c, c.x, ny, Math.abs(c.vy))) { c.vy = -c.vy * 0.08; }
+  else c.y = ny;
   if (hitsSolid(c, c.x, c.y)) { // rotated into a wall: push out
     for (let k = 1; k < 6; k++) { let ok = false; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!hitsSolid(c, c.x + dx * k * 2, c.y + dy * k * 2)) { c.x += dx * k * 2; c.y += dy * k * 2; ok = true; break; } if (ok) break; }
   }
@@ -1681,6 +1686,19 @@ function updateCar(c, inp, dt) {
   }
   // stuck detection for AI
   if (!c.isPlayer || G.autopilot) { if (Math.hypot(c.vx, c.vy) < 6 && inp.gas > 0) c.stuckT += dt; else c.stuckT = Math.max(0, c.stuckT - dt); }
+}
+const PAVED = new Uint8Array(16); PAVED[T.ROAD] = PAVED[T.BRIDGE] = PAVED[T.WALK] = PAVED[T.COBBLE] = PAVED[T.LOT] = PAVED[T.DRAW] = PAVED[T.SWING] = 1;
+const OFFROAD = new Uint8Array(16); OFFROAD[T.LAND] = OFFROAD[T.PARK] = OFFROAD[T.SAND] = OFFROAD[T.MARSH] = 1;
+const CURB_HOP = 175;
+function curbBlocks(c, x, y, across) {
+  if (c.z > 2 || c.onLeaf || c.dead > 0) return false;
+  if (!PAVED[cellAt(c.x, c.y)]) return false; // already off-road: always free to come back
+  const fx = Math.cos(c.h), fy = Math.sin(c.h), sgn = (c.vx * fx + c.vy * fy) >= 0 ? 1 : -1;
+  const tc = cellAt(x, y), tn = cellAt(x + fx * c.len * 0.4 * sgn, y + fy * c.len * 0.4 * sgn);
+  if (!OFFROAD[tc] && !OFFROAD[tn]) return false;
+  if (across > CURB_HOP) { c.vz = 70 + (across - CURB_HOP) * 0.4; c.z = 0.6; if (c.isPlayer) { sfx('jump'); if (!c.hopMsg || c.hopMsg < G.real) { c.hopMsg = G.real + 3; showMsg('CURB HOP!', '', 0.7); } } return false; }
+  if (c.isPlayer && across > 70 && (!c.curbT || c.curbT < G.real)) { c.curbT = G.real + 0.25; sfx('bump', across * 0.6); cam.shake = Math.max(cam.shake, 1.5); }
+  return true;
 }
 function nearSpan(x, y) {
   for (const b of [G.bridgeDraw, G.bridgeSwing]) { const e = b.e; const s = (x - e.ax) * e.ux + (y - e.ay) * e.uy, lat = (x - e.ax) * e.nx + (y - e.ay) * e.ny; if (Math.abs(lat) < e.w && s > b.sp.t0 - 70 && s < b.sp.t1 + 70) return true; }
