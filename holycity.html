@@ -687,6 +687,29 @@ function polyPath(c, p, sc) { c.beginPath(); p.forEach((q, i) => i ? c.lineTo(q[
 const MS = S / C; // map units -> grid
 function applyMask(m, type, onlyIf) { for (let i = 0; i < m.length; i++) if (m[i] && (!onlyIf || onlyIf[grid[i]])) grid[i] = type; }
 const BUILDINGS = []; const TREES = [];
+// small chamfer on the inside of every corner so a tight turn doesn't snag the curb
+function cornerChamfers(pad, walkOnly) {
+  const out = [];
+  for (const id in NODES) {
+    const n = NODES[id]; const es = n.edges.filter(e => !isBridge(e) && (!walkOnly || e.walk)); if (es.length < 2) continue;
+    const arms = es.map(e => { const out_ = e.a === id; const dx = out_ ? e.ux : -e.ux, dy = out_ ? e.uy : -e.uy; return { dx, dy, h: e.w / 2 + pad, len: e.len, ang: Math.atan2(dy, dx), hw: e.kind === 'hw', cob: e.cobble }; }).sort((p, q) => p.ang - q.ang);
+    for (let i = 0; i < arms.length; i++) {
+      const A = arms[i], B = arms[(i + 1) % arms.length];
+      let th = B.ang - A.ang; if (th <= 0) th += TAU;
+      if (th > 2.5 || th < 0.3) continue; // straight-through and hairpin joints left alone
+      const nA = [-A.dy, A.dx], nB = [B.dy, -B.dx]; // A's side facing B, B's side facing A
+      // solve A.d*s + nA*hA = B.d*t + nB*hB
+      const rx = nB[0] * B.h - nA[0] * A.h, ry = nB[1] * B.h - nA[1] * A.h;
+      const det = A.dx * -B.dy - (-B.dx) * A.dy; if (Math.abs(det) < 1e-6) continue;
+      const sA = (rx * -B.dy - (-B.dx) * ry) / det, tB = (A.dx * ry - A.dy * rx) / det;
+      const k = 20 + 22 * clamp((Math.PI / 2 - th) / (Math.PI / 2), 0, 1);
+      if (sA + k > A.len * 0.45 || tB + k > B.len * 0.45 || sA < 0 || tB < 0) continue;
+      const tri = [[n.x, n.y], [n.x + A.dx * (sA + k) + nA[0] * A.h, n.y + A.dy * (sA + k) + nA[1] * A.h], [n.x + B.dx * (tB + k) + nB[0] * B.h, n.y + B.dy * (tB + k) + nB[1] * B.h]]; tri.hw = A.hw || B.hw; tri.cob = A.cob && B.cob; out.push(tri);
+    }
+  }
+  return out;
+}
+function fillTris(c, tris) { for (const t of tris) { c.beginPath(); c.moveTo(t[0][0] / C, t[0][1] / C); c.lineTo(t[1][0] / C, t[1][1] / C); c.lineTo(t[2][0] / C, t[2][1] / C); c.closePath(); c.fill(); } }
 function buildWorld() {
   grid.fill(T.WATER);
   applyMask(maskOf(c => { for (const k of ['westAshley', 'peninsula', 'mtp', 'sullivans', 'iop', 'james', 'sumter']) { polyPath(c, POLY[k], MS); c.fill(); } }), T.LAND);
@@ -699,8 +722,8 @@ function buildWorld() {
   applyMask(maskOf(c => LOTS.forEach(r => c.fillRect(r[0] * MS, r[1] * MS, r[2] * MS, r[3] * MS))), T.LOT);
   applyMask(maskOf(c => BOARDWALKS.forEach(r => c.fillRect(r[0] * MS, r[1] * MS, r[2] * MS, r[3] * MS))), T.WALK);
   const LANDISH = new Uint8Array(16); LANDISH[T.LAND] = LANDISH[T.PARK] = 1;
-  applyMask(maskOf(c => { for (const e of EDGES) if (e.walk && !isBridge(e)) { c.lineWidth = (e.w + 14) / C; c.beginPath(); c.moveTo(e.ax / C, e.ay / C); c.lineTo(e.bx / C, e.by / C); c.stroke(); } }), T.WALK, LANDISH);
-  applyMask(maskOf(c => { for (const e of EDGES) if (!isBridge(e)) { c.lineWidth = e.w / C; c.beginPath(); c.moveTo(e.ax / C, e.ay / C); c.lineTo(e.bx / C, e.by / C); c.stroke(); } }), T.ROAD);
+  applyMask(maskOf(c => { for (const e of EDGES) if (e.walk && !isBridge(e)) { c.lineWidth = (e.w + 14) / C; c.beginPath(); c.moveTo(e.ax / C, e.ay / C); c.lineTo(e.bx / C, e.by / C); c.stroke(); } fillTris(c, cornerChamfers(7, true)); }), T.WALK, LANDISH);
+  applyMask(maskOf(c => { for (const e of EDGES) if (!isBridge(e)) { c.lineWidth = e.w / C; c.beginPath(); c.moveTo(e.ax / C, e.ay / C); c.lineTo(e.bx / C, e.by / C); c.stroke(); } fillTris(c, cornerChamfers(0)); }), T.ROAD);
   applyMask(maskOf(c => { for (const e of EDGES) if (e.cobble) { c.lineWidth = e.w / C; c.lineCap = 'butt'; c.beginPath(); c.moveTo(e.ax / C, e.ay / C); c.lineTo(e.bx / C, e.by / C); c.stroke(); } }), T.COBBLE);
   const WM = new Uint8Array(16); WM[T.WATER] = WM[T.MARSH] = 1;
   applyMask(maskOf(c => { c.lineCap = 'butt'; for (const e of EDGES) if (isBridge(e)) { c.lineWidth = (e.w + 12) / C; c.beginPath(); c.moveTo(e.ax / C, e.ay / C); c.lineTo(e.bx / C, e.by / C); c.stroke(); } }), T.RAIL, WM);
@@ -971,6 +994,7 @@ function getChunk(cx, cy) {
   if (chunkCache.size > 60) { let ok = null, ot = 1e18; for (const [kk, v] of chunkCache) if (v.t < ot) { ot = v.t; ok = kk; } chunkCache.delete(ok); }
   return cv;
 }
+const CHAMF = {};
 function renderChunk(g, cx, cy) {
   const ox = cx * CH, oy = cy * CH;
   g.save(); g.translate(-ox, -oy); g.imageSmoothingEnabled = false;
@@ -1008,11 +1032,16 @@ function renderChunk(g, cx, cy) {
   // 3) sidewalks
   g.lineCap = 'round';
   for (const e of vis) if (e.walk && !isBridge(e)) { g.strokeStyle = e.kind === 'hw' ? PAT.walk : PAT.brick; g.lineWidth = e.w + 14; line(g, e.ax, e.ay, e.bx, e.by); }
+  const near = t => t[0][0] > ox - 120 && t[0][0] < ox + CH + 120 && t[0][1] > oy - 120 && t[0][1] < oy + CH + 120;
+  const tri = t => { g.beginPath(); g.moveTo(t[0][0], t[0][1]); g.lineTo(t[1][0], t[1][1]); g.lineTo(t[2][0], t[2][1]); g.closePath(); g.fill(); };
+  if (!CHAMF.road) { CHAMF.road = cornerChamfers(0); CHAMF.walk = cornerChamfers(7, true); }
+  for (const t of CHAMF.walk) if (near(t)) { g.fillStyle = t.hw ? PAT.walk : PAT.brick; tri(t); }
   // 4) asphalt / deck
   for (const e of vis) {
     if (isBridge(e)) { g.lineCap = 'butt'; g.strokeStyle = e.ravenel ? PAT.concrete : PAT.concrete; g.lineWidth = e.w + 10; line(g, e.ax, e.ay, e.bx, e.by); g.strokeStyle = PAT.road; g.lineWidth = e.w - 2; line(g, e.ax, e.ay, e.bx, e.by); }
     else { g.lineCap = 'round'; g.strokeStyle = e.cobble ? PAT.cobble : PAT.road; g.lineWidth = e.w; line(g, e.ax, e.ay, e.bx, e.by); }
   }
+  for (const t of CHAMF.road) if (near(t)) { g.fillStyle = t.cob ? PAT.cobble : PAT.road; tri(t); }
   // node caps
   for (const id in NODES) { const n = NODES[id]; if (n.x < ox - 80 || n.x > ox + CH + 80 || n.y < oy - 80 || n.y > oy + CH + 80) continue; if (n.edges.some(isBridge)) continue; g.fillStyle = PAT.road; g.beginPath(); g.arc(n.x, n.y, n.r, 0, TAU); g.fill(); }
   // 5) markings
