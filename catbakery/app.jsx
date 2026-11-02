@@ -64,6 +64,7 @@ function Game() {
 
   const toTitle = React.useCallback(() => { setScreen('bakery'); setIntro(true); }, []);
   const ctx = { ...store, nav, toast, openMenu: () => setPaused(true), toTitle };
+  window.__CB = ctx;   // handle for automated checks
 
   if (intro) return (
     <GameCtx.Provider value={ctx}>

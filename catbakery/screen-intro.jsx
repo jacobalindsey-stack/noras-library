@@ -50,6 +50,8 @@ function ChimneySmoke({ left='50%', top='0%' }) {
 }
 
 function Intro({ onStart, hasSave }) {
+  // New Game erases the bakery, so it asks for a second tap first
+  const [sure, setSure] = React.useState(false); const sureT = React.useRef(null);
   // fixed, memoized random layouts so nothing jitters between renders
   const stars = React.useMemo(()=>Array.from({length:50},(_,i)=>({
     id:i, x:Math.random()*100, y:Math.random()*54, s:Math.random()<0.22?3:2,
@@ -234,7 +236,7 @@ function Intro({ onStart, hasSave }) {
         </Body>
         <div style={{ display:'flex', gap:14, marginTop:22 }}>
           <Btn variant="gold" big onClick={()=>onStart(false)}>{hasSave?'▸ CONTINUE':'▸ START BAKING'}</Btn>
-          {hasSave && <Btn variant="berry" onClick={()=>onStart(true)}>NEW GAME</Btn>}
+          {hasSave && <Btn variant="berry" onClick={()=>{ if (sure) { onStart(true); return; } setSure(true); clearTimeout(sureT.current); sureT.current = setTimeout(()=>setSure(false), 4000); }}>{sure ? 'TAP AGAIN: START OVER' : 'NEW GAME'}</Btn>}
         </div>
       </div>
 

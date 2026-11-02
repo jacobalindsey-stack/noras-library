@@ -9,7 +9,7 @@ Every push to `main` redeploys the site.
 
 | Game | Location | Status |
 |---|---|---|
-| Cat Bakery | `catbakery/` | migrated from Claude Design export (deploy build) |
+| Cat Bakery | `catbakery/` | migrated from Claude Design export (deploy build); playtested Nov 1 2026 (finale reachable in ~40 rounds, never stuck broke) |
 | The Long Apprenticeship | `apprenticeship/` | migrated from Claude Design export ("Wilderlore") |
 | Adriatica | `adriatica/` | migrated from Claude Design export ("Thirteen Sphinxes", v2.1); playtested and fixed Oct 30 2026. Jump panels only with `?dev` |
 | Mirror of Algol | `algol.html` | migrated from Claude Design export (single file); playtested, fixed and rebalanced Oct 30 2026. Dev menu only with `?dev`. Saves under `mirror-save` |

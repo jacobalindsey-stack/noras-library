@@ -52,7 +52,7 @@ function RecipesScreen() {
                     <Pill color="#6fbf9a" fg="#16352a">+{r.rep} rep</Pill>
                     {r.jamOk && <Pill color="#a83b63" fg="#ffe9f0">♥ jam</Pill>}
                     <Body size={13} color="#7c5325">skill {skillLevel(st,rid)}</Body>
-                  </React.Fragment> : <Pill color="#5a3a1c">🔒 {unlockText(r)}</Pill>}
+                  </React.Fragment> : <Pill color="#5a3a1c" style={{ whiteSpace:'normal', lineHeight:1.35, maxWidth:'100%' }}>🔒 {unlockText(r)}</Pill>}
                 </div>
               </div>
             </Panel>
