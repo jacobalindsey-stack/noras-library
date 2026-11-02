@@ -133,5 +133,19 @@ window.NORA_GAMES = [
     ground: '#120a24',
     foil: '#ff9a3a',
     emblem: '<path d="M32 24c-15 0-25 8-25 18s10 16 25 16 25-6 25-16-10-18-25-18z"/><path d="M32 24c0-4 1-6 4-8"/><path d="M21 38l4-6 4 6zM35 38l4-6 4 6z" fill="currentColor" stroke="none"/><path d="M22 46q10 6 20 0"/><path d="M6 15Q30 -1 58 13"/><path d="M50 4l2 4 4 2-4 2-2 4-2-4-4-2 4-2z" fill="currentColor" stroke="none"/>'
+  },
+  {
+    key: 'holycity',
+    title: 'Holy City Hustle',
+    kind: 'RC-style errand racer',
+    isNew: true,
+    platforms: ['iPad', 'PC', 'iPhone'],
+    blurb: "Ballet at four, groceries in the back, and two drawbridges between you and Ashley Hall. Race a navy blue Volvo across Charleston before the bell, the tide, or the Commodore.",
+    howto: "Arrow keys or WASD to drive, Space for a sweet tea boost, H to honk. On a touch screen, point the stick where you want to go.",
+    shots: ['previews/holycity-play.jpg', 'previews/holycity-title.jpg'],
+    href: 'holycity.html',
+    ground: '#1f2f5a',
+    foil: '#f6d77a',
+    emblem: '<path d="M6 46h52"/><path d="M20 46V14M44 46V14"/><path d="M20 14L8 46M20 14l12 32M44 14L32 46M44 14l12 32"/><path d="M14 58h36"/><rect x="24" y="50" width="16" height="7" rx="2"/>'
   }
 ];
