@@ -16,7 +16,7 @@ Every push to `main` redeploys the site.
 | Adriatica II | `adriatica2/` | migrated from Claude Design export (folder build, 19 MB); playtested Nov 1 2026 (both endings reachable, no dead ends). Dev panel only with `?dev` |
 | Pumpkin Slash | `pumpkinslash.html` | single file, attached Oct 18 2026 (three.js r128 from cdnjs, jsdelivr/unpkg fallbacks) |
 | Blackthorn Manor II | `blackthorn2.html` | beta: built `blackthorn2/index.html` from the `claude/affectionate-ramanujan-3ld4ce` branch of reimagined-chainsaw (0558efc). Saves under `bm2.save.v1` |
-| Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (2cc478d, v1.2.6). Nov 2 2026: on touch screens the spell arrows and song button sit on the CAST button (all movable in Button layout); boss rooms no longer freeze on entry, spellbook fits narrow screens, clearer touch buttons with a Button layout editor, iPad full screen keeps both side panels, Servants' Corridor fall loop fixed, pantry steam step points at the steam |
+| Blackthorn Manor | `blackthorn.html` | built `index.html` from the reimagined-chainsaw repo (3756854, v1.2.7). Nov 2 2026: touch buttons laid out by importance (CAST, then DASH beside it, ACT, CAT farthest); rooms go cold every 12-18 min, one at a time; on touch screens the spell arrows and song button sit on the CAST button (all movable in Button layout); boss rooms no longer freeze on entry, spellbook fits narrow screens, clearer touch buttons with a Button layout editor, iPad full screen keeps both side panels, Servants' Corridor fall loop fixed, pantry steam step points at the steam |
 
 Adriatica II also lives at the old subdomain adriatica2.noralindsey.com until
 that is retired. Its folder build loads React and three.js from unpkg and its

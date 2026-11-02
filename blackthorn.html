@@ -31,7 +31,7 @@ if (window.__stage) window.__stage('[2] game code parsing...');
    BLACKTHORN MANOR  —  Part 1: Core + Act I
    ===================================================================== */
 /* ===== CONFIG ===== */
-const GAME_VERSION = '1.2.6', SCHEMA_VERSION = 1, TS = 16, VH = 224;
+const GAME_VERSION = '1.2.7', SCHEMA_VERSION = 1, TS = 16, VH = 224;
 let VW = 320;
 const SCR_W = 20, SCR_H = 14;
 const TAU = Math.PI * 2;
@@ -1148,7 +1148,7 @@ function newSave(name) {
     spells: { spark: { st: 'known', ink: 0, rank: 1 } }, inkQ: [], cant: {}, songs: {}, eq: 'spark',
     items: {}, parts: {}, flags: {}, rooms: {}, notes: {}, toys: {}, tasks: {}, tracked: 'tock', cat: {}, weave: {}, restored: {}, beds: {},
     cur: { room: 'gate', x: 160, y: 300, dir: 1 }, lastBed: null, play: 0, created: Date.now(), updated: Date.now(),
-    pins: [], stats: { pets: 0, wisps: 0, kills: 0, deaths: 0 }, hpieces: 0, vials: 0, lastDay: '', recent: [], heartC: 0, stir: 0, stirT: 300, surge: 0, bossTimes: {}, badges: {}
+    pins: [], stats: { pets: 0, wisps: 0, kills: 0, deaths: 0 }, hpieces: 0, vials: 0, lastDay: '', recent: [], heartC: 0, stir: 0, stirT: 720, surge: 0, bossTimes: {}, badges: {}
   };
 }
 function rsOf(id) { return S.rooms[id] || (S.rooms[id] = { v: 0, found: {}, srch: {}, tiles: {}, gates: {}, lit: {}, warm: 0, cold: 0, cleared: 0, fc: 0 }); }
@@ -3221,8 +3221,9 @@ function updateStir(dt) {
   if (R.boss || Game.cutscene || Game.state !== 'play') return;
   S.stirT -= dt;
   if (S.stirT > 0) return;
-  S.stirT = rr(240, 360);
-  const cold = Object.keys(S.rooms).filter(k => S.rooms[k].cold).length; if (cold >= 2) return;
+  // a stirring is a side errand, not the story: rare (every 12-18 minutes of play) and one cold room at a time
+  S.stirT = rr(720, 1080);
+  const cold = Object.keys(S.rooms).filter(k => S.rooms[k].cold).length; if (cold >= 1) return;
   const here = DB.rooms[R.id];
   const cands = Object.keys(S.rooms).filter(k => k !== R.id && S.rooms[k].warm && DB.rooms[k] && !DB.rooms[k].noStir);
   if (!cands.length) return;
@@ -3521,7 +3522,9 @@ function layoutTouch() {
     x = clamp(x, -Lay.l + mx + 1, VW + Lay.r - mx - 1); y = clamp(y, -Lay.t + mt + 1, VH + Lay.b - r - 4);
     L.push({ name, x, y, r, label, icon });
   };
-  add('cast', 70, 64, 44, 'CAST', 'cast'); add('act', 166, 38, 30, 'ACT', 'act'); add('dash', 168, 108, 28, 'DASH', 'dash'); add('cat', 168, 172, 26, 'CAT', 'cat');
+  // by how often a thumb needs them: CAST biggest in the corner; DASH next biggest, just left of it along the bottom where the
+  // thumb swings, with room between them; ACT above DASH; CAT (never needed mid-fight) farthest away at the top
+  add('cast', 62, 66, 46, 'CAST', 'cast'); add('dash', 170, 44, 34, 'DASH', 'dash'); add('act', 172, 134, 28, 'ACT', 'act'); add('cat', 170, 212, 24, 'CAT', 'cat');
   return L;
 }
 // moved buttons are saved per screen shape (Options > Move buttons), as an offset in points from where they start
@@ -4693,7 +4696,7 @@ function resize() {
       // a touch screen held sideways keeps its controls on both sides: if the biggest zoom leaves no room for both
       // panels (an iPad going full screen gains height and steps up a zoom), take one zoom step smaller instead
       if (fw - 256 < 2 * g && s > 2) { const s2 = s - 1, fw2 = Math.floor(W / s2), g2 = Math.ceil(200 / (s2 / dpr)); if (fw2 - 256 >= 2 * g2) { s = s2; fw = fw2; g = g2; } }
-      if (fw - 256 >= 2 * g) { vw = clamp(fw - 2 * g, 256, 352); const sd = Math.min(fw - vw, 2 * g + 40); L = { mode: 'gutter', l: Math.floor(sd / 2), r: sd - Math.floor(sd / 2), t: 0, b: 0 }; }
+      if (fw - 256 >= 2 * g) { vw = clamp(fw - 2 * g, 256, 352); const sd = Math.min(fw - vw, 2 * g + 40); L = { mode: 'gutter', l: Math.floor(sd * 0.45), r: sd - Math.floor(sd * 0.45), t: 0, b: 0 }; }
       else if (fw - 256 >= 72) { vw = 256; L = { mode: 'side', l: 0, r: Math.min(fw - 256, 110), t: 0, b: 0 }; }
       else vw = clamp(fw, 256, 352);
     } else if (fw - 256 >= 80) { vw = clamp(fw - 92, 256, 320); L = { mode: 'side', l: 0, r: Math.min(92, fw - vw), t: 0, b: 0 }; }
