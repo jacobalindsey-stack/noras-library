@@ -553,6 +553,12 @@ N('wa_n1', 450, 1320); N('wa_n3', 800, 1320); N('wa_s1', 600, 1830); N('wa_s2', 
 chain(['wa_l0', 'wa_l1', 'home', 'wa_l2', 'wa_l3', 'wa_l4'], { hump: 1, name: 'Avondale' });
 [['wa_l1', 'wa_17a'], ['wa_l2', 'wa_17b'], ['wa_l3', 'wa_17c'], ['wa_l4', 'wa_17d'], ['wa_l1', 'wa_n1'], ['wa_l3', 'wa_n3'], ['wa_n1', 'wa_n3'], ['wa_l0', 'wa_17w'],
 ['wa_17b', 'wa_s1'], ['wa_s1', 'wa_s2'], ['wa_s2', 'wa_17d']].forEach(p => E(p[0], p[1], { hump: 1 }));
+// Highway 61 (Ashley River Rd) up the west bank, and Ashley Hall Rd off it to the ballet studio
+N('ar1', 1170, 1330); N('ar2', 1130, 1110); N('ar3', 1090, 880);
+chain(['wa_17e', 'ar1', 'ar2', 'ar3'], { L: 2, kind: 'hw', name: 'Ashley River Rd (Hwy 61)' });
+N('ah1', 800, 1110); N('ballet', 680, 1110); N('ah_w', 520, 1110);
+chain(['ar2', 'ah1', 'ballet', 'ah_w'], { name: 'Ashley Hall Rd' });
+E('wa_n3', 'ah1', { hump: 1, name: 'Wappoo Hall Rd' });
 
 // Peninsula: Crosstown
 const CX = { ash: 1850, rut: 1980, cmg: 2110, king: 2240, meet: 2370, ans: 2500, eb: 2640 };
@@ -609,9 +615,9 @@ N('rav_e', 3420, 1240);
 E('rav_w', 'rav_e', { L: 4, kind: 'br', name: 'Ravenel Bridge', ravenel: 1 });
 N('mp17a', 3650, 1050); N('wfn', 3950, 860); N('mp17b', 4300, 640); N('mp17c', 4750, 420);
 chain(['rav_e', 'mp17a', 'wfn', 'mp17b', 'mp17c'], { L: 3, kind: 'hw', name: 'Johnnie Dodds Blvd' });
-N('cb1', 3560, 1420); N('ballet', 3680, 1570); N('cb2', 3800, 1720); N('cb3', 4060, 1990); N('bs_n', 4300, 2210);
+N('cb1', 3560, 1420); N('cb_m', 3680, 1570); N('cb2', 3800, 1720); N('cb3', 4060, 1990); N('bs_n', 4300, 2210);
 N('mpf', 4000, 1928);
-chain(['rav_e', 'cb1', 'ballet', 'cb2', 'mpf', 'cb3'], { L: 2, kind: 'hw', name: 'Coleman Blvd' });
+chain(['rav_e', 'cb1', 'cb_m', 'cb2', 'mpf', 'cb3'], { L: 2, kind: 'hw', name: 'Coleman Blvd' });
 E('cb3', 'bs_n', { L: 1, name: 'Ben Sawyer Blvd' });
 N('bsb1', 3950, 1450);
 N('wf', 3950, 990);
@@ -644,7 +650,7 @@ for (const id in NODES) { const n = NODES[id]; n.r = 0; for (const e of n.edges)
 const LANDMARKS = {
   home: { r: [505, 1438, 42, 32], kind: 'home', label: 'Home' },
   ahall: { r: [1898, 1815, 72, 96], kind: 'ashley', label: 'Ashley Hall' },
-  ballet: { r: [3690, 1522, 44, 30], kind: 'ballet', label: 'Ballet' },
+  ballet: { r: [654, 1052, 54, 36], kind: 'ballet', label: 'Ballet' },
   wf: { r: [3832, 958, 104, 54], kind: 'grocery', label: 'Whole Foods' },
   si_od: { r: [4452, 2560, 58, 40], kind: 'od', label: 'The Obstinate Daughter' },
   f1: { r: [2090, 902, 40, 36], kind: 'friend', label: "Ella's", color: '#f2a7b8' },
@@ -775,6 +781,7 @@ function placeBuildings() {
     { bb: [1790, 1350, 2880, 2620], style: 'chs', n: 5000, sz: [10, 17], m: 1 },
     { bb: [1790, 780, 2900, 1350], style: 'house', n: 2000, sz: [12, 20], m: 1 },
     { bb: [120, 1250, 1300, 1950], style: 'ranch', n: 1200, sz: [22, 34], m: 2 },
+    { bb: [300, 820, 1240, 1250], style: 'ranch', n: 700, sz: [22, 34], m: 2 },
     { bb: [3400, 380, 5800, 2250], style: 'suburb', n: 6000, sz: [20, 34], m: 2 },
     { bb: [4900, 2490, 5800, 2680], style: 'beach', n: 1400, sz: [15, 22], m: 1 },
     { bb: [4040, 2530, 4800, 2700], style: 'beach', n: 900, sz: [15, 22], m: 1 },
@@ -1490,10 +1497,10 @@ const MISSIONS = [
     jams: [['abr_w', 'abr_e', 7]], works: [['wa_17c', 'wa_17d', 0.15, 0.85]] },
   { id: 'ballet', title: 'Ballet at 4', when: 'Monday · 3:38 PM', clock: 15 * 60 + 38, deadline: 16 * 60, start: 'ahall', type: 'reach', tod: 'day',
     stops: [{ node: 'ballet', icon: 'ballet', label: 'Ballet studio', say: 'Pointe shoes on, right on time!' }],
-    text: 'School pickup at Ashley Hall, then across the peninsula, over the Ravenel, and down Coleman Blvd to ballet in Mount Pleasant. Carriage tours are out.',
-    hazards: ['Horse carriages', 'Downtown stoplights', 'Ravenel Bridge', 'Coleman Blvd construction', 'Potholes'],
-    tide: { base: 6.65, amp: 0.65 }, draw: 0, swing: 0, lights: 0.6, traffic: 1.05, pay: 110,
-    jams: [['rav_w', 'rav_e', 9]], works: [['cb1', 'ballet', 0.1, 0.9]] },
+    text: 'School pickup at Ashley Hall, up to the Crosstown, back over the Ashley River drawbridge, then up Highway 61 to the studio on Ashley Hall Road. Yes: Ashley Hall to Ashley Hall Road.',
+    hazards: ['Ashley River drawbridge', 'Downtown stoplights', 'Rush hour on 61', 'Hwy 61 construction', 'Potholes'],
+    tide: { base: 6.65, amp: 0.65 }, draw: 0.5, swing: 0, lights: 0.6, traffic: 1.05, pay: 110,
+    jams: [['wa_17e', 'ar1', 8]], works: [['ar1', 'ar2', 0.15, 0.85]] },
   { id: 'carpool', title: 'Play Date: Carpool', when: 'Saturday · 9:50 AM', clock: 9 * 60 + 50, deadline: 10 * 60 + 20, start: 'home', type: 'pickup', tod: 'day',
     stops: [
       { node: 'f1', icon: 'friend', label: "Ella's house", say: 'Ella hopped in!', any: 1 },
