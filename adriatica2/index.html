@@ -249,7 +249,7 @@
   <div id="portrait-hint" style="position: absolute; inset: 0; z-index: 130; display: none; align-items: center; justify-content: center; background: #1a1611; padding: 12% 10%; box-sizing: border-box; text-align: center;">
     <div>
       <div style="font-size: 46px; line-height: 1; color: rgba(226, 198, 138, 0.9);">⟳</div>
-      <div style="margin-top: 22px; font-size: 21px; line-height: 1.6; color: #e8dfd2; font-style: italic;">Turn the tablet sideways.
+      <div id="portrait-hint-turn" style="margin-top: 22px; font-size: 21px; line-height: 1.6; color: #e8dfd2; font-style: italic;">Turn the tablet sideways.
 <br>The coast is wider than it is tall.</div>
       <div style="margin-top: 26px; font-size: 15px; line-height: 1.7; color: rgba(232, 223, 210, 0.5);">Adriatica is made for an iPad or a desktop screen.<br>Her hearing does not fit on a phone.</div>
     </div>
@@ -359,7 +359,10 @@ class Component extends DCLogic {
     // The arrival line is meant to stay "until first interaction", but hotspots,
     // arrows and verbs all stopPropagation, so tapping an object left it up.
     // Capture phase sees every tap before those handlers can swallow it.
+    // the dev jump panel is for building and testing: only with ?dev on the address
+    if (!/[?&]dev\b/.test(location.search)) { const dl = document.getElementById('dev-link'); if (dl) dl.style.display = 'none'; }
     document.getElementById('dev-link')?.addEventListener('click', (e) => { e.stopPropagation(); this.openDevPanel(); });
+    window.__A2 = this;   // handle for automated checks
     document.getElementById('dev-close')?.addEventListener('click', () => this.closeDevPanel());
     document.getElementById('dev-reset')?.addEventListener('click', () => this.devReset());
 
@@ -431,6 +434,12 @@ class Component extends DCLogic {
     // Portrait, or a frame too small to lay the game out at all (phones in
     // landscape land here). Same notice either way: this wants a bigger screen.
     if (hint) hint.style.display = (h > w * 1.08 || w < 700 || h < 440) ? 'flex' : 'none';
+    // Only ask her to turn the screen if turning it would actually help: a phone held sideways is already
+    // sideways, and was being told to turn "the tablet".
+    const turn = document.getElementById('portrait-hint-turn');
+    if (turn) { const fitsTurned = Math.max(w, h) >= 700 && Math.min(w, h) >= 440;
+      turn.innerHTML = fitsTurned ? 'Turn the tablet sideways.<br>The coast is wider than it is tall.' : 'This screen is a little small for the coast.<br>Try an iPad or a computer.';
+      if (turn.previousElementSibling) turn.previousElementSibling.style.display = fitsTurned ? '' : 'none'; }
   }
 
   // iOS routes a bare AudioContext through the ringer channel, so a tablet on
