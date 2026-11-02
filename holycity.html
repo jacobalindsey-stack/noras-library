@@ -87,6 +87,25 @@ body.compact #hMsg small{font-size:12px}
 body.compact #hCount{font-size:30px}
 body.compact #touch.on #stick,body.compact #touch.on .tbtn{opacity:.82}
 body.compact #minimap{display:none!important}
+#hTurn{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 46px);display:flex;align-items:center;gap:10px;
+  background:rgba(11,16,34,.88);border:3px solid var(--haint);box-shadow:0 3px 0 #000;padding:6px 12px 6px 8px;max-width:min(520px,62vw)}
+#hTurn[hidden]{display:none!important}
+#turnIcon{width:56px;height:56px;image-rendering:pixelated;flex:none}
+#hTurn .tt{display:flex;flex-direction:column;gap:4px;min-width:0}
+#tDir{font-family:var(--f-display);font-weight:normal;font-size:15px;color:var(--cream)}
+#tStreet{font-family:var(--f-body);font-weight:600;font-size:15px;color:#d8dcef;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tDist{font-family:var(--f-display);font-size:13px;color:var(--haint);margin-left:4px;white-space:nowrap}
+#hTurn.near{border-color:var(--butter);animation:tpulse 1s ease-in-out infinite}
+#hTurn.near #tDir,#hTurn.near #tDist{color:var(--butter)}
+#hTurn.now{border-color:var(--coral);background:rgba(60,18,14,.92);animation:tblink .32s steps(2) infinite}
+#hTurn.now #tDir,#hTurn.now #tDist{color:#fff}
+@keyframes tpulse{50%{transform:translateX(-50%) scale(1.06)}}
+@keyframes tblink{50%{border-color:#fff;transform:translateX(-50%) scale(1.1)}}
+body.compact #hTurn{top:calc(env(safe-area-inset-top,0px) + 38px);padding:3px 8px 3px 4px;gap:6px;border-width:2px}
+body.compact #turnIcon{width:36px;height:36px}
+body.compact #tDir{font-size:10px} body.compact #tStreet{font-size:11px} body.compact #tDist{font-size:9px}
+@media (orientation:portrait){#hTurn{top:calc(env(safe-area-inset-top,0px) + 118px)} body.compact #hTurn{top:calc(env(safe-area-inset-top,0px) + 96px);max-width:84vw}}
+@media (prefers-reduced-motion:reduce){#hTurn.near,#hTurn.now{animation:none}}
 #layoutBar{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);z-index:20;pointer-events:auto;
   background:var(--panel);border:4px solid var(--haint);box-shadow:0 0 0 4px var(--navy-deep);padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
   max-width:calc(100vw - 32px);font-size:15px;text-align:center}
@@ -224,6 +243,7 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
       </div>
     </div>
     <button id="pauseBtn" aria-label="Pause">II PAUSE</button>
+    <div id="hTurn" hidden><canvas id="turnIcon" width="16" height="16"></canvas><div class="tt"><b id="tDir">RIGHT</b><span id="tStreet"></span></div><div id="tDist"></div></div>
     <div id="hMsg"></div>
     <div id="hCount"></div>
     <div id="rotateHint">Turn sideways for a wider view</div>
@@ -495,6 +515,7 @@ N('si_c', 4300, 2620); N('si_w', 4080, 2620); N('si_lh', 4150, 2620); N('si_od',
 E('bs_s', 'si_c', { name: 'Ben Sawyer Blvd' });
 chain(['si_w', 'si_lh', 'si_c', 'si_od', 'si_e'], { hump: 1, name: 'Middle St' });
 
+{ const wa = ['Magnolia Rd', 'Wappoo Rd', 'Stocker Dr', 'Folly Rd', 'Windermere Blvd', 'Avondale Ave', 'Belvedere Rd', 'Stinson Dr']; let k = 0; for (const e of EDGES) if (!e.name) e.name = wa[k++ % wa.length]; }
 for (const e of EDGES) {
   e.minx = Math.min(e.ax, e.bx) - e.w; e.maxx = Math.max(e.ax, e.bx) + e.w;
   e.miny = Math.min(e.ay, e.by) - e.w; e.maxy = Math.max(e.ay, e.by) + e.w;
@@ -1924,6 +1945,26 @@ function updateGPS() {
   for (const s of cands) { const r = routeFrom(p.x, p.y, s.node); if (r && (!best || r.len < best.len)) { best = r; best.stop = s; } }
   if (best) { G.route = best; G.target = best.stop; }
 }
+/* next maneuver along the GPS route: which way, onto what, how far */
+function computeTurn() {
+  const p = G.player, R = G.route; if (!R) { G.turn = null; return; }
+  const pts = R.pts, pr = projectOn(pts, p.x, p.y);
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const total = cum[cum.length - 1];
+  // facing the wrong way?
+  const q = pointAlong(pts, pr.along + 30); const sp = Math.hypot(p.vx, p.vy);
+  const moveA = sp > 25 ? Math.atan2(p.vy, p.vx) : p.h;
+  if (Math.abs(angDiff(moveA, q[2])) > 2.3 && total - pr.along > 120) { G.turn = { kind: 'uturn', dist: 0, street: 'Turn around', now: true }; return; }
+  for (let i = 1; i < pts.length - 1; i++) {
+    if (cum[i] < pr.along + 4) continue;
+    const a1 = Math.atan2(pts[i][1] - pts[i - 1][1], pts[i][0] - pts[i - 1][0]), a2 = Math.atan2(pts[i + 1][1] - pts[i][1], pts[i + 1][0] - pts[i][0]);
+    const d = angDiff(a1, a2); if (Math.abs(d) < 0.45) continue;
+    const e = edgeBetween(R.ids[i - 1], R.ids[i]);
+    G.turn = { kind: Math.abs(d) > 2.6 ? 'uturn' : d > 0 ? 'right' : 'left', dist: cum[i] - pr.along, street: e && e.name ? e.name : '', node: pts[i], out: a2 };
+    return;
+  }
+  G.turn = { kind: 'arrive', dist: total - pr.along, street: G.target ? G.target.label : '', node: pts[pts.length - 1], out: null };
+}
 function checkStops() {
   const p = G.player; const sp = Math.hypot(p.vx, p.vy);
   for (const s of currentCandidates()) {
@@ -2034,6 +2075,8 @@ function tick(dt) {
     crossTrafficCheck(); updateMerge(); checkStops();
     if (G.m.type === 'race' && !p.finished) G.place = racePlace();
     G.gpsT -= dt; if (G.gpsT <= 0) { G.gpsT = 0.4; updateGPS(); }
+    computeTurn();
+    if (G.turn && !G.demo) { const imm = G.turn.kind !== 'uturn' && G.turn.dist < 140; if (imm && !G.turnBeeped) { G.turnBeeped = true; sfx('turn'); } if (!imm && G.turn.dist > 220) G.turnBeeped = false; }
     if (G.jamEdge && !G.jamWarned) { const e = G.jamEdge.e; if (segDist(p.x, p.y, e) < 700) { G.jamWarned = true; showMsg('TRAFFIC JAM AHEAD', 'Weave through, or take the shoulder', 2); } }
     if (!G.lateWarned && G.t > G.limit && G.m.type !== 'race') { G.lateWarned = true; showMsg('RUNNING LATE!', 'Keep going, better late than never', 2); }
   }
@@ -2124,11 +2167,17 @@ function drawWorldDynamic(now) {
   const inView = (x, y, m) => Math.abs(x - cam.x) < VW / 2 + (m || 30) && Math.abs(y - cam.y) < VH / 2 + (m || 30);
   nearStatic(cam.x, cam.y, 'hump', h => { if (!inView(h.x, h.y)) return; for (let o = -h.hw + 2; o < h.hw - 2; o += 4) { ctx.fillStyle = (o / 4 | 0) % 2 ? '#e8c547' : '#2a2a2a'; ctx.fillRect(h.x + h.nx * o - 2, h.y + h.ny * o - 2, 4, 4); } });
   nearStatic(cam.x, cam.y, 'pot', h => { if (!inView(h.x, h.y)) return; ctx.fillStyle = '#2a2b30'; ctx.beginPath(); ctx.ellipse(h.x, h.y, h.r, h.r * 0.7, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#5d5f69'; ctx.fillRect(h.x - h.r, h.y - h.r * 0.7, 3, 1); ctx.fillStyle = '#1a1b1f'; ctx.fillRect(h.x - 1, h.y - 1, 3, 2); });
-  // route breadcrumbs
+  // route breadcrumbs (bigger chevrons)
   if (G.route && G.state === 'run' && !G.demo) {
     const pts = G.route.pts; const pr = projectOn(pts, p.x, p.y); const L = polyLen(pts);
-    const phase = (now * 60) % 30;
-    for (let d = pr.along + 30 + (30 - phase); d < Math.min(L, pr.along + 700); d += 30) { const q = pointAlong(pts, d); const a = 1 - (d - pr.along) / 700; ctx.fillStyle = `rgba(159,216,220,${0.35 + a * 0.5})`; const cx = q[0], cy = q[1]; const c = Math.cos(q[2]), s = Math.sin(q[2]); ctx.fillRect(Math.round(cx + c * 2) - 1, Math.round(cy + s * 2) - 1, 3, 3); ctx.fillRect(Math.round(cx - c * 2 - s * 2) - 1, Math.round(cy - s * 2 + c * 2) - 1, 2, 2); ctx.fillRect(Math.round(cx - c * 2 + s * 2) - 1, Math.round(cy - s * 2 - c * 2) - 1, 2, 2); }
+    const phase = (now * 70) % 34;
+    for (let d = pr.along + 34 + (34 - phase); d < Math.min(L, pr.along + 650); d += 34) { const q = pointAlong(pts, d); const a = 1 - (d - pr.along) / 650; chevron(q[0], q[1], q[2], 5, `rgba(159,216,220,${0.35 + a * 0.55})`, null); }
+  }
+  // big blinking turn arrows painted at the next turn
+  const tn = G.turn;
+  if (tn && tn.node && tn.out != null && tn.dist < 520 && G.state === 'run' && !G.demo) {
+    const imm = tn.dist < 140; const on = imm ? Math.floor(now * 6) % 2 === 0 : Math.floor(now * 2.5) % 3 !== 0;
+    if (on) { const col = imm ? '#f08a6b' : '#f6d77a'; for (let k = 0; k < 3; k++) { const dd = 26 + k * 24; chevron(tn.node[0] + Math.cos(tn.out) * dd, tn.node[1] + Math.sin(tn.out) * dd, tn.out, 11, col, '#0b1022'); } }
   }
   // destination pads
   for (const s of currentCandidates()) {
@@ -2334,6 +2383,16 @@ function drawMinimap() {
   for (const s of G.stops) if (!s.done) { const n = NODES[s.node]; let r = P(n.x, n.y); r = [clamp(r[0], 4, W - 4), clamp(r[1], 4, H - 4)]; mmx.fillStyle = '#000'; mmx.fillRect(r[0] - 3, r[1] - 3, 7, 7); mmx.fillStyle = '#f6d77a'; mmx.fillRect(r[0] - 2, r[1] - 2, 5, 5); }
   for (const r of G.rivals) { const q = P(r.x, r.y); mmx.fillStyle = '#e2574c'; mmx.fillRect(q[0] - 2, q[1] - 2, 4, 4); }
   const q = P(p.x, p.y); mmx.save(); mmx.translate(q[0], q[1]); mmx.rotate(p.h); mmx.fillStyle = '#fff'; mmx.beginPath(); mmx.moveTo(6, 0); mmx.lineTo(-4, -4); mmx.lineTo(-2, 0); mmx.lineTo(-4, 4); mmx.fill(); mmx.restore();
+}
+
+function chevron(x, y, a, r, col, outline) {
+  const c = Math.cos(a), s = Math.sin(a), px = -s, py = c;
+  const tip = [x + c * r, y + s * r], l = [x - c * r * 0.4 + px * r, y - s * r * 0.4 + py * r], m = [x - c * r * 0.05, y - s * r * 0.05], rr = [x - c * r * 0.4 - px * r, y - s * r * 0.4 - py * r];
+  const back = r * 0.55;
+  const poly = [tip, l, [l[0] - c * back, l[1] - s * back], [m[0] - c * back, m[1] - s * back], [rr[0] - c * back, rr[1] - s * back], rr];
+  ctx.beginPath(); poly.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath();
+  if (outline) { ctx.lineWidth = 3; ctx.strokeStyle = outline; ctx.stroke(); }
+  ctx.fillStyle = col; ctx.fill();
 }
 
 /* =================== input =================== */
@@ -2570,6 +2629,7 @@ function sfx(name, k) {
     case 'win': [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, 0.16, 'square', 0.14, n + i * 0.1)); break;
     case 'buy': [659, 880, 1318].forEach((f, i) => tone(f, 0.12, 'square', 0.14, n + i * 0.07)); break;
     case 'click': tone(660, 0.04, 'square', 0.08); break;
+    case 'turn': tone(988, 0.08, 'square', 0.13); tone(1318, 0.12, 'square', 0.13, n + 0.09); break;
   }
 }
 function updateEngine() {
@@ -2784,6 +2844,35 @@ let settingsFrom = 'title';
 
 /* HUD */
 let hudFrame = 0;
+const TURN_ICONS = {
+  straight: ['.......##.......', '......####......', '.....######.....', '....########....', '...###.##.###...', '.......##.......', '.......##.......', '.......##.......', '.......##.......', '.......##.......', '.......##.......', '.......##.......', '.......##.......', '.......##.......', '.......##.......', '................'],
+  right: ['................', '................', '..........#.....', '..........##....', '..........###...', '..##########.##.', '..###########.##', '..##.......####.', '..##.......###..', '..##.......##...', '..##.......#....', '..##............', '..##............', '..##............', '..##............', '................'],
+  uturn: ['................', '....######......', '...########.....', '..###....###....', '..##......##....', '..##......##....', '..##......##....', '..##......##....', '..##....######..', '..##.....####...', '..##......##....', '..##............', '..##............', '..##............', '..##............', '................'],
+  arrive: ['..##............', '..##.#.#.#.#....', '..###.#.#.#.##..', '..##.#.#.#.#....', '..###.#.#.#.##..', '..##.#.#.#.#....', '..##............', '..##............', '..##............', '..##............', '..##............', '..##............', '..##............', '.####...........', '######..........', '................'],
+};
+TURN_ICONS.left = TURN_ICONS.right.map(r => r.split('').reverse().join(''));
+let lastTurnIcon = '';
+function drawTurnIcon(kind, col) {
+  const key = kind + col; if (key === lastTurnIcon) return; lastTurnIcon = key;
+  const g = $('#turnIcon').getContext('2d'); g.clearRect(0, 0, 16, 16); const rows = TURN_ICONS[kind] || TURN_ICONS.straight;
+  g.fillStyle = '#000'; for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if (rows[y][x] === '#') { g.fillRect(x + 1, y, 1, 1); g.fillRect(x - 1, y, 1, 1); g.fillRect(x, y + 1, 1, 1); g.fillRect(x, y - 1, 1, 1); }
+  g.fillStyle = col; for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if (rows[y][x] === '#') g.fillRect(x, y, 1, 1);
+}
+function updateTurnCard() {
+  const el = $('#hTurn'); const t = G && G.turn;
+  if (!t || G.state !== 'run' || G.demo) { el.hidden = true; return; }
+  el.hidden = false;
+  const far = t.kind !== 'arrive' && t.kind !== 'uturn' && t.dist > 600;
+  const kind = far ? 'straight' : t.kind;
+  const now = t.kind === 'uturn' || (t.kind !== 'arrive' && t.dist < 140) || (t.kind === 'arrive' && t.dist < 120);
+  const near = !now && t.dist < 380;
+  el.classList.toggle('now', now); el.classList.toggle('near', near);
+  drawTurnIcon(kind, now ? '#ffffff' : near ? '#f6d77a' : '#9fd8dc');
+  const ft = Math.max(50, Math.round(t.dist / 50) * 50);
+  $('#tDir').textContent = t.kind === 'uturn' ? 'TURN AROUND' : far ? 'STRAIGHT' : t.kind === 'arrive' ? 'ARRIVING' : now ? 'TURN ' + t.kind.toUpperCase() + ' NOW' : 'TURN ' + t.kind.toUpperCase();
+  $('#tStreet').textContent = t.kind === 'uturn' ? 'You\u2019re headed the wrong way' : far ? (t.street ? 'then ' + t.kind + ' on ' + t.street : '') : t.kind === 'arrive' ? t.street : (t.street ? 'onto ' + t.street : '');
+  $('#tDist').textContent = t.kind === 'uturn' ? '' : ft >= 1000 ? (ft / 5280).toFixed(1) + ' MI' : ft + ' FT';
+}
 function updateHud() {
   if (!G || G.demo || mode !== 'play') return;
   if (++hudFrame % 3) return;
@@ -2803,6 +2892,7 @@ function updateHud() {
   if (G.cargo != null) $('#hCargo').innerHTML = 'EGGS <b style="font-weight:normal;color:' + (G.cargo > 60 ? '#7fd38a' : G.cargo > 30 ? '#f6d77a' : '#e2574c') + '">' + Math.round(G.cargo) + '%</b>';
   if (m.type === 'race') $('#hPlace').textContent = ['1ST', '2ND', '3RD', '4TH'][Math.max(0, (G.place || 1) - 1)];
   drawMinimap();
+  updateTurnCard();
 }
 
 /* resize */
