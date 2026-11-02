@@ -509,7 +509,7 @@ const POLY = {
   peninsula: [[1500, 0], [1600, 400], [1700, 800], [1745, 1200], [1760, 1450], [1780, 1700], [1785, 2100], [1800, 2400], [1850, 2560], [2050, 2610], [2300, 2630], [2500, 2610], [2720, 2560], [2780, 2400], [2810, 2100], [2850, 1700], [2880, 1300], [2900, 1000], [2950, 500], [3000, 0]],
   mtp: [[3300, 0], [3310, 600], [3350, 1000], [3360, 1240], [3420, 1600], [3700, 1950], [4000, 2180], [4300, 2260], [4800, 2290], [5200, 2300], [5800, 2270], [5800, 0]],
   sullivans: [[4030, 2520], [4780, 2495], [4785, 2790], [4030, 2800]],
-  iop: [[4880, 2480], [5800, 2440], [5800, 2770], [4880, 2795]],
+  iop: [[4880, 2480], [5800, 2440], [5800, 2770], [5660, 2768], [5585, 2732], [5275, 2732], [5195, 2772], [4880, 2795]],
   james: [[0, 2820], [1350, 2780], [1700, 2960], [2000, 3200], [0, 3200]],
   sumter: [[3260, 2830], [3340, 2820], [3365, 2880], [3300, 2915], [3248, 2880]],
 };
@@ -517,7 +517,9 @@ const MARSH_POLYS = [
   [[3900, 2160], [4800, 2270], [5800, 2250], [5800, 2450], [4880, 2480], [4780, 2490], [4030, 2520], [3960, 2400]],
 ];
 const CHANNELS = [[[3800, 2360], [5800, 2360], [5800, 2415], [3800, 2420]], [[4785, 2420], [4880, 2420], [4880, 2900], [4785, 2900]]];
-const SAND_POLYS = [[[4030, 2705], [4785, 2690], [4785, 2795], [4030, 2805]], [[4880, 2690], [5800, 2665], [5800, 2775], [4880, 2800]]];
+const SAND_POLYS = [[[4030, 2705], [4785, 2690], [4785, 2795], [4030, 2805]], [[4880, 2690], [5800, 2665], [5800, 2770], [5660, 2768], [5585, 2732], [5275, 2732], [5195, 2772], [4880, 2800]]];
+// Front Beach boardwalk over the dunes, from the beach lot down to the sand
+const BOARDWALKS = [[5410, 2692, 20, 22]];
 const PARKS = [
   { name: 'Hampton Park', p: [[1800, 962], [1962, 962], [1962, 1140], [1800, 1140]] },
   { name: 'White Point Garden', p: [[2120, 2512], [2340, 2512], [2360, 2600], [2120, 2604]] },
@@ -525,7 +527,7 @@ const PARKS = [
   { name: 'Colonial Lake', p: [[1862, 2112], [1968, 2112], [1968, 2240], [1862, 2240]] },
 ];
 const PONDS = [[[1882, 2128], [1948, 2128], [1948, 2224], [1882, 2224]]];
-const LOTS = [[1650, 300, 720, 44], [2250, 18, 340, 46], [5380, 2560, 80, 40], [3832, 905, 108, 50], [850, 1652, 150, 48], [3560, 950, 100, 60], [4380, 560, 120, 60]];
+const LOTS = [[1650, 300, 720, 44], [2250, 18, 340, 46], [5380, 2560, 80, 40], [5374, 2664, 92, 28], [3832, 905, 108, 50], [850, 1652, 150, 48], [3560, 950, 100, 60], [4380, 560, 120, 60]];
 
 /* ---------- road network ---------- */
 const NODES = {}; const EDGES = [];
@@ -629,6 +631,7 @@ N('ioc1', 4600, 1600); N('ioc2', 5300, 2000); N('ioc3', 5300, 2275); N('ioc4', 5
 E('bsb1', 'ioc1', { L: 2, kind: 'hw', name: 'IOP Connector' }); E('ioc1', 'ioc2', { L: 2, kind: 'hw', name: 'IOP Connector' }); E('ioc2', 'ioc3', { L: 2, kind: 'hw', name: 'IOP Connector' });
 E('ioc3', 'ioc4', { L: 2, kind: 'br', name: 'IOP Connector' }); E('ioc4', 'iop3', { L: 2, kind: 'hw', name: 'IOP Connector' });
 E('iop1', 'iop3', { name: 'Palm Blvd' }); E('iop3', 'iop', { name: 'Palm Blvd' });
+N('fb', 5420, 2676); E('iop', 'fb', { name: 'Pavilion Dr' }); // Front Beach lot by the pier
 
 { const wa = ['Magnolia Rd', 'Wappoo Rd', 'Stocker Dr', 'Folly Rd', 'Windermere Blvd', 'Avondale Ave', 'Belvedere Rd', 'Stinson Dr']; let k = 0; for (const e of EDGES) if (!e.name) e.name = wa[k++ % wa.length]; }
 for (const e of EDGES) {
@@ -658,7 +661,7 @@ const LANDMARKS = {
   si_f: { r: [4580, 2560, 40, 36], kind: 'friend', color: '#9fd8dc' },
   mpf: { r: [4030, 1880, 40, 30], kind: 'friend', color: '#f5c49a' },
   iopshop: { r: [5390, 2530, 60, 26], kind: 'surfshop' },
-  lifeguard: { r: [5430, 2700, 12, 12], kind: 'lifeguard' },
+  lifeguard: { r: [5470, 2706, 12, 12], kind: 'lifeguard' },
   gazebo: { r: [1862, 1030, 26, 22], kind: 'gazebo' },
   playground: { r: [1898, 1098, 40, 30], kind: 'playground' },
 };
@@ -688,6 +691,7 @@ function buildWorld() {
   applyMask(maskOf(c => PARKS.forEach(p => { polyPath(c, p.p, MS); c.fill(); })), T.PARK);
   applyMask(maskOf(c => PONDS.forEach(p => { polyPath(c, p, MS); c.fill(); })), T.WATER);
   applyMask(maskOf(c => LOTS.forEach(r => c.fillRect(r[0] * MS, r[1] * MS, r[2] * MS, r[3] * MS))), T.LOT);
+  applyMask(maskOf(c => BOARDWALKS.forEach(r => c.fillRect(r[0] * MS, r[1] * MS, r[2] * MS, r[3] * MS))), T.WALK);
   const LANDISH = new Uint8Array(16); LANDISH[T.LAND] = LANDISH[T.PARK] = 1;
   applyMask(maskOf(c => { for (const e of EDGES) if (e.walk && !isBridge(e)) { c.lineWidth = (e.w + 14) / C; c.beginPath(); c.moveTo(e.ax / C, e.ay / C); c.lineTo(e.bx / C, e.by / C); c.stroke(); } }), T.WALK, LANDISH);
   applyMask(maskOf(c => { for (const e of EDGES) if (!isBridge(e)) { c.lineWidth = e.w / C; c.beginPath(); c.moveTo(e.ax / C, e.ay / C); c.lineTo(e.bx / C, e.by / C); c.stroke(); } }), T.ROAD);
@@ -730,6 +734,7 @@ function placeBuildings() {
     BUILDINGS.push(b);
     if (L.kind === 'playground' || L.kind === 'gazebo') { markRect(x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.4, T.BUILD); continue; }
     if (L.kind === 'lighthouse') { markRect(x, y, w, h, T.BUILD); continue; }
+    if (L.kind === 'lifeguard') continue; // stand on stilts over the sand: drawn, not walled off
     markRect(x, y, w, h, T.BUILD);
   }
   // palmettos and live oaks along downtown curbs, planted before houses claim the lots
@@ -1252,23 +1257,29 @@ function drawCitadel(g, b) {
 const ANG = 32;
 const VEHICLES = {
   volvo: { name: 'Volvo XC70', sub: 'Navy blue · the family wagon', len: 17, wid: 8, body: '#22356a', dark: '#141f40', roof: '#1b2b55', glass: '#8fb6d8', style: 'wagon', rails: 1,
-    speed: 205, accel: 150, grip: 7.0, turn: 3.2, tough: 1.3, wade: 1.0, nitro: 1, price: 0,
-    desc: 'All-wheel drive and high clearance. Shrugs off a flooded street, takes a hit, carries the groceries.' },
+    speed: 200, accel: 140, grip: 7.0, turn: 3.3, tough: 1.3, wade: 1.0, nitro: 1, price: 0,
+    hop: 120, lift: 1.1, rough: 0.6, brake: 420, resp: 9, steerHi: 0.3, steerLo: 80, slide: 0.08,
+    desc: 'All-wheel drive and high clearance. Rides high enough to bump over a curb, shrugs off a flooded street, carries the groceries.' },
   smart: { name: 'Smart ForTwo', sub: 'Champagne · tiny', len: 10, wid: 7, body: '#d4c08f', dark: '#9e8d62', roof: '#c9b47f', glass: '#9cc2dc', style: 'smart',
-    speed: 180, accel: 180, grip: 8.2, turn: 4.0, tough: 0.7, wade: 0.45, nitro: 1, price: 350,
-    desc: 'Squeezes through jams and parks anywhere. Light enough to get bounced around, and a puddle feels like a lake.' },
+    speed: 166, accel: 196, grip: 8.0, turn: 4.4, tough: 0.7, wade: 0.45, nitro: 1, price: 350,
+    hop: 160, lift: 0.75, rough: 0.1, brake: 470, resp: 15, steerHi: 0.3, steerLo: 42, slide: 0.12,
+    desc: 'Squeezes through jams and parks anywhere. Turns on a dime, but it sits so low a curb stops it cold, and a puddle feels like a lake.' },
   ranger: { name: '1998 Ford Ranger', sub: 'Black · the truck', len: 18, wid: 8, body: '#1c1c22', dark: '#0c0c10', roof: '#24242c', glass: '#7fa2c0', style: 'truck',
-    speed: 212, accel: 145, grip: 6.2, turn: 3.0, tough: 1.7, wade: 1.35, nitro: 1, price: 600,
-    desc: 'Tough as a pluff-mud boot. Big air off speed humps and drives straight through a king tide.' },
+    speed: 216, accel: 126, grip: 5.6, turn: 3.0, tough: 1.7, wade: 1.35, nitro: 1, price: 600,
+    hop: 82, lift: 1.4, rough: 0.9, brake: 350, resp: 7, steerHi: 0.34, steerLo: 85, slide: 0.3,
+    desc: 'Tough as a pluff-mud boot. Hops curbs, rolls across grass and sand, and drives straight through a king tide. Wide turns, loose tail.' },
   clubman: { name: 'Mini Clubman', sub: 'Gray · split rear doors', len: 14, wid: 8, body: '#80858d', dark: '#55595f', roof: '#1e1f24', glass: '#9cc2dc', style: 'wagon',
-    speed: 228, accel: 172, grip: 8.2, turn: 3.7, tough: 1.0, wade: 0.7, nitro: 1, price: 950,
-    desc: 'Go-kart handling with room for friends. Corners the downtown grid like it was built for it.' },
+    speed: 226, accel: 174, grip: 8.4, turn: 3.9, tough: 1.0, wade: 0.7, nitro: 1, price: 950,
+    hop: 192, lift: 0.85, rough: 0.2, brake: 480, resp: 13, steerHi: 0.16, steerLo: 55, slide: 0.04,
+    desc: 'Go-kart handling with room for friends. Corners the downtown grid like it was built for it, but keep it off the curbs.' },
   jcw: { name: 'Mini JCW', sub: 'Silver · red roof', len: 13, wid: 8, body: '#c3c8ce', dark: '#8a8f96', roof: '#b8162a', glass: '#9cc2dc', style: 'hatch', stripe: '#1e1f24',
-    speed: 252, accel: 198, grip: 8.7, turn: 4.0, tough: 1.0, wade: 0.6, nitro: 2, price: 1600,
+    speed: 258, accel: 206, grip: 9.0, turn: 4.3, tough: 1.0, wade: 0.6, nitro: 2, price: 1600,
+    hop: 200, lift: 0.8, rough: 0.15, brake: 520, resp: 16, steerHi: 0.12, steerLo: 50, slide: 0.03,
     desc: 'The fast Mini. Starts every errand with two sweet teas in the cupholders.' },
   alfa: { name: '1980 Alfa Romeo Spider', sub: 'Rosso · top down', len: 15, wid: 7, body: '#b8141f', dark: '#7a0c14', roof: null, glass: '#9cc2dc', style: 'spider', seats: '#c9a06a',
-    speed: 272, accel: 205, grip: 8.9, turn: 4.1, tough: 0.9, wade: 0.4, nitro: 2, price: -1,
-    desc: 'The Commodore’s pride. Fastest thing on the peninsula. Keep it out of the floodwater.' },
+    speed: 280, accel: 200, grip: 7.8, turn: 3.9, tough: 0.9, wade: 0.4, nitro: 2, price: -1,
+    hop: 205, lift: 0.85, rough: 0.15, brake: 450, resp: 11, steerHi: 0.22, steerLo: 60, slide: 0.24,
+    desc: 'The Commodore’s pride. Fastest thing on the peninsula. Twitchy tail, low nose: keep it off the curbs and out of the floodwater.' },
 };
 const VORDER = ['volvo', 'smart', 'ranger', 'clubman', 'jcw', 'alfa'];
 const TRAFFIC_TYPES = {
@@ -1456,6 +1467,8 @@ function statsFor(vid) {
   return {
     speed: v.speed + (u.engine || 0) * 12, accel: v.accel + (u.engine || 0) * 12, grip: v.grip + (u.tires || 0) * 0.6, turn: v.turn + (u.tires || 0) * 0.12,
     tough: v.tough + (u.bumper || 0) * 0.22, wade: v.wade, nitro: v.nitro + (u.nitro || 0),
+    hop: v.hop || CURB_HOP, lift: v.lift || 1, rough: v.rough || 0, brake: (v.brake || 430) + (u.tires || 0) * 15, resp: v.resp || 10,
+    steerHi: v.steerHi != null ? v.steerHi : 0.22, steerLo: v.steerLo || 70, slide: v.slide || 0,
   };
 }
 
@@ -1512,7 +1525,7 @@ const MISSIONS = [
     stops: [
       { node: 'mpf', icon: 'friend', label: "Cooper's house", say: 'Cooper and his longboard are in!', any: 1 },
       { node: 'si_f', icon: 'friend', label: "Hazel's house", say: 'Hazel grabbed her board!', any: 1 },
-      { node: 'iop', icon: 'surf', label: 'Front Beach, Isle of Palms', say: 'Paddle out! The waves are firing.' }],
+      { node: 'fb', icon: 'surf', label: 'Front Beach, Isle of Palms', say: 'Paddle out! The waves are firing.' }],
     text: 'Dawn patrol. The swell is up but the tide will flatten it by 7:25. Grab Cooper off Coleman and Hazel on Sullivan\u2019s, cross Breach Inlet to the Isle of Palms, and paddle out while it\u2019s still good.',
     hazards: ['Waves going flat', 'Beach traffic', 'Ben Sawyer swing bridge', 'Palm Blvd flooding', 'Golf carts'],
     tide: { base: 6.85, amp: 0.7 }, draw: 0, swing: 0.5, lights: 0.5, traffic: 0.9, pay: 180,
@@ -1898,7 +1911,9 @@ function updateCar(c, inp, dt) {
   const st = c.st; const fx0 = Math.cos(c.h), fy0 = Math.sin(c.h);
   const grounded = c.z <= 0.01 || c.onLeaf;
   const cell = carSurface(c); const sf = SURF[cell] || SURF[T.ROAD];
-  let maxS = st.speed * sf.max, acc = st.accel * sf.accel, grip = st.grip * sf.grip, drag = 0.2 + sf.drag;
+  // high-riding trucks and wagons shrug off grass and sand; little city cars bog down
+  const rough = OFFROAD[cell] ? (st.rough || 0) : 0, rf = k => 1 - (1 - k) * (1 - rough * 0.65);
+  let maxS = st.speed * rf(sf.max), acc = st.accel * rf(sf.accel), grip = st.grip * rf(sf.grip), drag = 0.2 + sf.drag * (1 - rough * 0.6);
   // flood
   const depth = floodDepth(c.x, c.y); c.wet = depth;
   if (depth > 0.05) { const w = clamp((depth - st.wade * 0.4) / 1.0, 0.08, 0.85); maxS *= 1 - w; acc *= 1 - w * 0.7; grip *= 0.5; drag += w * 1.6; }
@@ -1921,7 +1936,10 @@ function updateCar(c, inp, dt) {
   let vF = c.vx * fx0 + c.vy * fy0;
   if (grounded) {
     const sp = Math.abs(vF);
-    let turn = inp.steer * st.turn * clamp(sp / 70, 0.18, 1) * (1 - 0.22 * clamp((sp - 170) / 150, 0, 1));
+    // each car has its own feel: how fast the wheel answers, how it steers at a crawl, how much it settles at speed
+    const resp = st.resp || 10; c.steerS = (c.steerS || 0) + (inp.steer - (c.steerS || 0)) * Math.min(1, resp * dt);
+    const hi = st.steerHi != null ? st.steerHi : 0.22;
+    let turn = c.steerS * st.turn * clamp(sp / (st.steerLo || 70), 0.18, 1) * (1 - hi * clamp((sp - 150) / 150, 0, 1));
     if (vF < -3) turn = -turn;
     c.h += turn * dt;
   } else c.h += inp.steer * 1.2 * dt;
@@ -1937,13 +1955,15 @@ function updateCar(c, inp, dt) {
   vF = c.vx * fx + c.vy * fy; let vR = c.vx * rx + c.vy * ry;
   if (grounded) {
     if (inp.gas > 0 && vF < maxS) vF += acc * inp.gas * dt * (vF < 0 ? 2 : 1);
-    if (inp.brake > 0) { if (vF > 8) vF -= 430 * inp.brake * dt; else if (vF > -75) vF -= acc * 0.55 * inp.brake * dt; }
+    if (inp.brake > 0) { if (vF > 8) vF -= (st.brake || 430) * inp.brake * dt; else if (vF > -75) vF -= acc * 0.55 * inp.brake * dt; }
     if (!inp.gas && !inp.brake) vF -= vF * 0.9 * dt;
     vF -= vF * drag * 0.12 * dt;
     if (vF > maxS) vF = lerp(vF, maxS, 1 - Math.exp(-2.6 * dt));
     if (vF < -80) vF = -80;
     const slip = Math.abs(vR);
-    vR *= Math.exp(-grip * dt);
+    // tail-happy cars (the truck's empty bed, the old Alfa) let go a little when you turn hard at speed
+    const loose = (st.slide || 0) * clamp((Math.abs(vF) - 120) / 120, 0, 1) * Math.min(1, Math.abs(inp.steer) * 1.3);
+    vR *= Math.exp(-grip * (1 - loose) * dt);
     c.skid = slip > 55 ? Math.min(1, slip / 160) : 0;
     if (c.onLeaf) vF -= GRAV * Math.sin(G.bridgeDraw.ang) * 0.6 * dt;
   }
@@ -1997,8 +2017,9 @@ function curbBlocks(c, x, y, across) {
   const fx = Math.cos(c.h), fy = Math.sin(c.h), sgn = (c.vx * fx + c.vy * fy) >= 0 ? 1 : -1;
   const tc = cellAt(x, y), tn = cellAt(x + fx * c.len * 0.4 * sgn, y + fy * c.len * 0.4 * sgn);
   if (!OFFROAD[tc] && !OFFROAD[tn]) return false;
-  if (across > CURB_HOP) { c.vz = 70 + (across - CURB_HOP) * 0.4; c.z = 0.6; if (c.isPlayer) { sfx('jump'); if (!c.hopMsg || c.hopMsg < G.real) { c.hopMsg = G.real + 3; showMsg('CURB HOP!', '', 0.7); } } return false; }
-  if (c.isPlayer && across > 70 && (!c.curbT || c.curbT < G.real)) { c.curbT = G.real + 0.25; sfx('bump', across * 0.6); cam.shake = Math.max(cam.shake, 1.5); }
+  const hop = (c.st && c.st.hop) || CURB_HOP, lift = (c.st && c.st.lift) || 1;
+  if (across > hop) { c.vz = (70 + (across - hop) * 0.4) * lift; c.z = 0.6; if (c.isPlayer) { sfx('jump'); if (!c.hopMsg || c.hopMsg < G.real) { c.hopMsg = G.real + 3; showMsg('CURB HOP!', '', 0.7); } } return false; }
+  if (c.isPlayer && across > Math.min(70, hop * 0.7) && (!c.curbT || c.curbT < G.real)) { c.curbT = G.real + 0.25; sfx('bump', across * 0.6); cam.shake = Math.max(cam.shake, 1.5); }
   return true;
 }
 function nearSpan(x, y) {
@@ -2436,10 +2457,12 @@ function drawDecor(now) {
   // shrimp boats near Shem Creek
   for (let i = 0; i < 3; i++) { const bx = 3330 * S + i * 70 + Math.sin(now * 0.4 + i) * 6, by = 1380 * S + i * 50; ctx.fillStyle = '#fbf3df'; ctx.fillRect(bx, by, 26, 10); ctx.fillStyle = '#2f6b46'; ctx.fillRect(bx + 4, by - 6, 8, 6); ctx.fillStyle = '#5a4632'; ctx.fillRect(bx + 18, by - 16, 1, 16); ctx.fillRect(bx + 8, by - 12, 18, 1); }
   // sailboats in the harbor and off Sullivan's
-  for (let i = 0; i < 5; i++) { const bx = ((2300 + i * 600) * S + now * (10 + i * 3) * (i % 2 ? 1 : -1) % 2400 + 2400) % (5800 * S - 2300 * S) + 2300 * S, by = (2720 + (i % 3) * 70) * S; if (Math.abs(bx - cam.x) > VW || Math.abs(by - cam.y) > VH) continue; ctx.fillStyle = 'rgba(8,24,44,.35)'; ctx.fillRect(bx - 2, by + 2, 18, 4); ctx.fillStyle = '#fbf3df'; ctx.fillRect(bx - 6, by - 2, 16, 5); ctx.fillStyle = '#5a4632'; ctx.fillRect(bx, by - 22, 1, 20); ctx.fillStyle = ['#fff', '#f2a7b8', '#9fd8dc', '#f6d77a', '#fff'][i]; ctx.beginPath(); ctx.moveTo(bx + 1, by - 22); ctx.lineTo(bx + 10, by - 3); ctx.lineTo(bx + 1, by - 3); ctx.fill(); }
+  for (let i = 0; i < 5; i++) { const bx = ((2300 + i * 600) * S + now * (10 + i * 3) * (i % 2 ? 1 : -1) % 2400 + 2400) % (5800 * S - 2300 * S) + 2300 * S, by = (2720 + (i % 3) * 70) * S; if (Math.abs(bx - cam.x) > VW || Math.abs(by - cam.y) > VH || cellAt(bx, by) !== T.WATER || cellAt(bx + 12, by) !== T.WATER) continue; ctx.fillStyle = 'rgba(8,24,44,.35)'; ctx.fillRect(bx - 2, by + 2, 18, 4); ctx.fillStyle = '#fbf3df'; ctx.fillRect(bx - 6, by - 2, 16, 5); ctx.fillStyle = '#5a4632'; ctx.fillRect(bx, by - 22, 1, 20); ctx.fillStyle = ['#fff', '#f2a7b8', '#9fd8dc', '#f6d77a', '#fff'][i]; ctx.beginPath(); ctx.moveTo(bx + 1, by - 22); ctx.lineTo(bx + 10, by - 3); ctx.lineTo(bx + 1, by - 3); ctx.fill(); }
+  drawShore(now);
+  drawFrontBeach(now);
   // surfers and wave sets off the Isle of Palms and Sullivan's
   for (let k = 0; k < 3; k++) { const wy = 2830 * S + ((now * 14 + k * 40) % 120); if (Math.abs(wy - cam.y) > VH) continue; ctx.fillStyle = 'rgba(232,244,244,.8)'; for (let x = Math.floor((cam.x - VW) / 8) * 8; x < cam.x + VW; x += 8) { if (x < 4030 * S) continue; ctx.fillRect(x, wy + Math.sin(x * 0.03 + k) * 3, 6, 2); } }
-  for (let i = 0; i < 6; i++) { const sx = (4950 + i * 120) * S + Math.sin(now * 0.5 + i) * 12, sy = 2850 * S + Math.sin(now * 0.8 + i * 2) * 8; if (Math.abs(sx - cam.x) > VW || Math.abs(sy - cam.y) > VH) continue; ctx.fillStyle = ['#f08a6b', '#f6d77a', '#e8e6de'][i % 3]; ctx.fillRect(sx - 5, sy, 11, 3); ctx.fillStyle = '#2a2a2e'; ctx.fillRect(sx - 1, sy - 4, 3, 4); ctx.fillStyle = '#c9a06a'; ctx.fillRect(sx - 1, sy - 6, 3, 2); }
+  for (let i = 0; i < 6; i++) { const sx = (4950 + i * 120) * S + Math.sin(now * 0.5 + i) * 12, sy = ((shoreAt(sx / S) || 2790) + 30 + (i % 3) * 9) * S + Math.sin(now * 0.8 + i * 2) * 8; if (Math.abs(sx - cam.x) > VW || Math.abs(sy - cam.y) > VH) continue; ctx.fillStyle = ['#f08a6b', '#f6d77a', '#e8e6de'][i % 3]; ctx.fillRect(sx - 5, sy, 11, 3); ctx.fillStyle = '#2a2a2e'; ctx.fillRect(sx - 1, sy - 4, 3, 4); ctx.fillStyle = '#c9a06a'; ctx.fillRect(sx - 1, sy - 6, 3, 2); }
   // brown pelicans gliding in a line
   const pf = (now * 30) % (5800 * S + 800) - 400; const py0 = 2300 * S + Math.sin(now * 0.1) * 600;
   for (let i = 0; i < 5; i++) { const bx = pf - i * 22, by = py0 + i * 12 + Math.sin(now * 3 + i) * 2; if (Math.abs(bx - cam.x) > VW || Math.abs(by - cam.y) > VH) continue; ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(bx + 10, by + 40, 10, 2); ctx.fillStyle = '#7a6448'; ctx.fillRect(bx, by, 4, 3); ctx.fillRect(bx - 6, by - (Math.floor(now * 4 + i) % 2), 6, 1); ctx.fillRect(bx + 4, by - (Math.floor(now * 4 + i) % 2), 6, 1); ctx.fillStyle = '#f6d77a'; ctx.fillRect(bx + 4, by + 1, 3, 1); }
@@ -2726,6 +2749,77 @@ function drawJet(x, y, a, sc, z) {
   poly([[-2, -3], [8, -24], [12, -24], [6, -3]], '#c8ccd2'); poly([[-2, 3], [8, 24], [12, 24], [6, 3]], '#c8ccd2');
   poly([[-26, -2], [-20, -10], [-17, -10], [-20, -2]], '#1f2f5a'); poly([[-26, 2], [-20, 10], [-17, 10], [-20, 2]], '#1f2f5a');
   poly([[20, -2], [26, -1], [26, 1], [20, 2]], '#2a3550');
+}
+
+/* ---------- the ocean beaches: wet sand, swash and breakers along the shoreline ---------- */
+const SHORES = [
+  [[4030, 2805], [4785, 2795]],
+  [[4880, 2795], [5195, 2772], [5275, 2732], [5585, 2732], [5660, 2768], [5800, 2770]],
+];
+function shoreAt(mx) {
+  for (const L of SHORES) { if (mx < L[0][0] || mx > L[L.length - 1][0]) continue;
+    for (let i = 0; i < L.length - 1; i++) { const a = L[i], b = L[i + 1]; if (mx >= a[0] && mx <= b[0]) return a[1] + (b[1] - a[1]) * (mx - a[0]) / (b[0] - a[0]); } }
+  return null;
+}
+function drawShore(now) {
+  const x0 = Math.floor((cam.x - VW / 2 - 8) / 4) * 4, x1 = cam.x + VW / 2 + 8;
+  for (let x = x0; x < x1; x += 4) {
+    const m = shoreAt(x / S); if (m == null) continue; const Y = m * S;
+    if (Y < cam.y - VH / 2 - 40 || Y > cam.y + VH / 2 + 110) continue;
+    // dark wet sand, then the swash sheet sliding up and back
+    ctx.fillStyle = 'rgba(150,112,62,0.35)'; ctx.fillRect(x, Y - 18, 4, 18);
+    const a = 0.5 + 0.5 * Math.sin(now * 0.9 + x * 0.0025), wy = Math.round(Y - 3 - a * 13);
+    ctx.fillStyle = 'rgba(96,170,190,0.62)'; ctx.fillRect(x, wy, 4, Y + 10 - wy);
+    ctx.fillStyle = 'rgba(250,252,248,0.9)'; ctx.fillRect(x, wy + (Math.sin(x * 0.3) > 0 ? 0 : 1), 4, 2);
+    // breakers rolling in toward the beach
+    for (let k = 0; k < 3; k++) { const off = 14 + ((now * 11 + k * 26) % 78); const al = Math.min(1, (92 - off) / 40) * 0.85; ctx.fillStyle = `rgba(240,248,246,${al.toFixed(2)})`; ctx.fillRect(x, Math.round(Y + off + Math.sin(x * 0.045 + k * 2) * 2), 3, 2); }
+  }
+}
+function drawFrontBeach(now) {
+  const cx = 5420 * S, cy = 2700 * S;
+  if (Math.abs(cx - cam.x) > VW / 2 + 520 || Math.abs(cy - cam.y) > VH / 2 + 420) return;
+  // beach parking: striped stalls along both sides of the lot
+  const lx0 = 5374 * S, ly0 = 2664 * S, lw = 92 * S, lh = 28 * S;
+  ctx.fillStyle = 'rgba(232,230,222,0.75)';
+  for (let x = lx0 + 8; x < lx0 + lw - 6; x += 16) { if (Math.abs(x - 5420 * S) < 22) continue; ctx.fillRect(x, ly0 + 2, 2, 20); ctx.fillRect(x, ly0 + lh - 22, 2, 20); }
+  ctx.fillStyle = '#e8c547'; for (let x = lx0 + 6; x < lx0 + lw - 6; x += 10) ctx.fillRect(x, ly0 + lh / 2, 5, 1);
+  // boardwalk over the dunes, with sea oats on either side
+  const bx = 5410 * S, by = 2692 * S, bw = 20 * S, bh = 22 * S + 10;
+  ctx.fillStyle = 'rgba(40,30,20,0.3)'; ctx.fillRect(bx + 3, by + 3, bw, bh);
+  for (let y = 0; y < bh; y += 6) { ctx.fillStyle = (y / 6) % 2 ? '#b08a5a' : '#c49c68'; ctx.fillRect(bx, by + y, bw, 5); ctx.fillStyle = '#8a6a44'; ctx.fillRect(bx, by + y + 5, bw, 1); }
+  ctx.fillStyle = '#7a5a38'; ctx.fillRect(bx - 2, by, 2, bh); ctx.fillRect(bx + bw, by, 2, bh);
+  for (let y = 4; y < bh; y += 14) { ctx.fillStyle = '#6b4c2e'; ctx.fillRect(bx - 3, by + y, 4, 4); ctx.fillRect(bx + bw - 1, by + y, 4, 4); }
+  for (let i = 0; i < 18; i++) { const side = i % 2 ? 1 : -1, ox = side > 0 ? bx + bw + 6 + (i * 13 % 46) : bx - 10 - (i * 17 % 46), oy = by + 4 + (i * 11 % (bh - 6)); ctx.fillStyle = '#9cb05a'; ctx.fillRect(ox, oy, 1, 5); ctx.fillRect(ox + 2, oy + 1, 1, 4); ctx.fillStyle = '#d8c286'; ctx.fillRect(ox, oy - 1, 1, 2); ctx.fillRect(ox + 2, oy, 1, 1); }
+  // sand fence along the dune line
+  ctx.fillStyle = '#8a6a44'; for (let x = 5300 * S; x < 5560 * S; x += 6) { if (x > bx - 14 && x < bx + bw + 14) continue; ctx.fillRect(x, by + 2, 2, 7); } ctx.fillRect(5300 * S, by + 4, (bx - 14) - 5300 * S, 1); ctx.fillRect(bx + bw + 14, by + 4, 5560 * S - (bx + bw + 14), 1);
+  // "FRONT BEACH" sign at the top of the boardwalk
+  const sx = bx + bw / 2, sy = by - 2;
+  ctx.fillStyle = '#5a4632'; ctx.fillRect(sx - 30, sy - 4, 2, 10); ctx.fillRect(sx + 28, sy - 4, 2, 10);
+  ctx.fillStyle = '#0b1022'; ctx.fillRect(sx - 36, sy - 22, 72, 20); ctx.fillStyle = '#2f8a9a'; ctx.fillRect(sx - 35, sy - 21, 70, 18);
+  ctx.fillStyle = '#f6d77a'; ctx.fillRect(sx - 35, sy - 21, 70, 2);
+  pixText(ctx, 'FRONT BEACH', Math.round(sx - pixTextW('FRONT BEACH', 1) / 2), sy - 14, '#fbf3df', 1);
+  // Isle of Palms pier running out past the breakers, with folks fishing off the end
+  const px = 5530 * S, py0 = 2722 * S, py1 = 2800 * S;
+  ctx.fillStyle = 'rgba(8,24,44,0.35)'; ctx.fillRect(px + 5, py0 + 6, 26, py1 - py0);
+  for (let y = py0; y < py1; y += 12) { ctx.fillStyle = '#3e3022'; ctx.fillRect(px + 1, y + 8, 3, 6); ctx.fillRect(px + 22, y + 8, 3, 6); }
+  for (let y = py0; y < py1; y += 4) { ctx.fillStyle = (y / 4 | 0) % 2 ? '#a88a62' : '#b8996e'; ctx.fillRect(px, y, 26, 4); }
+  ctx.fillStyle = '#e8e6de'; ctx.fillRect(px - 1, py0, 1, py1 - py0); ctx.fillRect(px + 26, py0, 1, py1 - py0);
+  ctx.fillStyle = '#b8996e'; ctx.fillRect(px - 10, py1, 46, 18); ctx.fillStyle = '#8a6a44'; ctx.fillRect(px - 10, py1 + 18, 46, 2); ctx.fillStyle = '#e8e6de'; ctx.fillRect(px - 11, py1, 1, 18); ctx.fillRect(px + 36, py1, 1, 18);
+  for (let i = 0; i < 4; i++) { const fx = px - 6 + i * 12, fy = py1 + 4 + (i % 2) * 6; ctx.fillStyle = ['#e2574c', '#1f2f5a', '#f6d77a', '#2f6b46'][i]; ctx.fillRect(fx, fy, 3, 4); ctx.fillStyle = '#c9a06a'; ctx.fillRect(fx, fy - 2, 3, 2); ctx.fillStyle = '#5a4632'; ctx.fillRect(fx + 3, fy - 4 + (i % 2) * 8, 1, 1); ctx.strokeStyle = 'rgba(240,240,240,.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(fx + 3, fy); ctx.lineTo(fx + (i < 2 ? -6 : 14), fy + 26 + Math.sin(now + i) * 2); ctx.stroke(); }
+  // beach day: towels, umbrellas, a sandcastle, kids, a cooler and a boogie board
+  const spots = [[5300, 2717], [5322, 2721], [5346, 2715], [5372, 2722], [5452, 2716], [5474, 2724], [5498, 2718], [5560, 2722], [5290, 2726], [5398, 2726]];
+  spots.forEach(([mx, my], i) => { const x = mx * S, y = my * S;
+    const towel = ['#e2574c', '#f6d77a', '#9fd8dc', '#f2a7b8', '#b8e0b0'][i % 5];
+    ctx.fillStyle = towel; ctx.fillRect(x, y, 14, 7); ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(x, y + 2, 14, 1);
+    if (i % 3 !== 2) { ctx.fillStyle = '#c9a06a'; ctx.fillRect(x + 3, y + 1, 8, 3); ctx.fillStyle = ['#1f2f5a', '#e2574c', '#2f6b46'][i % 3]; ctx.fillRect(x + 5, y + 1, 3, 3); ctx.fillStyle = '#5a4632'; ctx.fillRect(x + 10, y + 1, 2, 2); }
+    if (i % 2 === 0) { const ux = x + 16, uy = y - 6, uc = ['#e2574c', '#2f8a9a', '#f6d77a', '#f2a7b8'][i % 4]; ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(ux + 4, uy + 12, 9, 4, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#5a4632'; ctx.fillRect(ux, uy, 1, 12); ctx.fillStyle = uc; ctx.fillRect(ux - 8, uy - 3, 17, 4); ctx.fillRect(ux - 5, uy - 5, 11, 2); ctx.fillStyle = '#fff'; ctx.fillRect(ux - 3, uy - 3, 2, 4); ctx.fillRect(ux + 3, uy - 3, 2, 4); }
+  });
+  // sandcastle with a flag
+  const kx = 5432 * S, ky = 2725 * S; ctx.fillStyle = '#c9a868'; ctx.fillRect(kx, ky, 12, 6); ctx.fillRect(kx + 1, ky - 3, 3, 3); ctx.fillRect(kx + 8, ky - 3, 3, 3); ctx.fillRect(kx + 4, ky - 6, 4, 6); ctx.fillStyle = '#a88a52'; ctx.fillRect(kx, ky + 5, 12, 1); ctx.fillStyle = '#5a4632'; ctx.fillRect(kx + 6, ky - 11, 1, 5); ctx.fillStyle = '#e2574c'; ctx.fillRect(kx + 7, ky - 11 + (Math.floor(now * 3) % 2), 4, 2);
+  // kids running to the water and back
+  for (let i = 0; i < 3; i++) { const ph = (now * 0.25 + i * 0.33) % 1, t = ph < 0.5 ? ph * 2 : 2 - ph * 2; const x = (5330 + i * 70) * S, y = (2716 + t * 14) * S; const leg = Math.floor(now * 8 + i) % 2; ctx.fillStyle = ['#f6d77a', '#9fd8dc', '#f08a6b'][i]; ctx.fillRect(x, y, 3, 4); ctx.fillStyle = '#c9a06a'; ctx.fillRect(x, y - 2, 3, 2); ctx.fillStyle = '#8a6a44'; ctx.fillRect(x + leg * 2, y + 4, 1, 2); }
+  ctx.fillStyle = '#2f8a9a'; ctx.fillRect(5392 * S, 2713 * S, 8, 6); ctx.fillStyle = '#fbf3df'; ctx.fillRect(5392 * S, 2713 * S, 8, 2); // cooler
+  ctx.fillStyle = '#f08a6b'; ctx.fillRect(5512 * S, 2718 * S, 5, 10); ctx.fillStyle = '#fbf3df'; ctx.fillRect(5512 * S, 2722 * S, 5, 1); // boogie board
 }
 
 /* =================== input =================== */
@@ -3017,7 +3111,7 @@ function fmtClock(mins) { mins = Math.floor(mins); let h = Math.floor(mins / 60)
 function fmtTime(s) { s = Math.max(0, s); return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
 const MEDAL_NAME = { 3: 'GOLD', 2: 'SILVER', 1: 'BRONZE', 0: '' };
 const MEDAL_CLASS = { 3: 'm-gold', 2: 'm-silver', 1: 'm-bronze', 0: 'm-none' };
-const PIN_NODE = { ahall: 'ahall', ballet: 'ballet', carpool: 'f2', playrace: 'hpark', groceries: 'wf', od: 'si_od', surf: 'iop', riverdogs: 'joe', airport: 'chs', kingtide: 'si_lh' };
+const PIN_NODE = { ahall: 'ahall', ballet: 'ballet', carpool: 'f2', playrace: 'hpark', groceries: 'wf', od: 'si_od', surf: 'fb', riverdogs: 'joe', airport: 'chs', kingtide: 'si_lh' };
 const LORE = [
   'Charleston is called the Holy City because its skyline is full of church steeples.',
   'Rainbow Row is 13 pastel houses on East Bay Street, the longest row of Georgian houses in America.',
@@ -3162,8 +3256,8 @@ function renderDealer() {
   const v = VEHICLES[dealSel]; const owned = !!SAVE.owned[dealSel]; const secret = dealSel === 'alfa' && !owned;
   $('#dName').textContent = secret ? '???' : v.name + ' — ' + v.sub;
   $('#dDesc').textContent = secret ? 'Somebody on the peninsula owns one of these, and he loves to race. Finish every errand to find him.' : v.desc;
-  const base = { speed: v.speed, grip: v.grip, tough: v.tough, wade: v.wade, nitro: v.nitro }; const s = owned ? statsFor(dealSel) : base;
-  $('#dStats').innerHTML = secret ? '' : stat('Speed', (base.speed - 150) / 140, (s.speed - 150) / 140) + stat('Grip', (base.grip - 5) / 5, (s.grip - 5) / 5) + stat('Toughness', base.tough / 2.4, s.tough / 2.4) + stat('Flood wading', base.wade / 1.4, s.wade / 1.4) + stat('Sweet tea', base.nitro / 5, s.nitro / 5);
+  const base = { speed: v.speed, accel: v.accel, turn: v.turn, grip: v.grip, tough: v.tough, wade: v.wade, nitro: v.nitro }; const s = owned ? statsFor(dealSel) : base;
+  $('#dStats').innerHTML = secret ? '' : stat('Speed', (base.speed - 150) / 140, (s.speed - 150) / 140) + stat('Pickup', (base.accel - 100) / 120, (s.accel - 100) / 120) + stat('Steering', (base.turn - 2) / 3, (s.turn - 2) / 3) + stat('Grip', (base.grip - 5) / 5, (s.grip - 5) / 5) + stat('Curb hopping', (260 - v.hop) / 200, (260 - v.hop) / 200) + stat('Toughness', base.tough / 2.4, s.tough / 2.4) + stat('Flood wading', base.wade / 1.4, s.wade / 1.4) + stat('Sweet tea', base.nitro / 5, s.nitro / 5);
   const act = $('#dActions'); act.innerHTML = '';
   if (owned) {
     const b = document.createElement('button'); b.className = 'btn'; b.textContent = SAVE.car === dealSel ? 'IN YOUR DRIVEWAY' : 'DRIVE THIS ONE'; b.disabled = SAVE.car === dealSel;
