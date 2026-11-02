@@ -58,6 +58,7 @@ CLAUDE.md         this file
 blackthorn.html   Blackthorn Manor        (built single file, copied from reimagined-chainsaw)
 blackthorn2.html  Blackthorn Manor II     (built single file, copied from reimagined-chainsaw)
 pumpkinslash.html Pumpkin Slash           (single file, three.js r128 from cdnjs)
+holycity.html     Holy City Hustle        (single file, canvas 2D, no libraries)
 algol.html        Mirror of Algol         (single file)
 catbakery/        Cat Bakery              (React + Babel from unpkg, .jsx compiled in the browser)
 apprenticeship/   The Long Apprenticeship (React + Babel from unpkg; code in src/)
@@ -79,6 +80,7 @@ The front page lists the games in this order (games.js order):
 | Adriatica II | `adriatica2/` | `adriatica-save-v2` | Dev panel only with `?dev`. Also still served at adriatica2.noralindsey.com until that subdomain is retired. |
 | The Long Apprenticeship | `apprenticeship/` | `wilderlore:save:v1` | "Wilderlore" caravan journey. Difficulty values live in `src/app.jsx`. |
 | Pumpkin Slash | `pumpkinslash.html` | — | **Jacob says it's perfect. Do not change it.** |
+| Holy City Hustle | `holycity.html` | `holycity.save.v1` | SNES-style RC Pro-Am errand racer across Charleston (10 errands incl. secret King Tide race). Source lives only in this built file; no real people in the game (Jacob asked for Bill Murray; declined). |
 
 **Saves must never break.** Players have progress in browser storage. Never
 rename a save key or change a save's shape without migrating the old save.

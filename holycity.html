@@ -218,6 +218,7 @@ body.compact #tDir{font-size:10px} body.compact #tStreet{font-size:11px} body.co
 .seg{display:flex;gap:4px}
 .seg button{font-size:9px;padding:8px 9px;background:var(--panel-hi);color:var(--cream);border:2px solid #000}
 .seg button.on{background:var(--butter);color:var(--ink)}
+.lore{font-size:15px;line-height:1.4;color:var(--haint);border-left:3px solid var(--butter);padding:4px 0 4px 10px;margin:10px 0 0;font-style:italic}
 .keys{font-size:15px;line-height:1.5;color:#d8dcef}
 kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px solid #2d3d70;padding:2px 4px}
 #rotateHint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 200px);transform:translateX(-50%);font-size:14px;background:rgba(11,16,34,.85);border:2px solid var(--haint);padding:6px 10px;display:none;pointer-events:none;white-space:nowrap}
@@ -304,6 +305,7 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
       <p id="bText"></p>
       <div class="brief-meta" id="bMeta"></div>
       <ul class="hazards" id="bHaz"></ul>
+      <p class="lore" id="bLore"></p>
       <div class="btns">
         <button class="btn" id="bGo">GO!</button>
         <button class="btn ghost" id="bBack">BACK TO MAP</button>
@@ -319,6 +321,7 @@ kbd{font-family:var(--f-display);font-size:9px;background:#0b1022;border:2px sol
       <div class="bigmedal" id="rMedal"></div>
       <table class="ledger" id="rLedger"></table>
       <p id="rNote" style="font-size:15px;color:#d8dcef;margin-top:8px"></p>
+      <p class="lore" id="rLore"></p>
       <div class="btns">
         <button class="btn" id="rMap">BACK TO MAP</button>
         <button class="btn alt" id="rRetry">TRY AGAIN</button>
@@ -398,7 +401,7 @@ const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= TAU; while (
 const dist = (ax, ay, bx, by) => Math.hypot(bx - ax, by - ay);
 
 const S = 3, C = 12, LW = 22;
-const WW = 4800 * S, WH = 3200 * S, GW = WW / C | 0, GH = WH / C | 0;
+const WW = 5800 * S, WH = 3200 * S, GW = WW / C | 0, GH = WH / C | 0;
 const T = { WATER: 0, LAND: 1, MARSH: 2, SAND: 3, PARK: 4, ROAD: 5, BRIDGE: 6, RAIL: 7, BUILD: 8, TREE: 9, DRAW: 10, LOT: 11, WALK: 12, COBBLE: 13, SWING: 14 };
 const SOLID = new Uint8Array(16); SOLID[T.RAIL] = SOLID[T.BUILD] = SOLID[T.TREE] = 1;
 const grid = new Uint8Array(GW * GH);
@@ -408,16 +411,17 @@ function cellAt(x, y) { const gx = x / C | 0, gy = y / C | 0; if (gx < 0 || gy <
 const POLY = {
   westAshley: [[0, 0], [1150, 0], [1200, 400], [1250, 800], [1300, 1200], [1360, 1450], [1380, 1700], [1450, 2100], [1500, 2450], [1400, 2650], [0, 2700]],
   peninsula: [[1500, 0], [1600, 400], [1700, 800], [1745, 1200], [1760, 1450], [1780, 1700], [1785, 2100], [1800, 2400], [1850, 2560], [2050, 2610], [2300, 2630], [2500, 2610], [2720, 2560], [2780, 2400], [2810, 2100], [2850, 1700], [2880, 1300], [2900, 1000], [2950, 500], [3000, 0]],
-  mtp: [[3300, 0], [3310, 600], [3350, 1000], [3360, 1240], [3420, 1600], [3700, 1950], [4000, 2180], [4300, 2260], [4800, 2290], [4800, 0]],
-  sullivans: [[4030, 2520], [4800, 2490], [4800, 2790], [4030, 2800]],
+  mtp: [[3300, 0], [3310, 600], [3350, 1000], [3360, 1240], [3420, 1600], [3700, 1950], [4000, 2180], [4300, 2260], [4800, 2290], [5200, 2300], [5800, 2270], [5800, 0]],
+  sullivans: [[4030, 2520], [4780, 2495], [4785, 2790], [4030, 2800]],
+  iop: [[4880, 2480], [5800, 2440], [5800, 2770], [4880, 2795]],
   james: [[0, 2820], [1350, 2780], [1700, 2960], [2000, 3200], [0, 3200]],
   sumter: [[3260, 2830], [3340, 2820], [3365, 2880], [3300, 2915], [3248, 2880]],
 };
 const MARSH_POLYS = [
-  [[3900, 2160], [4800, 2270], [4800, 2490], [4030, 2520], [3960, 2400]],
+  [[3900, 2160], [4800, 2270], [5800, 2250], [5800, 2450], [4880, 2480], [4780, 2490], [4030, 2520], [3960, 2400]],
 ];
-const CHANNELS = [[[3800, 2360], [4800, 2370], [4800, 2425], [3800, 2420]]];
-const SAND_POLYS = [[[4030, 2705], [4800, 2690], [4800, 2795], [4030, 2805]]];
+const CHANNELS = [[[3800, 2360], [5800, 2360], [5800, 2415], [3800, 2420]], [[4785, 2420], [4880, 2420], [4880, 2900], [4785, 2900]]];
+const SAND_POLYS = [[[4030, 2705], [4785, 2690], [4785, 2795], [4030, 2805]], [[4880, 2690], [5800, 2665], [5800, 2775], [4880, 2800]]];
 const PARKS = [
   { name: 'Hampton Park', p: [[1800, 962], [1962, 962], [1962, 1140], [1800, 1140]] },
   { name: 'White Point Garden', p: [[2120, 2512], [2340, 2512], [2360, 2600], [2120, 2604]] },
@@ -425,7 +429,7 @@ const PARKS = [
   { name: 'Colonial Lake', p: [[1862, 2112], [1968, 2112], [1968, 2240], [1862, 2240]] },
 ];
 const PONDS = [[[1882, 2128], [1948, 2128], [1948, 2224], [1882, 2224]]];
-const LOTS = [[3832, 905, 108, 50], [850, 1652, 150, 48], [3560, 950, 100, 60], [4380, 560, 120, 60]];
+const LOTS = [[1650, 300, 720, 44], [2250, 18, 340, 46], [5380, 2560, 80, 40], [3832, 905, 108, 50], [850, 1652, 150, 48], [3560, 950, 100, 60], [4380, 560, 120, 60]];
 
 /* ---------- road network ---------- */
 const NODES = {}; const EDGES = [];
@@ -494,17 +498,22 @@ const r1150 = gid(CX.rut, 1150), k1150 = gid(CX.king, 1150), m1150 = gid(CX.meet
 chain(['hp_w', 'hp_a', 'hpark', r1150, k1150, m1150], { walk: 1, name: 'Grove St' });
 chain(['hp_nw', r950, 'f1', k950], { hump: 1, name: 'Wagener Terrace' });
 E('hp_w', 'hp_nw', { hump: 1, name: 'Mary Murray Dr' });
-E(gid(CX.ash, CROSS_Y.ash), 'hp_a', { walk: 1, name: 'Ashley Ave' });
+N('joe', 1850, 1265);
+E(gid(CX.ash, CROSS_Y.ash), 'joe', { walk: 1, name: 'Ashley Ave' }); E('joe', 'hp_a', { walk: 1, name: 'Ashley Ave' });
 E(gid(CX.rut, CROSS_Y.rut), r1150, { walk: 1, name: 'Rutledge Ave' }); E(r1150, r950, { name: 'Rutledge Ave' });
 E(gid(CX.king, CROSS_Y.king), k1150, { walk: 1, name: 'King St' }); E(k1150, k950, { name: 'King St' });
 E(gid(CX.meet, CROSS_Y.meet), m1150, { walk: 1, name: 'Meeting St' });
 // Ravenel + Mount Pleasant
+N('i26a', 2520, 1120); N('i26b', 2600, 820); N('i26c', 2600, 520); N('i26d', 2540, 260); N('chs_e', 2560, 160); N('chs', 2420, 160); N('chs_w', 2280, 160);
+chain([gid(CX.meet, CROSS_Y.meet), 'i26a', 'i26b', 'i26c', 'i26d'], { L: 3, kind: 'hw', name: 'I-26' });
+E('i26d', 'chs_e', { L: 2, kind: 'hw', name: 'Airport Rd' }); chain(['chs_e', 'chs', 'chs_w'], { L: 2, name: 'Arrivals' });
 N('rav_e', 3420, 1240);
 E('rav_w', 'rav_e', { L: 4, kind: 'br', name: 'Ravenel Bridge', ravenel: 1 });
 N('mp17a', 3650, 1050); N('wfn', 3950, 860); N('mp17b', 4300, 640); N('mp17c', 4750, 420);
 chain(['rav_e', 'mp17a', 'wfn', 'mp17b', 'mp17c'], { L: 3, kind: 'hw', name: 'Johnnie Dodds Blvd' });
 N('cb1', 3560, 1420); N('ballet', 3680, 1570); N('cb2', 3800, 1720); N('cb3', 4060, 1990); N('bs_n', 4300, 2210);
-chain(['rav_e', 'cb1', 'ballet', 'cb2', 'cb3'], { L: 2, kind: 'hw', name: 'Coleman Blvd' });
+N('mpf', 4000, 1928);
+chain(['rav_e', 'cb1', 'ballet', 'cb2', 'mpf', 'cb3'], { L: 2, kind: 'hw', name: 'Coleman Blvd' });
 E('cb3', 'bs_n', { L: 1, name: 'Ben Sawyer Blvd' });
 N('bsb1', 3950, 1450);
 N('wf', 3950, 990);
@@ -513,7 +522,17 @@ N('bs_s', 4300, 2560);
 E('bs_n', 'bs_s', { L: 1, kind: 'swing', name: 'Ben Sawyer Bridge' });
 N('si_c', 4300, 2620); N('si_w', 4080, 2620); N('si_lh', 4150, 2620); N('si_od', 4480, 2620); N('si_e', 4720, 2620);
 E('bs_s', 'si_c', { name: 'Ben Sawyer Blvd' });
-chain(['si_w', 'si_lh', 'si_c', 'si_od', 'si_e'], { hump: 1, name: 'Middle St' });
+N('si_f', 4600, 2620);
+chain(['si_w', 'si_lh', 'si_c', 'si_od', 'si_f', 'si_e'], { hump: 1, name: 'Middle St' });
+// Breach Inlet bridge to the Isle of Palms, Palm Blvd, Front Beach
+N('bi_w', 4760, 2615); N('bi_e', 4905, 2605); N('iop1', 5100, 2600); N('iop', 5420, 2600); N('iop2', 5700, 2590);
+E('si_e', 'bi_w', { name: 'Palm Blvd' }); E('bi_w', 'bi_e', { L: 1, kind: 'br', name: 'Breach Inlet Bridge' });
+chain(['bi_e', 'iop1', 'iop', 'iop2'], { hump: 1, name: 'Palm Blvd' });
+// Isle of Palms Connector
+N('ioc1', 4600, 1600); N('ioc2', 5300, 2000); N('ioc3', 5300, 2275); N('ioc4', 5300, 2500); N('iop3', 5300, 2600);
+E('bsb1', 'ioc1', { L: 2, kind: 'hw', name: 'IOP Connector' }); E('ioc1', 'ioc2', { L: 2, kind: 'hw', name: 'IOP Connector' }); E('ioc2', 'ioc3', { L: 2, kind: 'hw', name: 'IOP Connector' });
+E('ioc3', 'ioc4', { L: 2, kind: 'br', name: 'IOP Connector' }); E('ioc4', 'iop3', { L: 2, kind: 'hw', name: 'IOP Connector' });
+E('iop1', 'iop3', { name: 'Palm Blvd' }); E('iop3', 'iop', { name: 'Palm Blvd' });
 
 { const wa = ['Magnolia Rd', 'Wappoo Rd', 'Stocker Dr', 'Folly Rd', 'Windermere Blvd', 'Avondale Ave', 'Belvedere Rd', 'Stinson Dr']; let k = 0; for (const e of EDGES) if (!e.name) e.name = wa[k++ % wa.length]; }
 for (const e of EDGES) {
@@ -533,9 +552,17 @@ const LANDMARKS = {
   f2: { r: [2150, 2060, 40, 32], kind: 'friend', label: "Theo's", color: '#a8d8b8' },
   f3: { r: [2420, 2410, 40, 32], kind: 'friend', label: "June's", color: '#f6d77a' },
   church: { r: [2380, 2258, 40, 52], kind: 'church' },
-  church2: { r: [2420, 1962, 40, 46], kind: 'church' },
+  church2: { r: [2540, 2112, 40, 46], kind: 'church' },
   dealer: { r: [870, 1702, 100, 44], kind: 'dealer' },
   lighthouse: { r: [4140, 2642, 22, 22], kind: 'lighthouse' },
+  joe: { r: [1758, 1180, 78, 165], kind: 'stadium' },
+  airport: { r: [2290, 66, 270, 58], kind: 'airport' },
+  citadel: { r: [1810, 860, 130, 70], kind: 'citadel' },
+  market: { r: [2385, 1960, 100, 22], kind: 'market' },
+  si_f: { r: [4580, 2560, 40, 36], kind: 'friend', color: '#9fd8dc' },
+  mpf: { r: [4030, 1880, 40, 30], kind: 'friend', color: '#f5c49a' },
+  iopshop: { r: [5390, 2530, 60, 26], kind: 'surfshop' },
+  lifeguard: { r: [5430, 2700, 12, 12], kind: 'lifeguard' },
   gazebo: { r: [1862, 1030, 26, 22], kind: 'gazebo' },
   playground: { r: [1898, 1098, 40, 30], kind: 'playground' },
 };
@@ -557,7 +584,7 @@ function applyMask(m, type, onlyIf) { for (let i = 0; i < m.length; i++) if (m[i
 const BUILDINGS = []; const TREES = [];
 function buildWorld() {
   grid.fill(T.WATER);
-  applyMask(maskOf(c => { for (const k of ['westAshley', 'peninsula', 'mtp', 'sullivans', 'james', 'sumter']) { polyPath(c, POLY[k], MS); c.fill(); } }), T.LAND);
+  applyMask(maskOf(c => { for (const k of ['westAshley', 'peninsula', 'mtp', 'sullivans', 'iop', 'james', 'sumter']) { polyPath(c, POLY[k], MS); c.fill(); } }), T.LAND);
   const W = new Uint8Array(16); W[T.WATER] = 1;
   applyMask(maskOf(c => { c.lineWidth = 70 * MS; for (const k of ['westAshley', 'james']) { polyPath(c, POLY[k], MS); c.stroke(); } MARSH_POLYS.forEach(p => { polyPath(c, p, MS); c.fill(); }); }), T.MARSH, W);
   applyMask(maskOf(c => CHANNELS.forEach(p => { polyPath(c, p, MS); c.fill(); })), T.WATER);
@@ -623,7 +650,7 @@ function placeBuildings() {
   for (const e of EDGES) {
     if (isBridge(e) || e.kind === 'hw') continue;
     const mx = (e.ax + e.bx) / 2 / S, my = (e.ay + e.by) / 2 / S;
-    const pen = mx > 1785 && mx < 2900 && my > 780 && my < 2640, sul = e.name === 'Middle St', wa = mx < 1300;
+    const pen = mx > 1785 && mx < 2900 && my > 780 && my < 2640, sul = e.name === 'Middle St' || e.name === 'Palm Blvd', wa = mx < 1300;
     if (!pen && !sul && !wa) continue;
     const axisX = Math.abs(e.ux) > 0.97, axisY = Math.abs(e.uy) > 0.97; if (!axisX && !axisY) continue;
     const A = NODES[e.a], B = NODES[e.b];
@@ -647,7 +674,8 @@ function placeBuildings() {
     { bb: [1790, 1350, 2880, 2620], style: 'chs', n: 5000, sz: [10, 17], m: 1 },
     { bb: [1790, 780, 2900, 1350], style: 'house', n: 2000, sz: [12, 20], m: 1 },
     { bb: [120, 1250, 1300, 1950], style: 'ranch', n: 1200, sz: [22, 34], m: 2 },
-    { bb: [3400, 380, 4800, 2250], style: 'suburb', n: 4000, sz: [20, 34], m: 2 },
+    { bb: [3400, 380, 5800, 2250], style: 'suburb', n: 6000, sz: [20, 34], m: 2 },
+    { bb: [4900, 2490, 5800, 2680], style: 'beach', n: 1400, sz: [15, 22], m: 1 },
     { bb: [4040, 2530, 4800, 2700], style: 'beach', n: 900, sz: [15, 22], m: 1 },
     { bb: [1790, 600, 2950, 780], style: 'house', n: 300, sz: [18, 28], m: 1 },
   ];
@@ -672,10 +700,12 @@ function placeBuildings() {
     { bb: [1790, 600, 2950, 2620], n: 2400, kinds: ['oak', 'palm', 'palm'] },
     { bb: [3350, 300, 4800, 2250], n: 2600, kinds: ['oak', 'pine', 'palm'] },
     { bb: [4040, 2520, 4800, 2700], n: 400, kinds: ['palm', 'palm', 'scrub'] },
+    { bb: [4900, 2480, 5800, 2700], n: 700, kinds: ['palm', 'palm', 'scrub'] },
+    { bb: [4800, 400, 5800, 2250], n: 2000, kinds: ['pine', 'oak', 'palm'] },
     { bb: [0, 2800, 2000, 3200], n: 900, kinds: ['oak', 'pine'] },
     { bb: [0, 0, 1300, 1250], n: 2400, kinds: ['oak', 'pine', 'pine'] },
     { bb: [1500, 0, 3000, 600], n: 900, kinds: ['oak', 'pine'] },
-    { bb: [3300, 0, 4800, 400], n: 700, kinds: ['pine', 'oak'] },
+    { bb: [3300, 0, 5800, 400], n: 1000, kinds: ['pine', 'oak'] },
   ];
   const allowTree = new Uint8Array(16); allowTree[T.LAND] = allowTree[T.PARK] = allowTree[T.SAND] = 1;
   for (const rg of treeRegions) for (let i = 0; i < rg.n; i++) {
@@ -936,6 +966,10 @@ function drawBuilding(g, b) {
   const R = mkRng(b.seed * 1e9 | 0);
   const { x, y, w, h } = b; const k = b.kind;
   if (k === 'playground') return drawPlayground(g, b);
+  if (k === 'stadium') return drawStadium(g, b);
+  if (k === 'airport') return drawAirport(g, b);
+  if (k === 'lifeguard') return;
+  if (k === 'citadel') { drawCitadel(g, b); return; }
   if (k === 'gazebo') { g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + 4, y + h - 6, w, 8); g.fillStyle = '#fbf3df'; g.fillRect(x + 6, y + 10, w - 12, h - 10); g.fillStyle = '#5e6670'; g.beginPath(); g.moveTo(x, y + 12); g.lineTo(x + w / 2, y - 4); g.lineTo(x + w, y + 12); g.fill(); g.fillStyle = '#d8d0bc'; for (let i = 0; i < 4; i++) g.fillRect(x + 8 + i * (w - 18) / 3, y + 12, 2, h - 14); return; }
   if (k === 'lighthouse') { g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(x - 2, y + h - 4, w + 8, 8); g.fillStyle = '#e8e8e2'; g.fillRect(x, y, w, h); return; }
   const roofH = Math.max(10, h * 0.62 | 0), facH = h - roofH;
@@ -954,6 +988,8 @@ function drawBuilding(g, b) {
   if (k === 'od') { wall = '#fbf3df'; roof = '#2f4f6a'; }
   if (k === 'church') { wall = '#fbf3df'; roof = '#5e6670'; }
   if (k === 'dealer') { wall = '#dfe4ea'; roof = '#1f2f5a'; }
+  if (k === 'market') { wall = '#e8dcc4'; roof = '#7a3b2e'; }
+  if (k === 'surfshop') { wall = '#9fd8dc'; roof = '#f6d77a'; }
   // shadow
   g.fillStyle = 'rgba(10,20,10,0.35)'; g.fillRect(x + 4, y + 4, w, h + 2);
   // facade
@@ -983,11 +1019,12 @@ function drawBuilding(g, b) {
   if (k === 'beach') { g.fillStyle = '#6b5a46'; g.fillRect(x + 2, y + h - 4, 2, 4); g.fillRect(x + w - 4, y + h - 4, 2, 4); g.fillRect(x + w / 2, y + h - 4, 2, 4); }
   g.fillStyle = '#4a2f22'; g.fillRect(x + (w / 2 | 0) - 2, y + h - 7, 4, 7);
   // signs for special places
-  if (k === 'grocery') { g.fillStyle = '#2f6b46'; g.fillRect(x + w / 2 - 34, y + roofH + 1, 68, 9); pixText(g, 'WHOLE FOODS', x + w / 2 - 21, y + roofH + 3, '#fbf3df'); }
-  if (k === 'od') { g.fillStyle = '#2f4f6a'; for (let i = 0; i < w; i += 6) { g.fillStyle = i % 12 ? '#fbf3df' : '#2f4f6a'; g.fillRect(x + i, y + roofH, 6, 4); } pixText(g, 'OBSTINATE', x + w / 2 - 17, y + 4, '#fbf3df'); pixText(g, 'DAUGHTER', x + w / 2 - 15, y + 11, '#fbf3df'); }
-  if (k === 'ballet') { pixText(g, 'BALLET', x + w / 2 - 11, y + 5, '#fff'); }
-  if (k === 'ashley') { g.fillStyle = '#fff'; for (let i = 0; i < 6; i++) g.fillRect(x + 10 + i * ((w - 22) / 5), y + roofH, 3, facH); pixText(g, 'ASHLEY HALL', x + w / 2 - 21, y + 8, '#fbf3df'); g.fillStyle = '#5a9b44'; g.fillRect(x - 0, y + h + 2, w, 0); }
-  if (k === 'dealer') { pixText(g, 'HOLY CITY MOTORS', x + w / 2 - 31, y + 5, '#f6d77a'); }
+  if (k === 'od') { for (let i = 0; i < w; i += 6) { g.fillStyle = i % 12 ? '#fbf3df' : '#2f4f6a'; g.fillRect(x + i, y + roofH, 6, 4); } }
+  if (k === 'ashley') { g.fillStyle = '#fff'; for (let i = 0; i < 6; i++) g.fillRect(x + 10 + i * ((w - 22) / 5), y + roofH, 3, facH); }
+  const SIGNS = { grocery: [['WHOLE FOODS'], '#2f6b46', '#fbf3df'], od: [['THE OBSTINATE', 'DAUGHTER'], '#2f4f6a', '#fbf3df'], ballet: [['BALLET'], '#b06a86', '#fff'], ashley: [['ASHLEY HALL'], '#3e4a5a', '#fbf3df'], dealer: [['HOLY CITY', 'MOTORS'], '#1f2f5a', '#f6d77a'], surfshop: [['SURF SHOP'], '#f08a6b', '#fff'], market: [['CITY MARKET'], '#7a3b2e', '#fbf3df'], citadel: [['THE CITADEL'], '#5e6670', '#fff'] };
+  if (SIGNS[k]) signBoard(g, SIGNS[k][0], x + w / 2, y + roofH / 2, SIGNS[k][1], SIGNS[k][2], w);
+  // earthquake bolts: the iron stars on old Charleston houses
+  if ((k === 'chs' || k === 'mansion') && R() < 0.45) { g.fillStyle = '#2a2a2e'; for (const bx of [x + 3, x + w - 9]) { g.fillRect(bx, y + roofH + 1, 3, 1); g.fillRect(bx + 1, y + roofH, 1, 3); } }
   if (k === 'home') { g.fillStyle = '#1f2f5a'; g.fillRect(x + (w / 2 | 0) - 2, y + h - 7, 4, 7); g.fillStyle = '#f6d77a'; g.fillRect(x + (w / 2 | 0) - 1, y + h - 4, 1, 1); }
 }
 function drawPlayground(g, b) {
@@ -1061,6 +1098,58 @@ function drawWalk(g, b) {
   }
   // stoop at the front door
   if (st === 'brick' && vert && w.uy > 0) { g.fillStyle = '#d8d0bc'; g.fillRect(Math.round(w.x0) - 4, Math.round(w.y0), 8, 2); }
+}
+
+function signBoard(g, lines, cx, cy, bg, fg, maxW) {
+  let sc = 2; const wid = () => Math.max(...lines.map(l => pixTextW(l, sc)));
+  while (sc > 1 && wid() + 10 > maxW) sc--;
+  const W = wid() + 8, H = lines.length * 6 * sc + 4 + (lines.length - 1) * sc;
+  const x0 = Math.round(cx - W / 2), y0 = Math.round(cy - H / 2);
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x0 + 2, y0 + 2, W, H);
+  g.fillStyle = '#0b1022'; g.fillRect(x0 - 1, y0 - 1, W + 2, H + 2);
+  g.fillStyle = bg; g.fillRect(x0, y0, W, H);
+  g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x0, y0, W, 1);
+  lines.forEach((l, i) => pixText(g, l, Math.round(cx - pixTextW(l, sc) / 2), y0 + 2 + i * (6 * sc + sc), fg, sc));
+}
+function drawStadium(g, b) {
+  const { x, y, w, h } = b;
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x + 5, y + 5, w, h);
+  g.fillStyle = '#9a9890'; g.fillRect(x, y, w, h); // concourse
+  g.fillStyle = '#6e737b'; for (let yy = y + 4; yy < y + h - 4; yy += 4) g.fillRect(x + 4, yy, w - 8, 2); // seats
+  const fx = x + 18, fy = y + 18, fw = w - 36, fh = h - 36;
+  g.fillStyle = '#3f8a3a'; g.fillRect(fx, fy, fw, fh);
+  g.fillStyle = '#4a9b44'; for (let yy = fy; yy < fy + fh; yy += 10) g.fillRect(fx, yy, fw, 5); // mowing stripes
+  // infield diamond, home plate toward Ashley Ave (east)
+  const hx = fx + fw - 18, hy = fy + fh / 2, d = Math.min(fw, fh) * 0.32;
+  g.fillStyle = '#b8864e'; g.beginPath(); g.moveTo(hx, hy); g.lineTo(hx - d, hy - d); g.lineTo(hx - d * 2, hy); g.lineTo(hx - d, hy + d); g.closePath(); g.fill();
+  g.fillStyle = '#4a9b44'; g.beginPath(); g.moveTo(hx - 8, hy); g.lineTo(hx - d, hy - d + 8); g.lineTo(hx - d * 2 + 8, hy); g.lineTo(hx - d, hy + d - 8); g.closePath(); g.fill();
+  g.fillStyle = '#fff'; for (const [bx, by] of [[hx, hy], [hx - d, hy - d], [hx - d * 2, hy], [hx - d, hy + d]]) g.fillRect(Math.round(bx) - 2, Math.round(by) - 2, 4, 4);
+  g.fillStyle = '#b8864e'; g.beginPath(); g.arc(hx - d, hy, 6, 0, TAU); g.fill();
+  // scoreboard in left field
+  g.fillStyle = '#1e1f24'; g.fillRect(fx + 4, fy + fh / 2 - 30, 14, 60); g.fillStyle = '#f6d77a'; for (let i = 0; i < 6; i++) g.fillRect(fx + 8, fy + fh / 2 - 24 + i * 9, 6, 4);
+  signBoard(g, ['RIVERDOGS', 'THE JOE'], x + w / 2, y + 8, '#1f2f5a', '#f6d77a', w + 40);
+  // gate on Ashley Ave with Pluff the Marsh Hen (an original mascot)
+  g.fillStyle = '#7a3b2e'; g.fillRect(x + w - 8, y + h / 2 - 20, 8, 40); g.fillStyle = '#f6d77a'; g.fillRect(x + w - 6, y + h / 2 - 16, 4, 32);
+}
+function drawAirport(g, b) {
+  const { x, y, w, h } = b;
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x + 5, y + 5, w, h);
+  g.fillStyle = '#c8ccd2'; g.fillRect(x, y, w, h * 0.55);
+  g.fillStyle = '#e8e6de'; for (let xx = x; xx < x + w; xx += 30) { g.beginPath(); g.moveTo(xx, y + h * 0.55); g.lineTo(xx + 15, y); g.lineTo(xx + 30, y + h * 0.55); g.fill(); } // tented roof
+  g.fillStyle = '#5e7f98'; g.fillRect(x, y + h * 0.55, w, h * 0.45);
+  g.fillStyle = '#9fd8dc'; for (let xx = x + 4; xx < x + w - 4; xx += 10) g.fillRect(xx, y + h * 0.6, 7, h * 0.3);
+  g.fillStyle = '#2a3550'; for (let xx = x + 30; xx < x + w; xx += 90) g.fillRect(xx, y + h - 10, 14, 10);
+  signBoard(g, ['CHS', 'CHARLESTON INTL'], x + w / 2, y + h * 0.3, '#1f2f5a', '#fbf3df', w);
+}
+function drawCitadel(g, b) {
+  const { x, y, w, h } = b; const roofH = h * 0.55 | 0;
+  g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x + 5, y + 5, w, h);
+  g.fillStyle = '#f2ece0'; g.fillRect(x, y, w, h);
+  g.fillStyle = '#d8d0bc'; g.fillRect(x + 12, y + 12, w - 24, roofH - 18); // courtyard
+  g.fillStyle = '#f2ece0'; for (let xx = x; xx < x + w; xx += 8) g.fillRect(xx, y - 4, 5, 4); // crenellations
+  g.fillStyle = '#2a3550'; for (let xx = x + 6; xx < x + w - 6; xx += 10) { g.fillRect(xx, y + roofH + 4, 4, 7); g.fillRect(xx, y + roofH + 16, 4, 7); }
+  g.fillStyle = '#7a3b2e'; g.fillRect(x + w / 2 - 6, y + h - 10, 12, 10);
+  signBoard(g, ['THE CITADEL'], x + w / 2, y + roofH / 2 + 4, '#5e6670', '#fff', w);
 }
 
 /* =================== vehicle sprites =================== */
@@ -1177,6 +1266,9 @@ const ICONS = {
   fork: ['#.#.#..#', '#.#.#.##', '#####.##', '.###..##', '..#...##', '..#....#', '..#....#', '..#....#'],
   friend: ['..####..', '.######.', '.#.##.#.', '.######.', '..#..#..', '...##...', '.######.', '########'],
   house: ['...##...', '..####..', '.######.', '########', '.#....#.', '.#.##.#.', '.#.##.#.', '.######.'],
+  surf: ['......#.', '.....##.', '....###.', '...###..', '..###...', '.###....', '###.....', '##......'],
+  ball: ['..####..', '.#.##.#.', '#..##..#', '#.####.#', '#.####.#', '#..##..#', '.#.##.#.', '..####..'],
+  plane: ['...##...', '...##...', '..####..', '########', '########', '...##...', '..####..', '.##..##.'],
   flag: ['#.#.#.#.', '##.#.#.#', '#.#.#.#.', '##.#.#.#', '#.......', '#.......', '#.......', '#.......'],
 };
 const iconCache = {};
@@ -1200,15 +1292,20 @@ const SURF = {};
   SURF[T.RAIL] = SURF[T.BUILD] = SURF[T.TREE] = d(1, 1, 1, 0);
 })();
 const FLOODS = [
-  { x: 1850, y: 1395, r: 55, elev: 6.9, name: 'Crosstown at Ashley Ave' },
-  { x: 2580, y: 1950, r: 48, elev: 7.0, name: 'Market St' },
-  { x: 2060, y: 2500, r: 60, elev: 7.15, name: 'Murray Blvd' },
-  { x: 1850, y: 1950, r: 38, elev: 7.1, name: 'Ashley Ave' },
-  { x: 1980, y: 2250, r: 40, elev: 7.25, name: 'Rutledge at Colonial Lake' },
-  { x: 3555, y: 1415, r: 40, elev: 7.35, name: 'Coleman at Shem Creek' },
-  { x: 4240, y: 2620, r: 42, elev: 7.3, name: 'Middle St' },
-  { x: 1240, y: 1535, r: 38, elev: 7.45, name: 'Savannah Hwy' },
-  { x: 2110, y: 2050, r: 34, elev: 7.2, name: 'Coming St' },
+  { x: 1850, y: 1400, r: 62, elev: 6.9, name: 'Crosstown at Ashley Ave' },
+  { x: 1810, y: 1300, r: 58, elev: 7.0, name: 'Lockwood by the Joe' },
+  { x: 2580, y: 1950, r: 62, elev: 7.0, name: 'Market St' },
+  { x: 2060, y: 2500, r: 72, elev: 7.1, name: 'Murray Blvd' },
+  { x: 1850, y: 1950, r: 52, elev: 7.05, name: 'Ashley Ave' },
+  { x: 1980, y: 2250, r: 52, elev: 7.2, name: 'Rutledge at Colonial Lake' },
+  { x: 2110, y: 2050, r: 46, elev: 7.15, name: 'Coming St' },
+  { x: 2640, y: 1600, r: 46, elev: 7.25, name: 'East Bay St' },
+  { x: 3555, y: 1415, r: 52, elev: 7.3, name: 'Coleman at Shem Creek' },
+  { x: 4240, y: 2620, r: 52, elev: 7.25, name: 'Middle St' },
+  { x: 5000, y: 2600, r: 56, elev: 7.2, name: 'Palm Blvd' },
+  { x: 1240, y: 1535, r: 46, elev: 7.4, name: 'Savannah Hwy' },
+  { x: 2560, y: 900, r: 52, elev: 7.35, name: 'the I-26 underpass' },
+  { x: 4300, y: 2245, r: 40, elev: 7.3, name: 'the Ben Sawyer approach' },
 ].map(f => Object.assign(f, { x: f.x * S, y: f.y * S, r: f.r * S }));
 
 const UPGRADES = {
@@ -1239,13 +1336,13 @@ const MISSIONS = [
     stops: [{ node: 'ahall', icon: 'school', label: 'Ashley Hall', say: 'Made the bell!' }],
     text: 'Out of the driveway in Avondale, over the Ashley River drawbridge, onto the Crosstown, and down Rutledge before the bell. The spring tide is coming in.',
     hazards: ['Ashley River drawbridge', '"Keep moving, change lanes later"', 'Crosstown flooding', 'Distracted drivers', 'Speed humps'],
-    tide: { base: 6.75, amp: 0.65 }, draw: 0.75, swing: 0, lights: 0.5, traffic: 1.0, pay: 90,
+    tide: { base: 6.9, amp: 0.75 }, draw: 0.75, swing: 0, lights: 0.5, traffic: 1.0, pay: 90,
     jams: [['abr_w', 'abr_e', 7]], works: [['wa_17c', 'wa_17d', 0.15, 0.85]] },
   { id: 'ballet', title: 'Ballet at 4', when: 'Monday · 3:38 PM', clock: 15 * 60 + 38, deadline: 16 * 60, start: 'ahall', type: 'reach', tod: 'day',
     stops: [{ node: 'ballet', icon: 'ballet', label: 'Ballet studio', say: 'Pointe shoes on, right on time!' }],
     text: 'School pickup at Ashley Hall, then across the peninsula, over the Ravenel, and down Coleman Blvd to ballet in Mount Pleasant. Carriage tours are out.',
     hazards: ['Horse carriages', 'Downtown stoplights', 'Ravenel Bridge', 'Coleman Blvd construction', 'Potholes'],
-    tide: { base: 6.0, amp: 0.5 }, draw: 0, swing: 0, lights: 0.6, traffic: 1.05, pay: 110,
+    tide: { base: 6.65, amp: 0.65 }, draw: 0, swing: 0, lights: 0.6, traffic: 1.05, pay: 110,
     jams: [['rav_w', 'rav_e', 9]], works: [['cb1', 'ballet', 0.1, 0.9]] },
   { id: 'carpool', title: 'Play Date: Carpool', when: 'Saturday · 9:50 AM', clock: 9 * 60 + 50, deadline: 10 * 60 + 20, start: 'home', type: 'pickup', tod: 'day',
     stops: [
@@ -1255,36 +1352,58 @@ const MISSIONS = [
       { node: 'hpark', icon: 'play', label: 'Hampton Park playground', say: 'Everybody to the swings!' }],
     text: 'Pick up Ella in Wagener Terrace, Theo in Harleston Village and June south of Broad, in any order, then everyone to the Hampton Park playground. Pull up slow so they can hop in.',
     hazards: ['The downtown grid', 'Chalmers St cobblestones', 'Stoplights', 'Pedicabs and scooters', 'Speed humps'],
-    tide: { base: 6.3, amp: 0.6 }, draw: 0.35, swing: 0, lights: 0.6, traffic: 1.0, pay: 130, jams: [], works: [] },
+    tide: { base: 6.8, amp: 0.7 }, draw: 0.35, swing: 0, lights: 0.6, traffic: 1.0, pay: 130, jams: [], works: [] },
   { id: 'playrace', title: 'Play Date: Race', when: 'Saturday · 2:10 PM', clock: 14 * 60 + 10, deadline: 14 * 60 + 25, start: 'wpg', type: 'race', tod: 'day',
     stops: [{ node: 'hpark', icon: 'flag', label: 'Hampton Park playground', say: '' }],
     rivals: [{ car: 'sedan', ci: 3, name: "Ella's mom", skill: 0.9 }, { car: 'suv', ci: 6, name: "Theo's dad", skill: 0.95 }, { car: 'van', ci: 1, name: "June's grandma", skill: 0.86 }],
     text: 'Everyone leaves White Point Garden at once. First car to the Hampton Park playground gets the good swing. Bump them if you have to.',
     hazards: ['Three rival parents', 'Market St flooding', 'Carriages', 'Red lights with cross traffic'],
-    tide: { base: 6.5, amp: 0.7 }, draw: 0, swing: 0, lights: 0.55, traffic: 0.9, pay: 140, jams: [], works: [] },
+    tide: { base: 6.9, amp: 0.7 }, draw: 0, swing: 0, lights: 0.55, traffic: 0.9, pay: 140, jams: [], works: [] },
   { id: 'groceries', title: 'Whole Foods Run', when: 'Sunday · 11:05 AM', clock: 11 * 60 + 5, deadline: 12 * 60, start: 'home', type: 'delivery', tod: 'day',
     stops: [{ node: 'wf', icon: 'bag', label: 'Whole Foods', say: 'Groceries loaded. Watch the eggs!' }, { node: 'home', icon: 'house', label: 'Home', say: 'Groceries home!' }],
     text: 'Cross both rivers to the Whole Foods on Johnnie Dodds, load up, and bring it all back to Avondale before the ice cream melts. Every bump costs eggs.',
     hazards: ['Two drawbridge crossings', 'Johnnie Dodds traffic jam', 'Crosstown construction', 'Fragile eggs'],
-    tide: { base: 6.2, amp: 0.6 }, draw: 0.6, swing: 0, lights: 0.55, traffic: 1.1, pay: 170,
+    tide: { base: 6.7, amp: 0.7 }, draw: 0.6, swing: 0, lights: 0.55, traffic: 1.1, pay: 170,
     jams: [['mp17a', 'wfn', 9]], works: [['g2240_1340', 'g2370_1335', 0.1, 0.9]] },
   { id: 'od', title: 'The Obstinate Daughter', when: 'Friday · 6:32 PM', clock: 18 * 60 + 32, deadline: 19 * 60, start: 'home', type: 'reach', tod: 'dusk',
     stops: [{ node: 'si_od', icon: 'fork', label: 'The Obstinate Daughter', say: 'Table for four, right on time.' }],
     text: 'Dinner reservation on Sullivan’s Island at 7. That’s West Ashley to the beach: drawbridge, Crosstown, Ravenel, Coleman, and the Ben Sawyer swing bridge, which loves to open at sunset.',
     hazards: ['Ben Sawyer swing bridge', 'Beach traffic on Coleman', 'Golf carts on Middle St', 'Ashley River drawbridge'],
-    tide: { base: 6.6, amp: 0.7 }, draw: 0.5, swing: 0.8, lights: 0.5, traffic: 1.1, pay: 200,
+    tide: { base: 6.9, amp: 0.75 }, draw: 0.5, swing: 0.8, lights: 0.5, traffic: 1.1, pay: 200,
     jams: [['cb2', 'cb3', 10]], works: [['rav_e', 'mp17a', 0.15, 0.85]] },
+  { id: 'surf', title: 'Surf Day: Isle of Palms', when: 'Saturday · 6:40 AM', clock: 6 * 60 + 40, deadline: 7 * 60 + 25, start: 'cb2', type: 'pickup', tod: 'morning', surf: 1, extraTime: -20,
+    stops: [
+      { node: 'mpf', icon: 'friend', label: "Cooper's house", say: 'Cooper and his longboard are in!', any: 1 },
+      { node: 'si_f', icon: 'friend', label: "Hazel's house", say: 'Hazel grabbed her board!', any: 1 },
+      { node: 'iop', icon: 'surf', label: 'Front Beach, Isle of Palms', say: 'Paddle out! The waves are firing.' }],
+    text: 'Dawn patrol. The swell is up but the tide will flatten it by 7:25. Grab Cooper off Coleman and Hazel on Sullivan\u2019s, cross Breach Inlet to the Isle of Palms, and paddle out while it\u2019s still good.',
+    hazards: ['Waves going flat', 'Beach traffic', 'Ben Sawyer swing bridge', 'Palm Blvd flooding', 'Golf carts'],
+    tide: { base: 6.85, amp: 0.7 }, draw: 0, swing: 0.5, lights: 0.5, traffic: 0.9, pay: 180,
+    jams: [['cb3', 'bs_n', 5]], works: [['ioc1', 'ioc2', 0.15, 0.85]] },
+  { id: 'riverdogs', title: 'RiverDogs Game Night', when: 'Friday · 6:38 PM', clock: 18 * 60 + 38, deadline: 19 * 60 + 5, start: 'home', type: 'reach', tod: 'dusk',
+    stops: [{ node: 'joe', icon: 'ball', label: 'The Joe', say: 'Play ball! Just in time for the first pitch.' }],
+    text: 'Fireworks night at the Joe. Half of West Ashley is headed to the ballpark on the Ashley River, Lockwood floods at high tide, and first pitch is 7:05 sharp.',
+    hazards: ['Game-day traffic jams', 'Lockwood flooding', 'Ashley River drawbridge', 'Fireworks-night crowds'],
+    tide: { base: 7.0, amp: 0.75 }, draw: 0.5, swing: 0, lights: 0.55, traffic: 1.15, pay: 160,
+    jams: [['abr_w', 'abr_e', 7], ['g1850_1395', 'joe', 5]], works: [] },
+  { id: 'airport', title: 'Pick Up Dad at CHS', when: 'Sunday · 4:50 PM', clock: 16 * 60 + 50, deadline: 17 * 60 + 50, start: 'home', type: 'reach', tod: 'day', extraTime: 10,
+    stops: [{ node: 'chs', icon: 'plane', label: 'Arrivals curb, CHS', say: 'Dad\u2019s in! "Did y\u2019all miss me?"' }, { node: 'home', icon: 'house', label: 'Home', say: 'Home sweet home.' }],
+    text: 'Dad\u2019s flight just landed at Charleston International. Up I-26 to the arrivals curb and back home, through the worst Sunday traffic in the Lowcountry. Take the shoulder if you have to.',
+    hazards: ['MEGA traffic jams on I-26', 'Arrivals curb chaos', 'Construction', 'Drawbridge, twice', 'I-26 underpass flooding'],
+    tide: { base: 6.8, amp: 0.75 }, draw: 0.55, swing: 0, lights: 0.5, traffic: 1.25, pay: 230,
+    jams: [['g2370_1335', 'i26a', 9, 1], ['i26a', 'i26b', 10, 1], ['i26b', 'i26c', 10, 1], ['i26c', 'i26d', 8, 1], ['chs_e', 'chs', 6], ['i26c', 'i26b', 8, 1], ['i26a', 'g2370_1335', 7, 1]],
+    works: [['i26b', 'i26c', 0.2, 0.7]] },
   { id: 'kingtide', title: 'King Tide Showdown', when: 'Halloween night · 9:30 PM', clock: 21 * 60 + 30, deadline: 21 * 60 + 52, start: 'wpg', type: 'race', tod: 'night', secret: 1,
     stops: [{ node: 'si_lh', icon: 'flag', label: 'Sullivan’s Island Lighthouse', say: '' }],
     rivals: [{ car: 'alfa', name: 'The Commodore', skill: 1.04, isVehicle: 1 }],
     text: 'The Commodore bets his 1980 Alfa Romeo Spider that nobody can beat him from the Battery to the Sullivan’s lighthouse. Tonight is a king tide: half the peninsula is underwater.',
     hazards: ['KING TIDE flooding', 'The Commodore’s Alfa', 'Swing bridge', 'Night driving'],
-    tide: { base: 7.3, amp: 0.55 }, draw: 0, swing: 0.6, lights: 0.5, traffic: 0.8, pay: 250, jams: [], works: [] },
+    tide: { base: 7.45, amp: 0.6 }, draw: 0, swing: 0.6, lights: 0.5, traffic: 0.8, pay: 250, jams: [], works: [] },
 ];
 const DIFF = { easy: { time: 1.45, traffic: 0.7, rival: 0.9 }, normal: { time: 1.0, traffic: 1.0, rival: 1.0 }, hard: { time: 0.84, traffic: 1.3, rival: 1.06 } };
 function missionUnlocked(i) {
   const m = MISSIONS[i];
-  if (m.secret) return MISSIONS.filter(x => !x.secret).every(x => SAVE.best[x.id]);
+  if (m.secret) return ['ahall', 'ballet', 'carpool', 'playrace', 'groceries', 'od'].every(id => SAVE.best[id]);
   return i === 0 || !!SAVE.best[MISSIONS[i - 1].id];
 }
 
@@ -1317,7 +1436,7 @@ function startMission(idx) {
     idx, m, R, diff, t: 0, real: 0, state: 'count', countT: 3.2, traffic: [], rivals: [], props: [], potholes: [], humps: [], pickups: [], particles: [], bubbles: [],
     stops: m.stops.map(s => Object.assign({ done: false }, s)), ledger: [], fines: 0, coins: 0, cargo: null, msg: null, lights: {}, lightCool: {},
     merge: { inZone: false, lane: -1, broke: false, entered: false, awarded: false }, spawnT: 0, gpsT: 0, route: null, finishedAt: 0, place: 0, finishOrder: [],
-    bridgeDraw: null, bridgeSwing: null, honkT: 0, tideP: R() * TAU, eggsMsg: 0, jamCars: 0,
+    bridgeDraw: null, bridgeSwing: null, honkT: 0, tideP: 2 + R() * 8, eggsMsg: 0, jamCars: 0,
   };
   for (const e of EDGES) e.work = null;
   G.jams = (m.jams || []).map(j => j.slice());
@@ -1348,7 +1467,7 @@ function startMission(idx) {
   let full = []; let prev = m.start, Ltot = 0;
   for (const s of order) { const r = dijkstra([{ id: prev, cost: 0 }], s.node); const pts = r.ids.map(id => [NODES[id].x, NODES[id].y]); full = full.concat(full.length ? pts.slice(1) : pts); Ltot += r.cost; prev = s.node; }
   G.plannedLen = polyLen(full);
-  const base = m.type === 'race' ? G.plannedLen / 125 + 25 : G.plannedLen / 138 + 16 + (m.draw ? 8 : 0) + (m.swing ? 8 : 0) + (m.type === 'pickup' ? 28 : 0) + (m.type === 'delivery' ? 16 : 0);
+  const base = m.type === 'race' ? G.plannedLen / 125 + 25 : G.plannedLen / 138 + 16 + (m.draw ? 8 : 0) + (m.swing ? 8 : 0) + (m.type === 'pickup' ? 28 : 0) + (m.type === 'delivery' ? 16 : 0) + (m.jams || []).length * 5 + (m.extraTime || 0);
   G.limit = Math.round(base * diff.time);
   G.clockRate = (m.deadline - m.clock) * 60 / G.limit; // game seconds per real second
   // world hazards
@@ -1519,6 +1638,11 @@ function updateTraffic(dt) {
     const e = c.e; const endId = c.dir > 0 ? e.b : e.a; const endN = NODES[endId]; const rem = e.len - c.s;
     let target = c.jam ? (12 + 14 * (0.5 + 0.5 * Math.sin(G.t * 0.9 + c.phase))) : c.base * G.diff.traffic ** 0.2;
     // lights
+    const dep = floodDepth(c.x, c.y);
+    if (dep > 0.15) target = Math.min(target, c.stalledT ? 0 : 38);
+    if (!c.stalledT && dep > 0.95 && c.type !== 'bus' && Math.random() < 0.01) c.stalledT = 1;
+    if (c.stalledT && dep < 0.3) c.stalledT = 0;
+    if (c.stalledT) target = 0;
     const lc = lightFor(endId, e);
     if (lc !== 'G' && !c.cross && rem > endN.r + 2 && rem < endN.r + 80) target = Math.min(target, Math.max(0, (rem - endN.r - 6) * 1.2));
     // bridges
@@ -1581,10 +1705,12 @@ function updateTraffic(dt) {
     for (const j of G.jams) {
       const e = edgeBetween(j[0], j[1]); if (!e) continue; const dir = e.a === j[0] ? 1 : -1;
       const mx = (e.ax + e.bx) / 2, my = (e.ay + e.by) / 2;
-      if (dist(mx, my, p.x, p.y) < 1600 && !j.done) {
-        j.done = true; const n = j[2] * 2;
-        const per = Math.max(1, Math.min(n / e.L | 0, Math.floor(e.len * 0.4 / 28)));
-        for (let k = 0; k < per; k++) for (let l = 0; l < e.L; l++) { const s = e.len * 0.56 + k * 28 + l * 9 + G.R() * 5; spawnTraffic(e, dir, s, l, { jam: 1, speed: 15, noDistract: 1 }); }
+      const sN = NODES[dir > 0 ? e.a : e.b], eN = NODES[dir > 0 ? e.b : e.a];
+      const nearStart = dist(sN.x, sN.y, p.x, p.y) < 1500 && dist(sN.x, sN.y, p.x, p.y) < dist(eN.x, eN.y, p.x, p.y) + 200;
+      if (nearStart && !j.done) {
+        j.done = true; const n = j[2] * 2; const s0 = j[3] ? 0.15 : 0.56, span = j[3] ? 0.8 : 0.4;
+        const per = Math.max(1, Math.min(n / e.L | 0, Math.floor(e.len * span / 28)));
+        for (let k = 0; k < per; k++) for (let l = 0; l < e.L; l++) { if (j[3] && G.R() < 0.18) continue; const s = e.len * s0 + k * 28 + l * 9 + G.R() * 5; spawnTraffic(e, dir, s, l, { jam: 1, speed: 15, noDistract: 1 }); }
         G.jamEdge = { e, dir }; G.jamWarned = false;
       }
     }
@@ -1619,12 +1745,17 @@ function gateBlocks(c, px, py) {
   }
   return false;
 }
+function floodRadius(f, tide) { const over = tide - f.elev; return over <= 0 ? 0 : f.r * clamp(0.35 + over / 0.55, 0.35, 1.15); }
 function floodDepth(x, y) {
   const tide = tideNow(); let best = 0;
-  for (const f of FLOODS) { const over = tide - f.elev; if (over <= 0) continue; const rr = f.r * clamp(over / 0.55, 0.15, 1.2); const d = dist(x, y, f.x, f.y); if (d < rr) best = Math.max(best, over * (1 - (d / rr) * 0.6) * 1.6); }
+  for (const f of FLOODS) { const over = tide - f.elev; if (over <= 0) continue; const rr = floodRadius(f, tide); const d = dist(x, y, f.x, f.y); if (d < rr) best = Math.max(best, (0.25 + over * 1.9) * (1 - Math.pow(d / rr, 2) * 0.7)); }
   return best;
 }
-function tideNow() { const tt = G.tide; return tt.base + tt.amp * Math.sin(G.t * TAU / 55 + G.tideP); }
+// tide cycle: low -> rising -> HIGH (holds) -> falling, about 46 seconds round trip
+const TIDE_P = 46;
+function tideShape(t) { const p = ((t % TIDE_P) + TIDE_P) % TIDE_P; if (p < 7) return 0; if (p < 19) return (1 - Math.cos((p - 7) / 12 * Math.PI)) / 2; if (p < 32) return 1; if (p < 44) return (1 + Math.cos((p - 32) / 12 * Math.PI)) / 2; return 0; }
+function tideNow() { const tt = G.tide; return tt.base + tt.amp * (2 * tideShape(G.t + G.tideP) - 1); }
+function tideTrend() { const a = tideShape(G.t + G.tideP), b = tideShape(G.t + G.tideP + 0.5); return b > a + 0.001 ? 1 : b < a - 0.001 ? -1 : 0; }
 function updateCar(c, inp, dt) {
   if (c.dead > 0) { c.dead -= dt; if (c.dead <= 0) respawn(c); return; }
   const st = c.st; const fx0 = Math.cos(c.h), fy0 = Math.sin(c.h);
@@ -1633,7 +1764,19 @@ function updateCar(c, inp, dt) {
   let maxS = st.speed * sf.max, acc = st.accel * sf.accel, grip = st.grip * sf.grip, drag = 0.2 + sf.drag;
   // flood
   const depth = floodDepth(c.x, c.y); c.wet = depth;
-  if (depth > 0.05) { const w = clamp((depth - st.wade * 0.45) / 1.1, 0.05, 0.82); maxS *= 1 - w; acc *= 1 - w * 0.7; grip *= 0.55; drag += w * 1.5; }
+  if (depth > 0.05) { const w = clamp((depth - st.wade * 0.4) / 1.0, 0.08, 0.85); maxS *= 1 - w; acc *= 1 - w * 0.7; grip *= 0.5; drag += w * 1.6; }
+  // deep water floods the engine: hold GAS to crank it back
+  const stallAt = st.wade * 1.05 + 0.35; c.stallImm = Math.max(0, (c.stallImm || 0) - dt);
+  if (!c.stalled && grounded && depth > stallAt && c.stallImm <= 0 && Math.hypot(c.vx, c.vy) > 15) { c.stalled = true; c.crank = 0; if (c.isPlayer) { sfx('stall'); cam.shake = 3; cargoHit(6, 'flood'); } }
+  if (c.stalled) {
+    const gasEdge = inp.gas > 0 && !c.lastGas;
+    c.crank += (inp.gas > 0 ? 0.62 * dt : 0) + (gasEdge ? 0.22 : 0) + (depth < stallAt * 0.55 ? 1.2 * dt : 0);
+    if (!c.isPlayer) c.crank += 0.5 * dt;
+    if (c.isPlayer && (!c.crankMsg || c.crankMsg < G.real)) { c.crankMsg = G.real + 0.25; const n = Math.min(8, Math.floor(c.crank * 8)); showMsg('ENGINE FLOODED!', 'Hold GAS to crank it  ' + '\u25A0'.repeat(n) + '\u25A1'.repeat(8 - n), 0.4); if (inp.gas > 0 && Math.random() < 0.5) sfx('crank'); }
+    if (c.crank >= 1) { c.stalled = false; c.stallImm = 3; if (c.isPlayer) { sfx('vroom'); showMsg('VROOM!', 'Back in business. Get out of the water!', 1.2); } }
+    maxS = 0; acc = 0; drag += 2.5;
+  }
+  c.lastGas = inp.gas > 0;
   // nitro
   if (c.nitroT > 0) { c.nitroT -= dt; maxS = Math.max(maxS, st.speed * 1.5 * Math.max(0.6, sf.max)); acc *= 2.2; }
   if (inp.nitro && c.nitros > 0 && c.nitroT <= 0) { c.nitros--; c.nitroT = 2.1; if (c.isPlayer) { sfx('nitro'); showMsg('SWEET TEA BOOST!', '', 1); } }
@@ -1931,7 +2074,7 @@ function updateMerge() {
   if (inZone) {
     if (!Mz.entered) { Mz.entered = true; Mz.lane = lane; Mz.broke = false; showMsg('KEEP MOVING', 'CHANGE LANES LATER', 2.6); }
     else if (lane !== Mz.lane && !Mz.broke) { Mz.broke = true; showMsg('YOU CHANGED LANES!', 'The whole Crosstown is honking', 1.8); sfx('horn2'); for (const t of G.traffic) if (dist(t.x, t.y, p.x, p.y) < 160) bubble(t, 'honk'); }
-    if (Math.hypot(p.vx, p.vy) < 40 && (!Mz.slowMsg || Mz.slowMsg < G.real)) { Mz.slowMsg = G.real + 4; showMsg('KEEP MOVING!', '', 1); }
+    if (Math.hypot(p.vx, p.vy) < 40 && !p.stalled && !(p.wet > 0.2) && (!Mz.slowMsg || Mz.slowMsg < G.real)) { Mz.slowMsg = G.real + 4; showMsg('KEEP MOVING!', '', 1); }
     if (last && !Mz.broke && !Mz.awarded) { Mz.awarded = true; G.ledger.push({ label: 'Kept moving, changed lanes later', amt: 15 }); showMsg('MERGE MASTER! +$15', 'Kept moving, changed lanes later', 2); sfx('win'); }
   } else if (Mz.entered && !inZone) { Mz.entered = false; }
 }
@@ -1974,6 +2117,7 @@ function checkStops() {
         s.done = true; sfx('stop');
         if (G.m.type !== 'race') showMsg(s.say.toUpperCase(), s.label, 2);
         for (let i = 0; i < 14; i++) G.particles.push({ x: n.x, y: n.y, vx: (Math.random() - .5) * 120, vy: (Math.random() - .5) * 120, vz: 80 + Math.random() * 100, z: 4, life: 1.1, col: ['#f6d77a', '#f2a7b8', '#9fd8dc', '#7fd38a'][i % 4], s: 2 });
+        if (s.node === 'joe') { G.fireworks = G.real; showMsg('PLAY BALL!', 'Pluff the Marsh Hen waves you into the Joe', 2.2); }
         if (s.node === 'wf') { G.cargo = 100; $('#hCargo').style.display = 'block'; }
         G.gpsT = 0;
         if (!G.stops.some(x => !x.done)) finishRun();
@@ -2076,6 +2220,9 @@ function tick(dt) {
     if (G.m.type === 'race' && !p.finished) G.place = racePlace();
     G.gpsT -= dt; if (G.gpsT <= 0) { G.gpsT = 0.4; updateGPS(); }
     computeTurn();
+    // floods come and go with the tide: announce nearby streets going under / drying out
+    G.floodWet = G.floodWet || []; const tdNow = tideNow();
+    FLOODS.forEach((f, i) => { const wet = tdNow - f.elev > 0.05; if (wet !== !!G.floodWet[i]) { G.floodWet[i] = wet; if (dist(f.x, f.y, p.x, p.y) < 2200 && !G.demo) { if (wet) { showMsg('FLOODING ON ' + f.name.toUpperCase() + '!', 'High tide is coming in. Go around, or go slow.', 2.2); sfx('flood'); } else if (dist(f.x, f.y, p.x, p.y) < 1400) showMsg('WATER\u2019S GOING DOWN', f.name + ' is draining', 1.4); } } });
     if (G.turn && !G.demo) { const imm = G.turn.kind !== 'uturn' && G.turn.dist < 140; if (imm && !G.turnBeeped) { G.turnBeeped = true; sfx('turn'); } if (!imm && G.turn.dist > 220) G.turnBeeped = false; }
     if (G.jamEdge && !G.jamWarned) { const e = G.jamEdge.e; if (segDist(p.x, p.y, e) < 700) { G.jamWarned = true; showMsg('TRAFFIC JAM AHEAD', 'Weave through, or take the shoulder', 2); } }
     if (!G.lateWarned && G.t > G.limit && G.m.type !== 'race') { G.lateWarned = true; showMsg('RUNNING LATE!', 'Keep going, better late than never', 2); }
@@ -2114,7 +2261,11 @@ function render() {
   ctx.fillStyle = 'rgba(220,240,255,0.55)';
   const gx0 = Math.floor(ox / C), gy0 = Math.floor(oy / C), gx1 = Math.ceil((ox + VW) / C), gy1 = Math.ceil((oy + VH) / C);
   for (let gy = gy0; gy < gy1; gy++) for (let gx = gx0; gx < gx1; gx++) {
-    if (gx < 0 || gy < 0 || gx >= GW || gy >= GH || grid[gy * GW + gx] !== T.WATER) continue;
+    if (gx < 0 || gy < 0 || gx >= GW || gy >= GH) continue;
+    const ct = grid[gy * GW + gx];
+    if (ct === T.MARSH) { const hh = hash2(gx * 3, gy * 7); if (hh < 0.012) { const ex = gx * C + 4, ey = gy * C + 6; ctx.fillStyle = '#fbfbf6'; ctx.fillRect(ex, ey, 3, 3); ctx.fillRect(ex + 2, ey - 3, 1, 3); ctx.fillRect(ex + 2, ey - 3, 2, 1); ctx.fillStyle = '#f6d77a'; ctx.fillRect(ex + 4, ey - 3, 2, 1); ctx.fillStyle = '#2a2a2e'; ctx.fillRect(ex + 1, ey + 3, 1, 2); ctx.fillStyle = 'rgba(220,240,255,0.55)'; } continue; }
+    if (ct === T.SAND) { const hh = hash2(gx * 5, gy * 11); if (hh < 0.03) { const ux = gx * C + 2, uy = gy * C + 2, col = ['#e2574c', '#f6d77a', '#9fd8dc', '#f2a7b8'][(hh * 400 | 0) % 4]; ctx.fillStyle = col; ctx.fillRect(ux, uy, 9, 3); ctx.fillRect(ux + 2, uy - 1, 5, 1); ctx.fillStyle = '#fff'; ctx.fillRect(ux + 3, uy, 2, 3); ctx.fillStyle = '#5a4632'; ctx.fillRect(ux + 4, uy + 3, 1, 5); ctx.fillStyle = ['#2f6b46', '#1f2f5a', '#f08a6b'][(hh * 900 | 0) % 3]; ctx.fillRect(ux + 6, uy + 6, 7, 3); } else if (hh < 0.12 && gy * C < 2730 * S) { ctx.fillStyle = '#9cb05a'; const ox = gx * C + (hh * 97 % 8 | 0), oy = gy * C + 6; ctx.fillRect(ox, oy, 1, 4); ctx.fillRect(ox + 2, oy + 1, 1, 3); ctx.fillStyle = '#d8c286'; ctx.fillRect(ox, oy - 1, 1, 1); } ctx.fillStyle = 'rgba(220,240,255,0.55)'; continue; }
+    if (ct !== T.WATER) continue;
     const h = hash2(gx, gy); const ph = (now * 0.6 + h * 10) % 4; if (ph < 0.35) ctx.fillRect(gx * C + (h * 9 | 0), gy * C + ((h * 77) % 9 | 0), 3, 1);
   }
   drawDecor(now);
@@ -2147,21 +2298,35 @@ function drawDecor(now) {
   if (shy < 2800 * S) { ctx.fillStyle = 'rgba(8,24,44,.4)'; ctx.fillRect(shx + 6, shy + 8, 60, 260); ctx.fillStyle = '#2a3550'; ctx.fillRect(shx, shy, 60, 260); const cols = ['#e2574c', '#2f6b46', '#f6d77a', '#9fd8dc', '#f08a6b']; for (let i = 0; i < 9; i++) for (let k = 0; k < 3; k++) { ctx.fillStyle = cols[(i * 3 + k) % 5]; ctx.fillRect(shx + 6 + k * 17, shy + 30 + i * 22, 15, 20); } ctx.fillStyle = '#e8e6de'; ctx.fillRect(shx + 8, shy + 232, 44, 18); }
   // shrimp boats near Shem Creek
   for (let i = 0; i < 3; i++) { const bx = 3330 * S + i * 70 + Math.sin(now * 0.4 + i) * 6, by = 1380 * S + i * 50; ctx.fillStyle = '#fbf3df'; ctx.fillRect(bx, by, 26, 10); ctx.fillStyle = '#2f6b46'; ctx.fillRect(bx + 4, by - 6, 8, 6); ctx.fillStyle = '#5a4632'; ctx.fillRect(bx + 18, by - 16, 1, 16); ctx.fillRect(bx + 8, by - 12, 18, 1); }
+  // sailboats in the harbor and off Sullivan's
+  for (let i = 0; i < 5; i++) { const bx = ((2300 + i * 600) * S + now * (10 + i * 3) * (i % 2 ? 1 : -1) % 2400 + 2400) % (5800 * S - 2300 * S) + 2300 * S, by = (2720 + (i % 3) * 70) * S; if (Math.abs(bx - cam.x) > VW || Math.abs(by - cam.y) > VH) continue; ctx.fillStyle = 'rgba(8,24,44,.35)'; ctx.fillRect(bx - 2, by + 2, 18, 4); ctx.fillStyle = '#fbf3df'; ctx.fillRect(bx - 6, by - 2, 16, 5); ctx.fillStyle = '#5a4632'; ctx.fillRect(bx, by - 22, 1, 20); ctx.fillStyle = ['#fff', '#f2a7b8', '#9fd8dc', '#f6d77a', '#fff'][i]; ctx.beginPath(); ctx.moveTo(bx + 1, by - 22); ctx.lineTo(bx + 10, by - 3); ctx.lineTo(bx + 1, by - 3); ctx.fill(); }
+  // surfers and wave sets off the Isle of Palms and Sullivan's
+  for (let k = 0; k < 3; k++) { const wy = 2830 * S + ((now * 14 + k * 40) % 120); if (Math.abs(wy - cam.y) > VH) continue; ctx.fillStyle = 'rgba(232,244,244,.8)'; for (let x = Math.floor((cam.x - VW) / 8) * 8; x < cam.x + VW; x += 8) { if (x < 4030 * S) continue; ctx.fillRect(x, wy + Math.sin(x * 0.03 + k) * 3, 6, 2); } }
+  for (let i = 0; i < 6; i++) { const sx = (4950 + i * 120) * S + Math.sin(now * 0.5 + i) * 12, sy = 2850 * S + Math.sin(now * 0.8 + i * 2) * 8; if (Math.abs(sx - cam.x) > VW || Math.abs(sy - cam.y) > VH) continue; ctx.fillStyle = ['#f08a6b', '#f6d77a', '#e8e6de'][i % 3]; ctx.fillRect(sx - 5, sy, 11, 3); ctx.fillStyle = '#2a2a2e'; ctx.fillRect(sx - 1, sy - 4, 3, 4); ctx.fillStyle = '#c9a06a'; ctx.fillRect(sx - 1, sy - 6, 3, 2); }
+  // brown pelicans gliding in a line
+  const pf = (now * 30) % (5800 * S + 800) - 400; const py0 = 2300 * S + Math.sin(now * 0.1) * 600;
+  for (let i = 0; i < 5; i++) { const bx = pf - i * 22, by = py0 + i * 12 + Math.sin(now * 3 + i) * 2; if (Math.abs(bx - cam.x) > VW || Math.abs(by - cam.y) > VH) continue; ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(bx + 10, by + 40, 10, 2); ctx.fillStyle = '#7a6448'; ctx.fillRect(bx, by, 4, 3); ctx.fillRect(bx - 6, by - (Math.floor(now * 4 + i) % 2), 6, 1); ctx.fillRect(bx + 4, by - (Math.floor(now * 4 + i) % 2), 6, 1); ctx.fillStyle = '#f6d77a'; ctx.fillRect(bx + 4, by + 1, 3, 1); }
   // dolphin arcs in the harbor
   const dp = (now * 0.35) % 1; const dx = 2600 * S + Math.sin(Math.floor(now * 0.35) * 2.3) * 300, dy = 2700 * S;
   if (dp < 0.25) { const a = dp / 0.25; ctx.fillStyle = '#7a8a9a'; ctx.fillRect(dx + a * 30, dy - Math.sin(a * Math.PI) * 10, 8, 3); ctx.fillRect(dx + a * 30 + 3, dy - Math.sin(a * Math.PI) * 10 - 3, 2, 3); }
 }
 function drawWorldDynamic(now) {
   const p = G.player;
-  // floods
+  // floods: brackish tidewater spreading across the street, with junk floating in it
+  const tide = tideNow();
   for (const f of FLOODS) {
-    const over = tideNow() - f.elev; if (over <= 0) continue; const rr = f.r * clamp(over / 0.55, 0.15, 1.2);
+    const over = tide - f.elev; if (over <= 0) continue; const rr = floodRadius(f, tide);
     if (Math.abs(f.x - cam.x) > VW / 2 + rr || Math.abs(f.y - cam.y) > VH / 2 + rr) continue;
-    ctx.fillStyle = 'rgba(58,92,104,0.82)'; ctx.beginPath(); for (let i = 0; i < 22; i++) { const a = i / 22 * TAU; const r = rr * (0.84 + 0.16 * Math.sin(a * 3 + f.x) * Math.cos(a * 2 + now * 0.5)); ctx.lineTo(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r * 0.8); } ctx.fill();
-    ctx.fillStyle = 'rgba(96,132,138,0.55)'; ctx.beginPath(); ctx.ellipse(f.x - rr * 0.1, f.y - rr * 0.08, rr * 0.55, rr * 0.36, 0, 0, TAU); ctx.fill();
-    ctx.fillStyle = 'rgba(220,240,240,0.7)'; for (let i = 0; i < 10; i++) { const a = hash2(i, f.x | 0) * TAU, r = rr * 0.75 * hash2(f.y | 0, i); const ph = (now * 0.8 + i * 0.37) % 1; if (ph < 0.5) ctx.fillRect(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r * 0.8, 4, 1); }
-    ctx.strokeStyle = 'rgba(200,225,225,0.5)'; ctx.lineWidth = 1; const rp = (now * 0.5) % 1; ctx.beginPath(); ctx.ellipse(f.x, f.y, rr * (0.2 + rp * 0.5), rr * (0.15 + rp * 0.38), 0, 0, TAU); ctx.stroke();
-    if (over > 0.25) { ctx.fillStyle = '#e8e6de'; ctx.fillRect(f.x - rr * 0.4, f.y + rr * 0.1, 3, 2); ctx.fillStyle = '#c94'; ctx.fillRect(f.x + rr * 0.3, f.y - rr * 0.2, 2, 2); }
+    const blob = (k, col) => { ctx.fillStyle = col; ctx.beginPath(); for (let i = 0; i < 28; i++) { const a = i / 28 * TAU; const r = rr * k * (0.82 + 0.12 * Math.sin(a * 3 + f.x) + 0.06 * Math.sin(a * 7 + now * 1.3)); ctx.lineTo(f.x + Math.cos(a) * r, f.y + Math.sin(a) * r * 0.82); } ctx.fill(); };
+    blob(1.04, 'rgba(120,108,80,0.55)'); // muddy wet edge
+    blob(0.96, 'rgba(52,86,100,0.9)');
+    blob(0.62, 'rgba(38,70,88,0.92)');
+    blob(0.3, 'rgba(30,58,78,0.95)');
+    ctx.fillStyle = 'rgba(220,240,240,0.75)'; for (let i = 0; i < 16; i++) { const a = hash2(i, f.x | 0) * TAU + now * 0.05, r = rr * 0.8 * hash2(f.y | 0, i); const ph = (now * 0.8 + i * 0.37) % 1; if (ph < 0.5) ctx.fillRect(Math.round(f.x + Math.cos(a) * r), Math.round(f.y + Math.sin(a) * r * 0.8), 4, 1); }
+    ctx.strokeStyle = 'rgba(200,230,230,0.55)'; ctx.lineWidth = 1; for (const off of [0, 0.5]) { const rp = (now * 0.4 + off) % 1; ctx.beginPath(); ctx.ellipse(f.x, f.y, rr * (0.15 + rp * 0.7), rr * (0.12 + rp * 0.56), 0, 0, TAU); ctx.stroke(); }
+    // floating junk: cooler, flip-flop, palmetto frond, crab trap buoy
+    const junk = [['#e8e6de', 6, 4], ['#f08a6b', 4, 2], ['#3f8a56', 8, 2], ['#f6d77a', 3, 3]];
+    junk.forEach((jk, i) => { const a = hash2(i + 9, f.y | 0) * TAU + now * (0.08 + i * 0.02), r = rr * (0.3 + 0.4 * hash2(i, f.x | 0)); const bob = Math.sin(now * 2 + i) * 1; ctx.fillStyle = jk[0]; ctx.fillRect(Math.round(f.x + Math.cos(a) * r), Math.round(f.y + Math.sin(a) * r * 0.8 + bob), jk[1], jk[2]); });
   }
   // humps + potholes
   const inView = (x, y, m) => Math.abs(x - cam.x) < VW / 2 + (m || 30) && Math.abs(y - cam.y) < VH / 2 + (m || 30);
@@ -2215,7 +2380,8 @@ function drawCarBody(c, now) {
   const sh = clamp(1 - c.z / 160, 0.4, 1);
   ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(c.x + 1, c.y + 2, (c.len / 2 + 1) * sh * (0.6 + 0.4 * Math.abs(Math.cos(c.h))) + 2, (c.wid / 2 + 1) * sh + 1, 0, 0, TAU); ctx.fill();
   ctx.drawImage(spr, Math.round(c.x - 22), Math.round(c.y - 22 - c.z));
-  if (c.wet > 0.2) { ctx.fillStyle = 'rgba(120,160,160,0.55)'; ctx.fillRect(Math.round(c.x - c.len / 2), Math.round(c.y + 1), c.len, 3); }
+  if (c.wet > 0.2 && c.z < 2) { const hgt = Math.min(7, 2 + c.wet * 3); ctx.fillStyle = 'rgba(52,86,100,0.8)'; ctx.fillRect(Math.round(c.x - c.len / 2 - 2), Math.round(c.y + 3 - hgt), c.len + 4, hgt); ctx.fillStyle = 'rgba(220,240,240,.7)'; ctx.fillRect(Math.round(c.x - c.len / 2 - 2), Math.round(c.y + 3 - hgt), c.len + 4, 1); }
+  if (c.stalled) { const k = Math.floor(performance.now() / 250) % 2; ctx.fillStyle = '#fff'; ctx.fillRect(Math.round(c.x - 6), Math.round(c.y - 22 - c.z), 13, 8); pixText(ctx, k ? '...' : 'SPUT', Math.round(c.x - (k ? 5 : 7)), Math.round(c.y - 21 - c.z), '#1f2f5a'); }
   if (c.rival && c.name) { const w = pixTextW(c.name.split(' ')[0]); pixText(ctx, c.name.split(' ')[0], Math.round(c.x - w / 2), Math.round(c.y - 20 - c.z), '#000'); pixText(ctx, c.name.split(' ')[0], Math.round(c.x - w / 2) - 1, Math.round(c.y - 21 - c.z), '#f6d77a'); }
   if (c.isPlayer && G.cargo != null && G.state === 'run') { /* hud shows cargo */ }
 }
@@ -2223,6 +2389,8 @@ function drawTrafficCar(t, now) {
   const ai = ((Math.round(t.h / TAU * ANG) % ANG) + ANG) % ANG;
   ctx.fillStyle = 'rgba(0,0,0,0.33)'; ctx.beginPath(); ctx.ellipse(t.x + 1, t.y + 2, (t.len / 2) * (0.6 + 0.4 * Math.abs(Math.cos(t.h))) + 2, t.wid / 2 + 1, 0, 0, TAU); ctx.fill();
   ctx.drawImage(vehicleSprite(t.spec, ai, t.spec.key), Math.round(t.x - 22), Math.round(t.y - 22));
+  if (t.stalledT && Math.floor(performance.now() / 300) % 2) { ctx.fillStyle = '#ffb02e'; for (const sgn of [-1, 1]) { ctx.fillRect(Math.round(t.x + Math.cos(t.h) * t.len / 2 - Math.sin(t.h) * sgn * 3) - 1, Math.round(t.y + Math.sin(t.h) * t.len / 2 + Math.cos(t.h) * sgn * 3) - 1, 2, 2); ctx.fillRect(Math.round(t.x - Math.cos(t.h) * t.len / 2 - Math.sin(t.h) * sgn * 3) - 1, Math.round(t.y - Math.sin(t.h) * t.len / 2 + Math.cos(t.h) * sgn * 3) - 1, 2, 2); } }
+  if (floodDepth(t.x, t.y) > 0.4) { ctx.fillStyle = 'rgba(52,86,100,0.75)'; ctx.fillRect(Math.round(t.x - t.len / 2 - 1), Math.round(t.y), t.len + 2, 4); }
   if (t.speed < 5 && t.target < 5 && t.type !== 'carriage') { ctx.fillStyle = '#e2574c'; const bx = t.x - Math.cos(t.h) * t.len / 2, by = t.y - Math.sin(t.h) * t.len / 2; ctx.fillRect(Math.round(bx - 1), Math.round(by - 2), 2, 2); }
 }
 function drawProp(o) {
@@ -2300,6 +2468,24 @@ function drawTall(now) {
     ctx.strokeStyle = '#f2f0e8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L[0] - 1, L[1] + 2); ctx.lineTo(top[0] - 1, top[1] + 22); ctx.lineTo(top[0] - 1, top[1]); ctx.stroke();
     ctx.fillStyle = '#e2574c'; if (Math.floor(now * 1.5) % 2) ctx.fillRect(top[0] - 1, top[1] - 3, 3, 3);
   }
+  for (const b of BUILDINGS) {
+    if (Math.abs(b.x + b.w / 2 - cam.x) > VW / 2 + b.w + 100 || Math.abs(b.y - cam.y) > VH / 2 + 260) continue;
+    if (b.kind === 'stadium') {
+      for (const [tx, ty] of [[b.x + 6, b.y + 6], [b.x + b.w - 6, b.y + 6], [b.x + 6, b.y + b.h - 6], [b.x + b.w - 6, b.y + b.h - 6]]) { ctx.fillStyle = '#6e737b'; ctx.fillRect(tx - 1, ty - 70, 3, 70); ctx.fillStyle = '#2a2a2e'; ctx.fillRect(tx - 7, ty - 80, 15, 10); ctx.fillStyle = G.m.tod === 'day' ? '#c8ccd2' : '#fff6c8'; for (let i = 0; i < 4; i++) ctx.fillRect(tx - 6 + i * 4, ty - 79, 3, 3); }
+      // Pluff the Marsh Hen, an original mascot, waving at the gate
+      const mx = b.x + b.w + 6, my = b.y + b.h / 2, wv = Math.floor(now * 4) % 2;
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(mx - 4, my + 2, 10, 3); ctx.fillStyle = '#8a6a4a'; ctx.fillRect(mx - 3, my - 10, 8, 10); ctx.fillStyle = '#b08c58'; ctx.fillRect(mx - 2, my - 8, 6, 6); ctx.fillStyle = '#8a6a4a'; ctx.fillRect(mx - 1, my - 15, 6, 6); ctx.fillStyle = '#f08a6b'; ctx.fillRect(mx + 5, my - 13, 4, 2); ctx.fillStyle = '#000'; ctx.fillRect(mx + 2, my - 13, 1, 1); ctx.fillStyle = '#1f2f5a'; ctx.fillRect(mx - 2, my - 17, 7, 2); ctx.fillStyle = '#8a6a4a'; ctx.fillRect(mx - 6, my - 9 - wv * 4, 3, 5); ctx.fillStyle = '#f6d77a'; ctx.fillRect(mx - 2, my, 2, 3); ctx.fillRect(mx + 2, my, 2, 3);
+    }
+    if (b.kind === 'airport') {
+      const tx = b.x + b.w + 40, ty = b.y + b.h; ctx.fillStyle = '#c8ccd2'; ctx.fillRect(tx - 4, ty - 90, 8, 90); ctx.fillStyle = '#5e7f98'; ctx.fillRect(tx - 10, ty - 104, 20, 14); ctx.fillStyle = '#9fd8dc'; ctx.fillRect(tx - 9, ty - 101, 18, 6); ctx.fillStyle = '#e2574c'; if (Math.floor(now * 2) % 2) ctx.fillRect(tx - 1, ty - 108, 2, 3);
+      // parked jets on the apron
+      for (let i = 0; i < 3; i++) drawJet(b.x + 40 + i * 110, b.y - 70, -Math.PI / 2, 1);
+      // a jet taking off down the runway every so often
+      const ph = (now % 26) / 26; if (ph < 0.5) { const rx = (2370 - ph * 2 * 760) * S, ry = 322 * S, z = Math.max(0, (ph - 0.25) * 2 * 120); drawJet(rx, ry - z, Math.PI, 1, z); }
+    }
+    if (b.kind === 'lifeguard') { const lx = b.x + 6, ly = b.y + 10; ctx.fillStyle = '#fbf3df'; ctx.fillRect(lx - 6, ly - 28, 2, 28); ctx.fillRect(lx + 4, ly - 28, 2, 28); ctx.fillStyle = '#e2574c'; ctx.fillRect(lx - 8, ly - 34, 16, 7); ctx.fillStyle = '#fff'; ctx.fillRect(lx - 2, ly - 33, 4, 5); ctx.fillStyle = '#f6d77a'; ctx.fillRect(lx - 7, ly - 40, 14, 4); }
+  }
+  if (G.fireworks && G.real - G.fireworks < 4) { const st = BUILDINGS.find(b => b.kind === 'stadium'); for (let k = 0; k < 4; k++) { const tt = ((G.real - G.fireworks) * 1.3 + k * 0.33) % 1; const fx = st.x + st.w * (0.2 + 0.2 * k), fy = st.y - 60 - k * 12; const col = ['#f6d77a', '#f2a7b8', '#9fd8dc', '#7fd38a'][k]; ctx.fillStyle = col; for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; ctx.fillRect(Math.round(fx + Math.cos(a) * tt * 30), Math.round(fy + Math.sin(a) * tt * 30), 2, 2); } } }
   // steeples, lighthouse
   for (const b of BUILDINGS) {
     if (b.kind !== 'church' && b.kind !== 'lighthouse') continue;
@@ -2393,6 +2579,16 @@ function chevron(x, y, a, r, col, outline) {
   ctx.beginPath(); poly.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath();
   if (outline) { ctx.lineWidth = 3; ctx.strokeStyle = outline; ctx.stroke(); }
   ctx.fillStyle = col; ctx.fill();
+}
+
+function drawJet(x, y, a, sc, z) {
+  const c = Math.cos(a), s = Math.sin(a); const P = (u, v) => [x + c * u - s * v, y + s * u + c * v];
+  if (z) { ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(Math.round(x - 20), Math.round(y + z + 4), 40, 6); }
+  const poly = (pts, col) => { ctx.fillStyle = col; ctx.beginPath(); pts.forEach((q, i) => { const r = P(q[0] * sc, q[1] * sc); i ? ctx.lineTo(r[0], r[1]) : ctx.moveTo(r[0], r[1]); }); ctx.fill(); };
+  poly([[-26, -3], [24, -3], [30, 0], [24, 3], [-26, 3]], '#e8e6de');
+  poly([[-2, -3], [8, -24], [12, -24], [6, -3]], '#c8ccd2'); poly([[-2, 3], [8, 24], [12, 24], [6, 3]], '#c8ccd2');
+  poly([[-26, -2], [-20, -10], [-17, -10], [-20, -2]], '#1f2f5a'); poly([[-26, 2], [-20, 10], [-17, 10], [-20, 2]], '#1f2f5a');
+  poly([[20, -2], [26, -1], [26, 1], [20, 2]], '#2a3550');
 }
 
 /* =================== input =================== */
@@ -2629,6 +2825,10 @@ function sfx(name, k) {
     case 'win': [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, 0.16, 'square', 0.14, n + i * 0.1)); break;
     case 'buy': [659, 880, 1318].forEach((f, i) => tone(f, 0.12, 'square', 0.14, n + i * 0.07)); break;
     case 'click': tone(660, 0.04, 'square', 0.08); break;
+    case 'stall': tone(160, 0.5, 'sawtooth', 0.2, n, 40); noise(0.4, 0.3, 600); break;
+    case 'crank': tone(90, 0.08, 'square', 0.15, n, 70); break;
+    case 'vroom': tone(80, 0.5, 'sawtooth', 0.22, n, 260); break;
+    case 'flood': noise(0.8, 0.25, 500); tone(300, 0.3, 'triangle', 0.1, n, 200); break;
     case 'turn': tone(988, 0.08, 'square', 0.13); tone(1318, 0.12, 'square', 0.13, n + 0.09); break;
   }
 }
@@ -2674,13 +2874,36 @@ function fmtClock(mins) { mins = Math.floor(mins); let h = Math.floor(mins / 60)
 function fmtTime(s) { s = Math.max(0, s); return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
 const MEDAL_NAME = { 3: 'GOLD', 2: 'SILVER', 1: 'BRONZE', 0: '' };
 const MEDAL_CLASS = { 3: 'm-gold', 2: 'm-silver', 1: 'm-bronze', 0: 'm-none' };
-const PIN_NODE = { ahall: 'ahall', ballet: 'ballet', carpool: 'f2', playrace: 'hpark', groceries: 'wf', od: 'si_od', kingtide: 'si_lh' };
+const PIN_NODE = { ahall: 'ahall', ballet: 'ballet', carpool: 'f2', playrace: 'hpark', groceries: 'wf', od: 'si_od', surf: 'iop', riverdogs: 'joe', airport: 'chs', kingtide: 'si_lh' };
+const LORE = [
+  'Charleston is called the Holy City because its skyline is full of church steeples.',
+  'Rainbow Row is 13 pastel houses on East Bay Street, the longest row of Georgian houses in America.',
+  'The iron stars on old houses are "earthquake bolts," added after the big 1886 earthquake to hold the walls together.',
+  'A Charleston single house is one room wide, turned sideways to the street, with long porches called piazzas.',
+  'Porch ceilings are painted haint blue, said to keep away spirits (and wasps).',
+  'The Pineapple Fountain in Waterfront Park: in the old South, a pineapple meant "welcome."',
+  'That smell at low tide is pluff mud, the squishy marsh mud locals love and visitors notice.',
+  'Sweetgrass baskets have been woven by Gullah Geechee artists for over 300 years. Look for stands on Highway 17.',
+  'The Ravenel Bridge opened in 2005. Every spring, thousands run across it in the Cooper River Bridge Run.',
+  'Fort Sumter, out in the harbor, is where the first shots of the Civil War were fired in 1861.',
+  'The Ben Sawyer Bridge to Sullivan\u2019s Island swings sideways to let boats through.',
+  'Charleston streets flood when the tide goes above about 7 feet, and a king tide can top 8.',
+  'Sullivan\u2019s Island\u2019s lighthouse is triangle-shaped and was built in 1962.',
+  'The Citadel, the military college by Hampton Park, has been training cadets since 1842.',
+  'Shrimp boats still head out from Shem Creek in Mount Pleasant every morning.',
+  'Brown pelicans glide in a line just above the waves looking for fish.',
+  'The RiverDogs play baseball at the Joe, right on the Ashley River marsh.',
+  'The City Market\u2019s long sheds stretch four blocks from Meeting Street toward the harbor.',
+  'Spanish moss isn\u2019t moss and isn\u2019t Spanish. It\u2019s a cousin of the pineapple.',
+  'The USS Yorktown is a real aircraft carrier you can tour at Patriots Point.',
+];
+function loreLine() { return 'Lowcountry lore: ' + LORE[Math.floor(Math.random() * LORE.length)]; }
 
 function goTitle() { mode = 'title'; showScreen('title'); setHud(false); startDemo(); }
 function goMap() {
   sfx('click'); mode = 'map'; showScreen('mapScreen'); setHud(false); if (!G || !G.demo) startDemo();
   $('#mWallet').textContent = fmtMoney(SAVE.money);
-  const mc = $('#mapCanvas'), g = mc.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(OVERVIEW.c, 0, 0);
+  const mc = $('#mapCanvas'); mc.width = OVERVIEW.c.width; mc.height = OVERVIEW.c.height; const g = mc.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(OVERVIEW.c, 0, 0);
   g.fillStyle = 'rgba(11,16,34,.25)'; g.fillRect(0, 0, mc.width, mc.height);
   const box = $('#mapBox'); box.querySelectorAll('.pin').forEach(p => p.remove());
   const list = $('#mList'); list.innerHTML = '';
@@ -2710,6 +2933,7 @@ function openBrief(i) {
   const chips = [m.type === 'race' ? 'RACE · ' + (m.rivals.length + 1) + ' CARS' : 'BE THERE BY ' + fmtClock(m.deadline), 'PAY ' + fmtMoney(m.pay), 'CAR: ' + VEHICLES[SAVE.car].name.toUpperCase(), SAVE.settings.diff.toUpperCase()];
   const best = SAVE.best[m.id]; if (best && best.time) chips.push('BEST ' + fmtTime(best.time));
   chips.forEach(c => { const s = document.createElement('span'); s.textContent = c; meta.appendChild(s); });
+  $('#bLore').textContent = loreLine();
   const hz = $('#bHaz'); hz.innerHTML = ''; m.hazards.forEach(h => { const li = document.createElement('li'); li.textContent = h; hz.appendChild(li); });
 }
 function beginMission(i) {
@@ -2718,7 +2942,7 @@ function beginMission(i) {
   initMergeZone(); updateGPS();
   mode = 'play'; showScreen(null); setHud(true);
   $('#hPlace').hidden = G.m.type !== 'race'; $('#hCargo').style.display = 'none'; $('#hMsg').style.opacity = 0;
-  $('#hTide').style.display = G.tide.base + G.tide.amp > 6.9 ? 'block' : 'none';
+  $('#hTide').style.display = 'block'; $('#hCargo').style.display = G.m.surf ? 'block' : 'none';
   for (let i = 0; i < 6; i++) prewarm();
 }
 function prewarm() { const c0 = Math.floor((cam.x - VW) / CH), c1 = Math.floor((cam.x + VW) / CH), r0 = Math.floor((cam.y - VH) / CH), r1 = Math.floor((cam.y + VH) / CH); for (let y = r0; y <= r1; y++) for (let x = c0; x <= c1; x++) getChunk(x, y); }
@@ -2746,6 +2970,7 @@ function showResults() {
     if (medal >= 2) ledger.push({ label: (medal === 3 ? 'Gold' : 'Silver') + ' medal bonus', amt: Math.round(m.pay * (medal === 3 ? 0.6 : 0.3)) });
     if (G.cargo != null) ledger.push({ label: 'Groceries intact: ' + Math.round(G.cargo) + '%', amt: Math.round(m.pay * 0.6 * G.cargo / 100) });
     title = onTime ? (medal === 3 ? 'Early! Nobody believes it.' : 'Made it!') : 'Late!';
+    if (m.surf) title = medal === 3 ? 'Firing! Best session all summer.' : medal >= 1 ? 'Caught some good ones.' : 'Flat as a pancake. Next time.';
   }
   if (G.coins) ledger.push({ label: 'Sand dollars × ' + G.coins, amt: G.coins });
   for (const l of G.ledger) ledger.push(l);
@@ -2766,6 +2991,7 @@ function showResults() {
   const secretNow = MISSIONS.find(x => x.secret) && missionUnlocked(MISSIONS.length - 1) && !SAVE.best.kingtide && G.idx !== MISSIONS.length - 1;
   if (!note) note = secretNow ? 'A note on the windshield: "Battery. Halloween night. Bring your fastest car. —The Commodore." A secret race is unlocked.' : unlockedNext ? 'New errand unlocked: ' + MISSIONS[G.idx + 1].title + '.' : 'Wallet: ' + fmtMoney(SAVE.money) + '. Spend it at Holy City Motors on Savannah Hwy.';
   $('#rNote').textContent = note;
+  $('#rLore').textContent = loreLine();
   window.__HCH_LAST = { ledger, title, medal, total, time: G.finishedAt, limit: G.limit, place: G.place, mission: m.id };
 }
 
@@ -2888,7 +3114,8 @@ function updateHud() {
   const earned = G.coins + G.ledger.reduce((a, l) => a + l.amt, 0);
   $('#hMoney').textContent = fmtMoney(earned);
   const n = G.player.nitros; const nh = $('#hNitro'); if (nh.dataset.n !== String(n)) { nh.dataset.n = n; nh.innerHTML = 'TEA' + '<span></span>'.repeat(Math.max(0, n)) + (n ? '' : '<span class="off"></span>'); }
-  if ($('#hTide').style.display !== 'none') $('#hTide').querySelector('b').textContent = tideNow().toFixed(1) + ' FT';
+  { const td = tideNow(), tr = tideTrend(); const flooding = FLOODS.some(f => td > f.elev); const tb = $('#hTide').querySelector('b'); tb.textContent = td.toFixed(1) + ' FT ' + (tr > 0 ? '\u25B2' : tr < 0 ? '\u25BC' : '\u25AC'); tb.style.color = flooding ? '#f08a6b' : '#9fd8dc'; $('#hTide').firstChild.nodeValue = flooding ? 'FLOOD ' : 'TIDE '; }
+  if (m.surf && G.cargo == null) { const f = G.t / G.limit; const w = f < 0.5 ? ['FIRING', '#7fd38a'] : f < 0.78 ? ['GOOD', '#9fd8dc'] : f < 1 ? ['MUSHY', '#f6d77a'] : ['FLAT', '#e2574c']; $('#hCargo').innerHTML = 'WAVES <b style="font-weight:normal;color:' + w[1] + '">' + w[0] + '</b>'; }
   if (G.cargo != null) $('#hCargo').innerHTML = 'EGGS <b style="font-weight:normal;color:' + (G.cargo > 60 ? '#7fd38a' : G.cargo > 30 ? '#f6d77a' : '#e2574c') + '">' + Math.round(G.cargo) + '%</b>';
   if (m.type === 'race') $('#hPlace').textContent = ['1ST', '2ND', '3RD', '4TH'][Math.max(0, (G.place || 1) - 1)];
   drawMinimap();
