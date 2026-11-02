@@ -195,7 +195,7 @@ function Journey({ state, setState, onAdvance, onCamp, onWard, wardCost, wardRel
         <div className="hints">
           <Kbd glyph="↑↓"/> <span>Move</span>
           <Kbd glyph="↵"/>  <span>Select</span>
-          <Kbd glyph="1–6"/> <span>Quick</span>
+          <Kbd glyph="1–7"/> <span>Quick</span>
         </div>
         <div className="jv-savestate">
           <SaveDot fresh={savedAt && Date.now() - savedAt < 1500} />

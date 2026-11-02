@@ -8,8 +8,8 @@ const DIFF = {
   // hollowingBase: per-day passive rise · bondDrain: per-day base bond cost
   // startProv: provisions are a 0–100 stock, always begin full
   "Apprentice":   { hollowingBase: 0.8, bondDrain: 1.6, startCoin: 30, startProv: 100, startLore: 60, startMorale: 66 },
-  "Keeper":       { hollowingBase: 1.2, bondDrain: 2.2, startCoin: 22, startProv: 100, startLore: 50, startMorale: 60 },
-  "Grand Keeper": { hollowingBase: 1.8, bondDrain: 3.0, startCoin: 16, startProv: 100, startLore: 40, startMorale: 54 },
+  "Keeper":       { hollowingBase: 1.7, bondDrain: 2.7, startCoin: 22, startProv: 100, startLore: 50, startMorale: 60 },
+  "Grand Keeper": { hollowingBase: 2.6, bondDrain: 3.7, startCoin: 16, startProv: 100, startLore: 40, startMorale: 54 },
 };
 
 const PACE = {
@@ -138,6 +138,13 @@ function App(){
     const ok = window.WLUtil.saveGame({ state, difficulty, dayNight });
     if (ok){ setSavedAt(Date.now()); setHasSavedRun(true); }
   }, [state, screen, difficulty, dayNight]);
+
+  // A finished run is over: don't offer to resume the day before the ending
+  useEffectApp(() => {
+    if (screen !== "ending") return;
+    window.WLUtil.clearSave();
+    setHasSavedRun(false);
+  }, [screen]);
 
   // Ambient audio pad — follows biome + day/night while on the journey
   useEffectApp(() => {
@@ -731,7 +738,7 @@ function App(){
         <Skirmish key={state.pendingSkirmish.id} event={state.pendingSkirmish} state={state} onResolve={resolveEvent} />
       )}
       {state.pendingLegendary && (
-        <LegendaryEncounter key={state.pendingLegendary.region} data={state.pendingLegendary} onResolve={resolveLegendary} />
+        <LegendaryEncounter key={state.pendingLegendary.region} data={state.pendingLegendary} state={state} onResolve={resolveLegendary} />
       )}
       {state.pendingLegComplete && (
         <LegComplete summary={state.pendingLegComplete} state={state} onContinue={closeLegComplete} />

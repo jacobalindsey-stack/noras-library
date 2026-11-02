@@ -111,7 +111,7 @@ function EventModal({ event, state, onResolve }){
       <div className="event-card">
         <div className="event-head">
           <div className="tag">{event.tag}</div>
-          <div className="day">Day {state.day} · league {state.league}</div>
+          <div className="day">Day {state.day} · league {Math.floor(state.league)}</div>
         </div>
         <div className="event-body">
           <h3>{event.title}</h3>
@@ -119,23 +119,33 @@ function EventModal({ event, state, onResolve }){
           {event.journal && <p className="journal">{event.journal}</p>}
         </div>
         <div className="event-choices">
-          {choices.map((c, i) => (
-            <button key={i} className="choice" onClick={() => pickChoice(c)}>
+          {choices.map((c, i) => { const short = shortfall(c, state); return (
+            <button key={i} className="choice" disabled={!!short} onClick={() => !short && pickChoice(c)}>
               <span>{c.label}</span>
               <span className="ch-flavor">{c.flavor}</span>
+              {short && <span className="ch-cost">{short}</span>}
               {c.requiresSpecialty && (
                 <span className="ch-cost">[{c.requiresSpecialty.toUpperCase()} only]</span>
               )}
             </button>
-          ))}
+          ); })}
         </div>
       </div>
     </div>
   );
 }
 
+// A choice that spends Coin or Lore you don't have can't be taken.
+function shortfall(choice, state){
+  for (const d of choice.deltas || []){
+    if ((d.k === "coin" || d.k === "lore") && d.v < 0 && (state[d.k] || 0) < -d.v)
+      return `Needs ${-d.v} ${d.k === "coin" ? "coin" : "Lore"} · you have ${state[d.k] || 0}`;
+  }
+  return null;
+}
+
 function prettyKey(k){
   return { provisions:"Provisions", lore:"Lore", coin:"Coin", morale:"Morale", league:"Leagues", days:"Days", hollowing:"Hollowing" }[k] || k;
 }
 
-Object.assign(window, { EventModal, prettyKey });
+Object.assign(window, { EventModal, prettyKey, shortfall });

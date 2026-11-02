@@ -60,7 +60,7 @@ function LegComplete({ summary, state, onContinue }){
 // ============================================================
 // Legendary Beast capstone encounter
 // ============================================================
-function LegendaryEncounter({ data, onResolve }){
+function LegendaryEncounter({ data, state, onResolve }){
   const [picked, setPicked] = useStateMS(null);
   const beast = window.WLData.REGIONS.find(r => r.id === data.region);
 
@@ -83,13 +83,13 @@ function LegendaryEncounter({ data, onResolve }){
             <>
               <p className="lb-intro">{data.intro}</p>
               <div className="legend-choices">
-                {data.choices.map(c => (
-                  <button key={c.id} className="legend-choice" onClick={() => setPicked(c)}>
+                {data.choices.map(c => { const short = state ? window.shortfall(c, state) : null; return (
+                  <button key={c.id} className="legend-choice" disabled={!!short} onClick={() => !short && setPicked(c)}>
                     <span className="lc-label">{c.label}</span>
-                    <span className="lc-desc">{c.desc}</span>
+                    <span className="lc-desc">{short || c.desc}</span>
                     <span className="lc-score">+{c.score} renown</span>
                   </button>
-                ))}
+                ); })}
               </div>
             </>
           ) : (

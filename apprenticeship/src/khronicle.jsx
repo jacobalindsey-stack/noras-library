@@ -19,9 +19,12 @@ function Khronicle({ regionId, state, dayNight, onContinue }){
 
   const day = state.day;
   const dateStr = `Day ${day} of the Long Apprenticeship`;
-  const lossLine = state.lostCount > 0
+  const lossLine = state.lostCount === 1
     ? `One apprentice already lost; the caravan presses on.`
+    : state.lostCount > 1
+    ? `${["","One","Two","Three","Four"][state.lostCount] || state.lostCount} apprentices already lost; the caravan presses on.`
     : `The caravan presses on, intact.`;
+  const onRoad = state.party.filter(p=>!p.lost).length + (state.lead.lost ? 0 : 1);
 
   return (
     <div className="overlay">
@@ -50,7 +53,7 @@ function Khronicle({ regionId, state, dayNight, onContinue }){
             ))}
             <div className="khron-brief">
               <h4>Caravan Notice</h4>
-              <p>Caravan of {leadFirst} {leadLast}: {state.party.filter(p=>!p.lost).length} of 4 apprentices Bonded and on the road. Pace, {state.pace.toLowerCase()}. Provisions, {state.provisions}.</p>
+              <p>Caravan of {leadFirst} {leadLast}: {onRoad} of {state.party.length + 1} apprentices Bonded and on the road. Pace, {state.pace.toLowerCase()}. Provisions, {state.provisions}.</p>
             </div>
           </div>
         </div>

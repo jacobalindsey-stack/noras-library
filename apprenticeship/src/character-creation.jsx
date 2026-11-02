@@ -26,7 +26,8 @@ function CharacterCreation({ difficulty, onStart }){
     const partyRegs = pickN(others, 3);
     return partyRegs.map((r, i) => {
       const beast = pick(BEASTS[r.id]);
-      const spec = SPECIALTIES[i % SPECIALTIES.length];
+      const others = SPECIALTIES.filter(s => s.id !== "scholar"); // you are the Scholar
+      const spec = others[i % others.length];
       const first = pick(NAMES_FIRST);
       const last = pick(NAMES_LAST);
       return {

@@ -56,11 +56,11 @@ function Ending({ state, kind, onRestart }){
 
         <div className="score">
           <div className="cell"><div className="lbl">Days</div><div className="val">{state.day}</div></div>
-          <div className="cell"><div className="lbl">Apprentices</div><div className="val">{aliveCount} / 4</div></div>
+          <div className="cell"><div className="lbl">Apprentices</div><div className="val">{aliveCount} / {state.party.length + 1}</div></div>
           <div className="cell"><div className="lbl">Lands Crossed</div><div className="val">{lands} / 6</div></div>
           <div className="cell"><div className="lbl">Legends Faced</div><div className="val">{legendsFaced}</div></div>
           <div className="cell"><div className="lbl">Lore</div><div className="val">{state.lore}</div></div>
-          <div className="cell"><div className="lbl">Lore Intact</div><div className="val">{Math.max(0, 100 - hollowingProgress)}%</div></div>
+          <div className="cell"><div className="lbl">Lore Intact</div><div className="val">{Math.round(Math.max(0, 100 - hollowingProgress))}%</div></div>
         </div>
 
         {/* Leg-by-leg recap */}

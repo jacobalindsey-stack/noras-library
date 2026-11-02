@@ -5,7 +5,7 @@ function Skirmish({ event, state, onResolve }){
   const sk = event.skirmish;
   const totalRounds = sk.rounds;
   const isCorrupted = /husk|hollow/i.test(sk.foe) || event.title.includes("Hollow") || event.title.includes("Husk");
-  const canBond = !isCorrupted && Math.random() < 0.5;
+  const [canBond] = useStateSk(() => !isCorrupted && Math.random() < 0.5);  // decided once, not every frame
 
   // Player Lore "HP" (drawn from state)
   const [foeHp, setFoeHp] = useStateSk(sk.hp);
@@ -18,6 +18,7 @@ function Skirmish({ event, state, onResolve }){
   const [logMsg, setLogMsg] = useStateSk("Time your channel — release in the gold window.");
   const [done, setDone] = useStateSk(null); // {result:"defeat"|"spared"|"bonded"|"backlash"}
   const speedRef = useRefSk(0.9);
+  const busyRef = useRefSk(false);   // one channel per round
 
   // Animate needle
   useEffectSk(() => {
@@ -43,10 +44,11 @@ function Skirmish({ event, state, onResolve }){
     setTarget({ pos, width });
     speedRef.current = 0.72 + round * 0.11;
   }
-  useEffectSk(() => { newTarget(); }, [round]);
+  useEffectSk(() => { newTarget(); busyRef.current = false; }, [round]);
 
   function channel(){
-    if (!running) return;
+    if (!running || busyRef.current) return;
+    busyRef.current = true;
     const lo = target.pos - target.width/2;
     const hi = target.pos + target.width/2;
     const hit = needle >= lo && needle <= hi;
@@ -63,21 +65,21 @@ function Skirmish({ event, state, onResolve }){
       if (counter > 0){
         setPlayerLore(L => Math.max(0, L - counter));
       }
-      advance();
+      advance(nextFoeHp);
     } else {
       const backlash = Math.round(sk.attack * 0.8);
       setPlayerLore(L => Math.max(0, L - backlash));
       setLogMsg(`Backlash! Lore ${backlash} lost.`);
       window.WLAudio && window.WLAudio.play("miss");
       if (playerLore - backlash <= 0) { finish("backlash"); return; }
-      advance();
+      advance(foeHp);
     }
   }
 
-  function advance(){
+  function advance(hpNow){
     if (round >= totalRounds){
-      // Time-out victory only if foe HP <= 60% of max
-      if (foeHp < sk.hp * 0.5) finish("defeat");
+      // Time-out victory if the foe is below half health after this last channel
+      if (hpNow < sk.hp * 0.5) finish("defeat");
       else finish("retreated");
     } else {
       setTimeout(() => setRound(r => r+1), 350);
