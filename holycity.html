@@ -4035,6 +4035,7 @@ function updateTurnCard() {
 function updateHud() {
   if (!G || G.demo || mode !== 'play') return;
   if (++hudFrame % 3) return;
+  placeMinimap();
   const m = G.m; const clockMin = clockNow();
   if (G.free) { const ck = $('#hClock'); ck.classList.remove('late'); ck.firstChild.nodeValue = fmtClock(clockMin) + ' '; ck.querySelector('b').textContent = 'FREE DRIVE'; ck.querySelector('#hTimeBar i').style.width = '100%'; ck.querySelector('#hTimeBar i').style.background = '#9fd8dc';
     $('#hObj').textContent = G.side ? 'Take Biscuit home' : 'Explore! Stickers ' + stickerCount() + '/' + STICKERS.length; $('#hMoney').textContent = fmtMoney(SAVE.money);
@@ -4062,6 +4063,7 @@ function updateHud() {
   updateTurnCard();
   if (isPhonePortrait()) { const mph = Math.round(Math.hypot(G.player.vx, G.player.vy) * 0.22); const ds = $('#deckSpeed'); if (ds.dataset.v !== String(mph)) { ds.dataset.v = mph; ds.firstChild.nodeValue = mph + ' '; } navIdle(); }
 }
+function placeMinimap() { if (!document.body.classList.contains('touch') || isPhonePortrait()) { mm.style.top = ''; return; } const r = $('#hRight').getBoundingClientRect(); const t = Math.round(r.bottom + 8) + 'px'; if (mm.style.top !== t) mm.style.top = t; }
 function navIdle() { const el = $('#navIdle'); if (!$('#hTurn').hidden) { if (el.dataset.t) { el.dataset.t = ''; el.innerHTML = ''; } return; } const ne = nearestEdge(G.player.x, G.player.y, 300); const st = ne && ne.e.name ? 'ON ' + ne.e.name.toUpperCase() : ''; const ob = $('#hObj').textContent; const key = ob + '|' + st; if (el.dataset.t === key) return; el.dataset.t = key; el.innerHTML = '<b></b><span></span>'; el.firstChild.textContent = ob; el.lastChild.textContent = st; }
 
 /* resize */
