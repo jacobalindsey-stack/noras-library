@@ -750,7 +750,7 @@ function cornerChamfers(pad, walkOnly) {
   const out = [];
   for (const id in NODES) {
     const n = NODES[id]; const es = n.edges.filter(e => !isBridge(e) && (!walkOnly || e.walk)); if (es.length < 2) continue;
-    const arms = es.map(e => { const out_ = e.a === id; const dx = out_ ? e.ux : -e.ux, dy = out_ ? e.uy : -e.uy; return { dx, dy, h: e.w / 2 + pad, len: e.len, ang: Math.atan2(dy, dx), hw: e.kind === 'hw', cob: e.cobble }; }).sort((p, q) => p.ang - q.ang);
+    const arms = es.map(e => { const out_ = e.a === id; const dx = out_ ? e.ux : -e.ux, dy = out_ ? e.uy : -e.uy; return { e, atA: out_, dx, dy, h: e.w / 2 + pad, len: e.len, ang: Math.atan2(dy, dx), hw: e.kind === 'hw', cob: e.cobble }; }).sort((p, q) => p.ang - q.ang);
     for (let i = 0; i < arms.length; i++) {
       const A = arms[i], B = arms[(i + 1) % arms.length];
       let th = B.ang - A.ang; if (th <= 0) th += TAU;
@@ -762,7 +762,7 @@ function cornerChamfers(pad, walkOnly) {
       const sA = (rx * -B.dy - (-B.dx) * ry) / det, tB = (A.dx * ry - A.dy * rx) / det;
       const k = 20 + 22 * clamp((Math.PI / 2 - th) / (Math.PI / 2), 0, 1);
       if (sA + k > A.len * 0.45 || tB + k > B.len * 0.45 || sA < 0 || tB < 0) continue;
-      const tri = [[n.x, n.y], [n.x + A.dx * (sA + k) + nA[0] * A.h, n.y + A.dy * (sA + k) + nA[1] * A.h], [n.x + B.dx * (tB + k) + nB[0] * B.h, n.y + B.dy * (tB + k) + nB[1] * B.h]]; tri.hw = A.hw || B.hw; tri.cob = A.cob && B.cob; out.push(tri);
+      const tri = [[n.x, n.y], [n.x + A.dx * (sA + k) + nA[0] * A.h, n.y + A.dy * (sA + k) + nA[1] * A.h], [n.x + B.dx * (tB + k) + nB[0] * B.h, n.y + B.dy * (tB + k) + nB[1] * B.h]]; tri.hw = A.hw || B.hw; tri.cob = A.cob && B.cob; tri.A = { e: A.e, end: A.atA ? 'a' : 'b', side: A.atA ? 1 : -1, s: sA + k }; tri.B = { e: B.e, end: B.atA ? 'a' : 'b', side: B.atA ? -1 : 1, s: tB + k }; out.push(tri);
     }
   }
   return out;
@@ -1113,7 +1113,7 @@ function renderChunk(g, cx, cy) {
   for (const e of vis) if (e.walk && !isBridge(e)) { g.strokeStyle = e.kind === 'hw' ? PAT.walk : PAT.brick; g.lineWidth = e.w + 14; line(g, e.ax, e.ay, e.bx, e.by); }
   const near = t => t[0][0] > ox - 120 && t[0][0] < ox + CH + 120 && t[0][1] > oy - 120 && t[0][1] < oy + CH + 120;
   const tri = t => { g.beginPath(); g.moveTo(t[0][0], t[0][1]); g.lineTo(t[1][0], t[1][1]); g.lineTo(t[2][0], t[2][1]); g.closePath(); g.fill(); };
-  if (!CHAMF.road) { CHAMF.road = cornerChamfers(0); CHAMF.walk = cornerChamfers(7, true); }
+  if (!CHAMF.road) { CHAMF.road = cornerChamfers(0); CHAMF.walk = cornerChamfers(7, true); CHAMF.curb = new Map(); for (const t of CHAMF.road) for (const q of [t.A, t.B]) CHAMF.curb.set(q.e.i + '|' + q.end + '|' + q.side, q.s); }
   for (const t of CHAMF.walk) if (near(t)) { g.fillStyle = t.hw ? PAT.walk : PAT.brick; tri(t); }
   // 4) asphalt / deck
   for (const e of vis) {
@@ -1125,6 +1125,13 @@ function renderChunk(g, cx, cy) {
   for (const id in NODES) { const n = NODES[id]; if (n.x < ox - 80 || n.x > ox + CH + 80 || n.y < oy - 80 || n.y > oy + CH + 80) continue; if (n.edges.some(isBridge)) continue; g.fillStyle = PAT.road; g.beginPath(); g.arc(n.x, n.y, n.r, 0, TAU); g.fill(); }
   // 5) markings
   for (const e of vis) drawMarkings(g, e);
+  // curbs and edge lines follow the chamfered corners
+  for (const t of CHAMF.road) if (near(t)) {
+    const ea = t.A.e, eb = t.B.e; if (ea.walk && eb.walk) continue;
+    const [p1, p2] = [t[1], t[2]]; let mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2; let nx = t[0][0] - mx, ny = t[0][1] - my; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+    const ln = (o, col) => { g.strokeStyle = col; g.lineWidth = 1; g.beginPath(); g.moveTo(Math.round(p1[0] + nx * o) + .5, Math.round(p1[1] + ny * o) + .5); g.lineTo(Math.round(p2[0] + nx * o) + .5, Math.round(p2[1] + ny * o) + .5); g.stroke(); };
+    if (ea.L >= 2 || eb.L >= 2) ln(3, '#d8d8d0'); else { ln(0.5, '#8f8a7e'); ln(1.5, '#cfc9bb'); }
+  }
   // 6) bridge rails + span gaps
   for (const e of vis) if (isBridge(e)) {
     const hw = e.w / 2 + 4;
@@ -1158,15 +1165,15 @@ function drawMarkings(g, e) {
   const t0 = isBr ? 0 : A.r + 6, t1 = e.len - (isBr ? 0 : B.r + 6);
   if (t1 <= t0) return;
   const P = (t, off) => [e.ax + e.ux * t + e.nx * off, e.ay + e.uy * t + e.ny * off];
-  const seg = (off, col, dash) => { g.strokeStyle = col; g.lineWidth = 1; g.setLineDash(dash || []); const p = P(t0, off), q = P(t1, off); g.beginPath(); g.moveTo(Math.round(p[0]) + .5, Math.round(p[1]) + .5); g.lineTo(Math.round(q[0]) + .5, Math.round(q[1]) + .5); g.stroke(); g.setLineDash([]); };
+  const seg = (off, col, dash, curb) => { g.strokeStyle = col; g.lineWidth = 1; g.setLineDash(dash || []); const sd = off > 0 ? 1 : -1, ca = curb && CHAMF.curb ? CHAMF.curb.get(e.i + '|a|' + sd) : null, cb = curb && CHAMF.curb ? CHAMF.curb.get(e.i + '|b|' + sd) : null; const p = P(ca != null ? ca : t0, off), q = P(cb != null ? e.len - cb : t1, off); g.beginPath(); g.moveTo(Math.round(p[0]) + .5, Math.round(p[1]) + .5); g.lineTo(Math.round(q[0]) + .5, Math.round(q[1]) + .5); g.stroke(); g.setLineDash([]); };
   if (e.cobble) return;
   const hw = e.w / 2;
   if (e.L >= 2) { seg(-3, '#e8c547'); seg(3, '#e8c547'); }
   else { seg(-1, '#e8c547'); seg(1, '#e8c547', e.kind === 'st' && !e.walk ? [6, 6] : []); }
   const med = e.L >= 2 ? 3 : 0;
   for (let i = 1; i < e.L; i++) { seg(med + i * LW, '#d8d8d0', [8, 10]); seg(-(med + i * LW), '#d8d8d0', [8, 10]); }
-  if (e.L >= 2 || isBr) { seg(hw - 3, '#d8d8d0'); seg(-(hw - 3), '#d8d8d0'); }
-  if (!isBr && !e.walk) { for (const o of [hw - 0.5, -(hw - 0.5), hw - 1.5, -(hw - 1.5)]) seg(o, Math.abs(o) > hw - 1 ? '#8f8a7e' : '#cfc9bb'); }
+  if (e.L >= 2 || isBr) { seg(hw - 3, '#d8d8d0', null, !isBr); seg(-(hw - 3), '#d8d8d0', null, !isBr); }
+  if (!isBr && !e.walk) { for (const o of [hw - 0.5, -(hw - 0.5), hw - 1.5, -(hw - 1.5)]) seg(o, Math.abs(o) > hw - 1 ? '#8f8a7e' : '#cfc9bb', null, true); }
   // crosswalks downtown
   if (e.walk && !isBr) for (const [t, n] of [[t0, A], [t1, B]]) {
     if (n.edges.length < 3) continue;
@@ -2051,6 +2058,7 @@ function updateTraffic(dt) {
 const _ca = [], _cb = [];
 function carSurface(c) { return cellAt(c.x, c.y); }
 function hitsSolid(c, x, y) {
+  if (c.onRoof) return false;
   const fx = Math.cos(c.h), fy = Math.sin(c.h), hl = c.len / 2 * 0.85, hw = c.wid / 2 * 0.8;
   const pts = [[hl, hw], [hl, -hw], [-hl, hw], [-hl, -hw], [hl, 0]];
   for (const [a, b] of pts) {
@@ -2089,7 +2097,7 @@ function tideTrend() { const a = tideShape(G.t + G.tideP), b = tideShape(G.t + G
 function updateCar(c, inp, dt) {
   if (c.dead > 0) { c.dead -= dt; if (c.dead <= 0) respawn(c); return; }
   const st = c.st; const fx0 = Math.cos(c.h), fy0 = Math.sin(c.h);
-  const grounded = c.z <= 0.01 || c.onLeaf;
+  const grounded = c.z <= 0.01 || c.onLeaf || c.onRoof;
   const cell = carSurface(c); const sf = SURF[cell] || SURF[T.ROAD];
   // high-riding trucks and wagons shrug off grass and sand; little city cars bog down
   const rough = OFFROAD[cell] ? (st.rough || 0) : 0, rf = k => 1 - (1 - k) * (1 - rough * 0.65);
@@ -2149,10 +2157,14 @@ function updateCar(c, inp, dt) {
   }
   c.vx = fx * vF + rx * vR; c.vy = fy * vF + ry * vR;
   // vertical
-  if (!c.onLeaf && (c.z > 0 || c.vz > 0)) {
+  // landed on a roof (or a treetop): ride along up there, then drop off the edge
+  const ROOF_Z = 14;
+  if (c.onRoof) { if (!SOLID[cellAt(c.x, c.y)] || cellAt(c.x, c.y) === T.RAIL) { c.onRoof = false; c.vz = 0; } else { c.z = ROOF_Z; c.vz = 0; } }
+  if (!c.onLeaf && !c.onRoof && (c.z > 0 || c.vz > 0)) {
     c.vz -= GRAV * dt; c.z += c.vz * dt; c.airT += dt;
     if (c.z <= 0) {
       const impact = -c.vz; c.z = 0; c.vz = 0;
+      { const lc = cellAt(c.x, c.y); if (SOLID[lc] && lc !== T.RAIL) { c.onRoof = true; c.z = ROOF_Z; if (c.isPlayer && (!c.roofMsg || c.roofMsg < G.real)) { c.roofMsg = G.real + 4; showMsg(lc === T.TREE ? 'IN THE TREETOPS!' : 'ON THE ROOF!', 'Drive off the edge to get down', 1.4); } } }
       if (impact > 160) { if (c.isPlayer) { cam.shake = Math.min(7, impact / 60); sfx('land'); cargoHit(impact / 40, 'landing'); } burst(c.x, c.y + 3, '#b9b2a2', 6); }
       if (c.isPlayer && c.airT > 0.55) { showMsg(c.airT > 0.9 ? 'HUGE AIR!' : 'AIR TIME!', '', 0.9); }
       c.airT = 0;
@@ -2262,7 +2274,7 @@ function splashDown(c) {
   if (c.isPlayer) { sfx('splash'); cam.shake = 4; G.t += 5; showMsg('SPLASH!', 'Fished out by a shrimp boat (+5 sec)', 2.2); cargoHit(12, 'splash'); }
 }
 function respawn(c) {
-  const s = c.lastSafe; c.x = s.x; c.y = s.y; c.h = s.h; c.vx = c.vy = 0; c.z = 0; c.vz = 0; c.dead = 0; c.stuckT = 0;
+  const s = c.lastSafe; c.x = s.x; c.y = s.y; c.h = s.h; c.vx = c.vy = 0; c.z = 0; c.onRoof = false; c.vz = 0; c.dead = 0; c.stuckT = 0;
   if (hitsSolid(c, c.x, c.y)) { const ne = nearestEdge(c.x, c.y, 400); if (ne) { c.x = ne.e.ax + ne.e.ux * ne.t; c.y = ne.e.ay + ne.e.uy * ne.t; } }
 }
 function cargoHit(amt, why) {
