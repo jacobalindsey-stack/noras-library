@@ -31,7 +31,7 @@ if (window.__stage) window.__stage('[2] game code parsing...');
    BLACKTHORN MANOR  —  Part 1: Core + Act I
    ===================================================================== */
 /* ===== CONFIG ===== */
-const GAME_VERSION = '1.2.8', SCHEMA_VERSION = 1, TS = 16, VH = 224;
+const GAME_VERSION = '1.2.9', SCHEMA_VERSION = 1, TS = 16, VH = 224;
 let VW = 320;
 const SCR_W = 20, SCR_H = 14;
 const TAU = Math.PI * 2;
@@ -135,12 +135,29 @@ const In = {
       if (n) { e.preventDefault(); if (e.repeat) return; if (this.mode !== 'kbd') { this.mode = 'kbd'; } this.kb[n] = true; this.pend[n] = true; this.raw[e.code] = true; if (Aud.unlock) Aud.unlock(); this.anyInput = performance.now(); }
     });
     window.addEventListener('keyup', e => { const n = KEYMAP[e.code]; if (n) { e.preventDefault(); this.kb[n] = false; this.pendRel[n] = true; } });
-    window.addEventListener('blur', () => { this.kb = {}; this.tc = {}; this.joy.on = false; this.ptrs.clear(); });
+    window.addEventListener('blur', () => { this.kb = {}; this.releaseAll(); });
+    // iPad Safari sometimes never sends a finger's "lifted" signal (a notification, an edge swipe, the screen changing size
+    // mid-touch). Without these, the stick or a button stays held by a finger that's gone, and the stick refuses every new
+    // touch until a reload. So: once the screen reports no fingers at all, anything still held is let go...
+    const noFingers = e => { if (e.touches && e.touches.length === 0) setTimeout(() => { if (!this.fingers) this.releaseAll(); }, 60); };
+    document.addEventListener('touchstart', e => { this.fingers = e.touches.length; }, { passive: true, capture: true });
+    document.addEventListener('touchend', e => { this.fingers = e.touches.length; noFingers(e); }, { passive: true, capture: true });
+    document.addEventListener('touchcancel', e => { this.fingers = e.touches.length; noFingers(e); }, { passive: true, capture: true });
+    // ...and so is anything held when the screen changes under the finger or the game goes into the background
+    for (const ev of ['fullscreenchange', 'webkitfullscreenchange', 'orientationchange']) document.addEventListener(ev, () => this.releaseAll());
+    window.addEventListener('orientationchange', () => this.releaseAll());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.releaseAll(); });
+    window.addEventListener('pagehide', () => this.releaseAll());
     for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault());
     let lastTouchEnd = 0;
     document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouchEnd <= 350) e.preventDefault(); lastTouchEnd = n; }, { passive: false });
     document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
     window.addEventListener('gamepadconnected', () => { this.mode = 'pad'; });
+  },
+  // let go of every finger the game thinks is down: the stick, held buttons and drags (no taps are made from them)
+  releaseAll() {
+    for (const k in this.tc) if (this.tc[k]) { this.tc[k] = false; this.pendRel[k] = true; }
+    this.joy.on = false; this.ptrs.clear(); this.drag.on = false;
   },
   toLo(cx, cy) { return { x: (cx * Disp.dpr - Disp.ox) / Disp.scale, y: (cy * Disp.dpr - Disp.oy) / Disp.scale }; },
   joyZone(p) {
@@ -157,6 +174,8 @@ const In = {
     if (e.pointerType === 'touch' || e.pointerType === 'pen') this.mode = 'touch';
     else if (e.pointerType === 'mouse' && this.mode !== 'touch') { /* mouse: taps only */ }
     const p = this.toLo(e.clientX, e.clientY);
+    if (this.joy.on && (!this.ptrs.has(this.joy.id) || this.joy.id === e.pointerId)) this.joy.on = false;
+    const old = this.ptrs.get(e.pointerId); if (old && old.kind === 'btn') { this.tc[old.btn] = false; this.pendRel[old.btn] = true; }
     const ptr = { id: e.pointerId, x: p.x, y: p.y, sx: p.x, sy: p.y, t0: performance.now(), moved: 0, kind: null, btn: null, lp: false };
     this.ptrs.set(e.pointerId, ptr);
     try { e.target.setPointerCapture(e.pointerId); } catch (err) { }
