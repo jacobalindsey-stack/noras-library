@@ -31,7 +31,7 @@ if (window.__stage) window.__stage('[2] game code parsing...');
    BLACKTHORN MANOR  —  Part 1: Core + Act I
    ===================================================================== */
 /* ===== CONFIG ===== */
-const GAME_VERSION = '1.2.7', SCHEMA_VERSION = 1, TS = 16, VH = 224;
+const GAME_VERSION = '1.2.8', SCHEMA_VERSION = 1, TS = 16, VH = 224;
 let VW = 320;
 const SCR_W = 20, SCR_H = 14;
 const TAU = Math.PI * 2;
@@ -145,7 +145,7 @@ const In = {
   toLo(cx, cy) { return { x: (cx * Disp.dpr - Disp.ox) / Disp.scale, y: (cy * Disp.dpr - Disp.oy) / Disp.scale }; },
   joyZone(p) {
     if (Lay.mode === 'below') return p.y > VH + 30 && p.x < VW * 0.55;
-    if (Lay.mode === 'gutter') return p.x < VW * 0.4 && (p.x < 0 ? p.y > 96 : p.y > 36);
+    if (Lay.mode === 'gutter') return p.x < VW * 0.4 && (p.x < 0 ? p.y > Math.max(96, (typeof Panel !== 'undefined' && Panel.btnBottom) || 0) : p.y > 36);
     if (Lay.mode === 'side') return p.x < VW * 0.6 && p.y > 20 && p.x >= -2;
     const w = VW * 0.45;
     const inZone = this.leftHanded ? p.x > VW - w : p.x < w;
@@ -3386,8 +3386,8 @@ const HiUI = {
     if (e.cap) { const w = Mini.w(e.cap) + 4, tx = Math.round(x - w / 2), ty = cy + r - 4; HiUI.slab(c, tx - 1, ty - 1, w + 2, 9, C.ink0, 1); HiUI.slab(c, tx, ty, w, 7, this.mix(e.fill, 'b', 0.45), 1); Mini.draw(c, e.cap, tx + 2, ty + 1, C.bone0); }
   },
   drawJoy(c, e) {
-    const ox = Math.round(e.ox), oy = Math.round(e.oy);
-    c.globalAlpha *= 0.5; pxCircle(c, ox, oy, 28, C.ink0); c.globalAlpha *= 2; pxRing(c, ox, oy, 28, C.bone1); pxRing(c, ox, oy, 27, C.ink0);
+    const ox = Math.round(e.ox), oy = Math.round(e.oy), r = e.r || 28;
+    c.globalAlpha *= 0.5; pxCircle(c, ox, oy, r, C.ink0); c.globalAlpha *= 2; pxRing(c, ox, oy, r, C.bone1); pxRing(c, ox, oy, r - 1, C.ink0);
     if (e.knob) { const kx = Math.round(e.x), ky = Math.round(e.y); pxCircle(c, kx, ky + 1, 10, C.ink0); pxCircle(c, kx, ky, 10, C.ink0); pxCircle(c, kx, ky, 9, C.bone1); pxCircle(c, kx, ky + 1, 8, C.bone2); pxCircle(c, kx - 1, ky - 1, 6, C.bone1); c.fillStyle = C.bone0; c.fillRect(kx - 4, ky - 5, 3, 2); }
   },
   // c is the pixel UI layer, already translated so that 0,0 is the game screen's top-left
@@ -3460,7 +3460,7 @@ function drawHUD(ctx) {
     T(ctx, 'MP', ml + 65, vy - 1, C.moon3);
     jy = vy + 10;
   } else drawPanelHUD();
-  if (Juice.meter(ctx, ml, jy)) jy += 7;
+  if (!bigGutter() && Juice.meter(ctx, ml, jy)) jy += 7; // a wide iPad shows it in the right panel, over the star button
   if (Game.dev.on) { if (btn(ctx, 'hudDev', ml, jy, 26, 12, 'DEV', { nofocus: true, fill: C.ink2, col: C.ecto1, fs: 6.5 }) && Game.state === 'play') Game.openDev(true); jy += 15; }
   drawCombo(ctx, ml, jy);
   // wisps & keys
@@ -3511,6 +3511,8 @@ function roomPath(a, b) {
   return null;
 }
 /* ---------- touch controls ---------- */
+// where the star button for the Witch Surge appears (touch screens)
+function surgeSpot() { const pt = Disp.ptPx, ta = touchAnchor(); let sx = ta.rx - 214 / pt, sy = ta.by - 92 / pt; if (Lay.mode !== 'over') { sx = ta.rx - 70 / pt; sy = ta.by - 236 / pt; } if (In.leftHanded && Lay.mode === 'over') sx = VW - sx; return { x: sx, y: sy, r: 27 / pt }; }
 function layoutTouch() {
   const pt = Disp.ptPx, sf = safeLo(), k = OPTS.btn === 0 ? 0.85 : OPTS.btn === 2 ? 1.2 : 1;
   const L = [], a = touchAnchor(), mirror = In.leftHanded && Lay.mode === 'over';
@@ -3584,6 +3586,7 @@ function drawControls(ctx, sf) {
   const show = In.mode === 'touch';
   In.buttons = []; In.playActive = Game.state === 'play' && !Game.cutscene;
   if (Game.state !== 'play') return;
+  if (!show && spellMenuOn()) return; // the side panel's spell menu (drawn with the panel) does the job
   if (!show) {
     // spell frame (keyboard and gamepad; touch screens put the spell row on the CAST button instead)
     const fa = spellFrameAt(sf), fx = fa.x, fy = fa.y;
@@ -3603,30 +3606,57 @@ function drawControls(ctx, sf) {
     const down = !!(In.hold[b.name] && In.tc[b.name]);
     HiUI.push({ k: 'c', x: b.x, y: b.y, r: b.r, fill: PAD_COL[b.name], down, icon: padIconFor(b), cap: b.label, a: op });
     if (b.name === 'cast') drawCastRow(b, op, true);
+    if (b.name === 'cat' && spellMenuOn()) drawSongAbove(b, op, true);
   }
-  if (S.surge >= SURGE_MAX) { const pt = Disp.ptPx, sf2 = safeLo(); const ta = touchAnchor(); let sx = ta.rx - 214 / pt, sy = ta.by - 92 / pt; if (Lay.mode !== 'over') { sx = ta.rx - 70 / pt; sy = ta.by - 236 / pt; } if (In.leftHanded && Lay.mode === 'over') sx = VW - sx; const r = 27 / pt; In.buttons.push({ name: 'surge', x: sx, y: sy, r }); HiUI.push({ k: 'c', x: sx, y: sy, r: r * (1 + 0.06 * Math.sin(Game.t * 8)), fill: Math.floor(Game.t * 4) % 2 ? C.fire2 : C.vel1, down: !!(In.hold.surge && In.tc.surge), icon: bigIcon('star'), a: 1 }); }
+  if (S.surge >= SURGE_MAX) { const sp = surgeSpot(), sx = sp.x, sy = sp.y, r = sp.r; In.buttons.push({ name: 'surge', x: sx, y: sy, r }); HiUI.push({ k: 'c', x: sx, y: sy, r: r * (1 + 0.06 * Math.sin(Game.t * 8)), fill: Math.floor(Game.t * 4) % 2 ? C.fire2 : C.vel1, down: !!(In.hold.surge && In.tc.surge), icon: bigIcon('star'), a: 1 }); }
+  // on a wide iPad the star waits, ghosted, under its meter while the Surge fills (a tap on it says how to fill it)
+  else if (bigGutter() && (S.flags.surge_on || S.surge > 0)) {
+    const sp = surgeSpot(), r = Math.round(sp.r);
+    HiUI.push({ k: 'c', x: sp.x, y: sp.y, r, fill: C.ink3, icon: bigIcon('star'), a: 0.42 * op });
+    if (In.tapIn(sp.x - r, sp.y - r, 2 * r, 2 * r)) { Aud.sfx('fail'); toast('Land hits on ghosts to fill your Surge!', 2.5); }
+  }
   // joystick
   if (In.joy.on) { const j = In.joy; HiUI.push({ k: 'joy', ox: j.ox, oy: j.oy, x: clamp(j.x, j.ox - 28, j.ox + 28), y: clamp(j.y, j.oy - 28, j.oy + 28), knob: true, a: 0.85 }); }
-  else if (Game.showStickHint) HiUI.push({ k: 'joy', ox: Lay.mode === 'gutter' ? -Math.round(Lay.l / 2) : 52, oy: Lay.mode === 'below' ? VH + Lay.b - 60 : VH - 50, knob: false, a: 0.45 });
+  else if (Game.showStickHint || bigGutter() && Panel.btnBottom) {
+    // on a wide iPad the thumb pad always shows, ghosted, in the left panel, sized to stay inside the panel's frame
+    const pad = bigGutter() && Panel.btnBottom, pw = Lay.l - 4;
+    HiUI.push({ k: 'joy', ox: pad ? -Lay.l + Math.round(pw / 2) : Lay.mode === 'gutter' ? -Math.round(Lay.l / 2) : 52, oy: Lay.mode === 'below' ? VH + Lay.b - 60 : pad ? Math.round((Panel.btnBottom + VH) / 2) : VH - 50, r: pad ? Math.min(28, Math.floor(pw / 2) - 3) : 28, knob: false, a: Game.showStickHint ? 0.45 : 0.3 });
+  }
 }
 // the spell row that rides on top of the CAST button (touch screens): previous spell, the spell's MP cost (tap for the
 // spell ring), next spell, and the song button above them. Sizes are in points so it stays thumb-sized on every screen.
+// with a side panel (iPad, desktop) the spells have their own menu in the panel, so the CAST row is just two big,
+// well-spaced arrows, and the song button moves above the CAT / ACT / DASH column
+// on a touch screen only where a 15-pixel spell button comes out finger-sized (iPads, not phones, which keep the CAST row)
+// (and only while the buttons, wherever they were dragged, leave the menu room; otherwise the CAST row comes back)
+function spellMenuOn() { const big = In.mode !== 'touch' || Disp.ptPx >= 2.4; return big && Panel.menuFits !== false && (Lay.mode === 'side' || Lay.mode === 'gutter' && In.mode === 'touch' && Lay.r >= 46); }
 function castRow(b) {
+  if (spellMenuOn()) {
+    const pt = Disp.ptPx, aw = Math.round(52 / pt), h = Math.round(46 / pt), gap = Math.max(4, Math.round(22 / pt)), tot = aw * 2 + gap;
+    let x0 = Math.round(b.x - tot / 2); x0 = Math.min(x0, VW + Lay.r - 3 - tot); const y = Math.round(b.y - b.r - 5 / pt - h);
+    return { prev: { x: x0, y, w: aw, h }, next: { x: x0 + aw + gap, y, w: aw, h } };
+  }
   const pt = Disp.ptPx, aw = Math.round(38 / pt), cw = Math.round(40 / pt), h = Math.round(40 / pt), gap = Math.max(1, Math.round(4 / pt));
   const y = Math.round(b.y - b.r - 6 / pt - h), cx = Math.round(b.x);
   const R = { prev: { x: cx - Math.round(cw / 2) - gap - aw, y, w: aw, h }, mp: { x: cx - Math.round(cw / 2), y, w: cw, h }, next: { x: cx + Math.round(cw / 2) + gap, y, w: aw, h } };
   if (Object.keys(S.songs).length) { const sw = Math.round(56 / pt); R.song = { x: cx - Math.round(sw / 2), y: y - gap - h, w: sw, h }; }
   return R;
 }
+function songAbove(c) { const pt = Disp.ptPx, w = Math.round(60 / pt), h = Math.round(40 / pt); return { x: Math.round(c.x - w / 2), y: Math.round(c.y - c.r - 5 / pt - h), w, h }; }
+function drawSongAbove(c, op, live) {
+  if (!Object.keys(S.songs).length) return; const r = songAbove(c);
+  HiUI.push({ k: 'r', x: r.x, y: r.y, w: r.w, h: r.h, label: '\u266A', col: C.fire1, fill: C.ink3, fs: 9, down: live && In.heldIn(r.x - 1, r.y - 1, r.w + 2, r.h + 2), a: op });
+  if (live && In.tapIn(r.x - 1, r.y - 1, r.w + 2, r.h + 2)) openSong();
+}
 function drawCastRow(b, op, live) {
   const R = castRow(b), held = r => live && In.heldIn(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
   HiUI.push({ k: 'r', x: R.prev.x, y: R.prev.y, w: R.prev.w, h: R.prev.h, glyph: 'l', fill: C.ink3, round: 4, down: held(R.prev), a: op });
-  HiUI.push({ k: 'r', x: R.mp.x, y: R.mp.y, w: R.mp.w, h: R.mp.h, label: SPELL_MP[S.eq] + '', col: C.moon3, fill: C.ink2, ring: C.fire1, round: 4, down: held(R.mp), a: op });
+  if (R.mp) HiUI.push({ k: 'r', x: R.mp.x, y: R.mp.y, w: R.mp.w, h: R.mp.h, label: SPELL_MP[S.eq] + '', col: C.moon3, fill: C.ink2, ring: C.fire1, round: 4, down: held(R.mp), a: op });
   HiUI.push({ k: 'r', x: R.next.x, y: R.next.y, w: R.next.w, h: R.next.h, glyph: 'r', fill: C.ink3, round: 4, down: held(R.next), a: op });
   if (R.song) HiUI.push({ k: 'r', x: R.song.x, y: R.song.y, w: R.song.w, h: R.song.h, label: '\u266A', col: C.fire1, fill: C.ink3, fs: 9, down: held(R.song), a: op });
   if (live) {
     const tap = r => In.tapIn(r.x - 1, r.y - 1, r.w + 2, r.h + 2);
-    if (tap(R.prev)) nextSpell(-1); if (tap(R.next)) nextSpell(1); if (tap(R.mp)) openRing(); if (R.song && tap(R.song)) openSong();
+    if (tap(R.prev)) nextSpell(-1); if (tap(R.next)) nextSpell(1); if (R.mp && tap(R.mp)) openRing(); if (R.song && tap(R.song)) openSong();
     // touches on the row are taps, never the joystick
     const top = R.song ? R.song.y : R.prev.y; In.noJoy.push({ x: R.prev.x - 2, y: top - 2, w: R.next.x + R.next.w - R.prev.x + 4, h: R.prev.y + R.prev.h - top + 4 });
   }
@@ -3656,7 +3686,7 @@ function drawBtnEdit(ctx, dt) {
     const nb = editItems().find(b => b.name === p.edit), bb = base.find(b => b.name === p.edit);
     m[p.edit] = [Math.round((nb.x - bb.x) * pt), Math.round((nb.y - bb.y) * pt)];
   }
-  for (const b of editItems()) { HiUI.push({ k: 'c', x: b.x, y: b.y, r: b.r, fill: PAD_COL[b.name], down: held === b.name, icon: padIconFor(b), cap: b.label, a: 1 }); if (b.name === 'cast') drawCastRow(b, 1, false); }
+  for (const b of editItems()) { HiUI.push({ k: 'c', x: b.x, y: b.y, r: b.r, fill: PAD_COL[b.name], down: held === b.name, icon: padIconFor(b), cap: b.label, a: 1 }); if (b.name === 'cast') drawCastRow(b, 1, false); if (b.name === 'cat' && spellMenuOn()) drawSongAbove(b, 1, false); }
   const w = Math.min(VW - 16, 230), x = Math.round((VW - w) / 2), y = 8, msg = 'Drag a button to where your thumb likes it. The spell arrows ride along with CAST.', ML = Font.wrap(msg, w - 12);
   panel(ctx, x, y, w, 49 + ML.length * 9, { fill: C.ink1, border: C.fire1 });
   T(ctx, 'BUTTON LAYOUT', VW / 2, y + 5, C.fire0, { align: 'c' });
@@ -4144,7 +4174,7 @@ const FS = { rects: [], last: [], handled: 0 };
 const fsOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
 const fsStandalone = () => navigator.standalone === true || !!(window.matchMedia && matchMedia('(display-mode: standalone)').matches);
 function fsIcon() { return cached('fs' + (fsOn() ? 1 : 0), () => strIcon(fsOn() ? ['.w.w.', 'ww.ww', '.....', 'ww.ww', '.w.w.'] : ['ww.ww', 'w...w', '.....', 'w...w', 'ww.ww'], { w: C.bone0 })); }
-function fsButton(ctx, id, x, y, w, h) { if (fsStandalone()) return; FS.rects.push({ x, y, w, h }); if (btn(ctx, id, x, y, w, h, '', { icon: fsIcon(), nofocus: true, fill: C.ink2 }) && performance.now() - FS.handled > 500) toggleFullscreen(); }
+function fsButton(ctx, id, x, y, w, h, label) { if (fsStandalone()) return; FS.rects.push({ x, y, w, h }); if (btn(ctx, id, x, y, w, h, label || '', { icon: fsIcon(), nofocus: true, fill: C.ink2, align: label ? 'l' : undefined }) && performance.now() - FS.handled > 500) toggleFullscreen(); }
 window.addEventListener('pointerup', e => { if (!Canvas.el) return; const p = In.toLo(e.clientX, e.clientY); if (FS.last.some(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h)) { FS.handled = performance.now(); toggleFullscreen(); } }, true);
 window.addEventListener('keydown', e => { if (e.code === 'KeyF' && !e.repeat && Game.state !== 'name') { FS.handled = performance.now(); toggleFullscreen(); } }, true);
 function toggleFullscreen() {
@@ -4792,6 +4822,7 @@ function step(dt) {
   processTimers(dt);
   Save.tick();
   // M mutes, but not while typing a name (EMMA would switch the sound off and on)
+  if (In.raw.KeyP && (Game.state === 'play' || Game.state === 'pause')) { In.raw.KeyP = false; if (Game.state === 'play') pauseGame(); else resumeGame(); }
   if (In.raw.KeyM && Game.state !== 'name') { Aud.setMuted(!Aud.muted); toast(Aud.muted ? 'Muted (press M for sound)' : 'Sound on'); }
   const st = Game.state;
   // a room's arrival scene (a boss's opening speech) can start talking while the door slide is still running:
@@ -4855,6 +4886,7 @@ function sceneRender(ctx, dt) {
   if (st === 'learn') { const mos = updateLearn(ctx, dt); applyFade(ctx); return; }
   if (st === 'song') { updateSong(ctx, dt); return; }
   if (st === 'ring') { ringUpdateDraw(ctx, dt); return; }
+  if (st === 'pause') { drawPause(ctx, dt); return; }
   drawWorld(ctx);
   if (R.veil && !Game.fade) { postWave(ctx, 1.2, Game.t); }
   else if (Game.waveT > 0 && !Game.fade) { postWave(ctx, 3 * Game.waveT, Game.t); Game.waveT -= dt; }
@@ -5271,12 +5303,15 @@ function drawSurgeWorld(ctx) {
   for (let i = 0; i < 16; i++) { const an = i / 16 * TAU + a.t * 3; rect(ctx, i & 1 ? C.eye : C.ecto0, Math.round(a.x + Math.cos(an) * r) - 1, Math.round(a.y + Math.sin(an) * r * 0.8) - 1, 3, 3); }
   ctx.globalAlpha = 1;
 }
-function drawSurgeMeter(ctx, x, y) {
-  const v = S.surge || 0, full = v >= SURGE_MAX, w = 62;
+function drawSurgeMeter(ctx, x, y, w0, above) {
+  const v = S.surge || 0, full = v >= SURGE_MAX, w = w0 || 62;
   rect(ctx, C.ink0, x, y, w, 4); rect(ctx, C.ink2, x + 1, y + 1, w - 2, 2);
   const col = full ? (Math.floor(Game.t * 8) % 2 ? C.eye : C.fire1) : C.fire2;
   rect(ctx, col, x + 1, y + 1, Math.round((w - 2) * v / SURGE_MAX), 2);
-  if (full && In.mode !== 'touch') T(ctx, 'U', x + w + 3, y - 3, col); // on touch, the glowing star button is the signal
+  // its name beside it, so a player knows what the bar is (it lights up with the bar when the Surge is ready)
+  if (above) { Mini.draw(ctx, 'SURGE', Math.round(x + w / 2 - Mini.w('SURGE') / 2), y - 7, full ? col : C.bone1); return; }
+  Mini.draw(ctx, 'SURGE', x + w + 3, y - 1, full ? col : C.bone1);
+  if (full && In.mode !== 'touch') T(ctx, 'U', x + w + 6 + Mini.w('SURGE'), y - 3, col); // on touch, the glowing star button is the signal
 }
 
 /* ---------- hooks the rest of the game calls ---------- */
@@ -5291,7 +5326,7 @@ const Juice = {
   kill(e, src) { if (e.def.friendly || e.def.mouse) return; killPop(e); if (src !== 'surge') surgeAdd(6); },
   step(dt) { updateCombo(dt); updateNums(dt); updateSurge(dt); fightUpdate(dt); badgeTick(dt); if (In.edge.surge) surgeFire(); },
   // the Surge meter sits under the MP bar once Juniper has started filling it
-  meter(ctx, x, y) { if (!S.flags.surge_on && !(S.surge > 0)) return false; S.flags.surge_on = 1; drawSurgeMeter(ctx, x, y); return true; }
+  meter(ctx, x, y, w, above) { if (!S.flags.surge_on && !(S.surge > 0)) return false; S.flags.surge_on = 1; drawSurgeMeter(ctx, x, y, w, above); return true; }
 };
 
 /* ===== BADGES + the ENCORE (a post-game boss rush) ===== */
@@ -5781,16 +5816,35 @@ function mpBar(ctx, x, y, w) {
 }
 function hudCounts(ctx, x, y, w) {
   ctx.drawImage(Icons.wisp, x, y + 1); T(ctx, String(S.wisps), x + 8, y, C.ecto0);
-  const kx = x + Math.max(40, Math.floor(w / 2)); ctx.drawImage(Icons.key, kx, y + 1); T(ctx, 'x' + S.keys, kx + 10, y, C.fire1);
+  // a narrow panel puts the keys under the wisps instead of beside them
+  const narrow = w < 64, kx = narrow ? x : x + Math.max(40, Math.floor(w / 2)), ky = narrow ? y + 10 : y; ctx.drawImage(Icons.key, kx, ky + 1); T(ctx, 'x' + S.keys, kx + 10, ky, C.fire1);
+  return narrow ? 22 : 12;
 }
 function hudMenu(ctx, x, y, w) {
-  const items = ['hint', 'fs', 'cat', 'book'].filter(k => k !== 'fs' || !fsStandalone());
+  // on an iPad the panel has no room for the minimap, so a Map button takes the guide's place (the ? button's 'Show me the way' does that job)
+  const stack = bigGutter();
+  const items = ['hint', 'fs', Lay.mode === 'side' && In.mode === 'touch' ? 'map' : 'cat', 'book'].filter(k => k !== 'fs' || !fsStandalone() && !stack);
+  // panels on both sides (wide iPads): the left panel has height to spare, so the buttons stack, panel-wide with a word each
+  // (full screen, hardly needed in play, waits in the right bar's top corner instead)
+  // panels on both sides (wide iPads): full screen waits in the right bar's top corner, so the other three share one row,
+  // each a third of the panel wide, and everything below them is left clear for the thumb
+  if (stack) {
+    const g = 3, bw = Math.floor((w - 2 * g) / 3), bh = 18;
+    items.forEach((k, i) => {
+      const bx = x + i * (bw + g), o = { nofocus: true, fill: C.ink2 };
+      if (k === 'hint') { if (btn(ctx, 'hint', bx, y, bw, bh, '', Object.assign(o, { icon: bigIcon('qmark') }))) openHints(); }
+      else if (k === 'cat') { HiUI.push({ k: 'r', x: bx, y, w: bw, h: bh, icon: SO.mode === 'stay' ? sootSprite(0, 0, 'sleep') : sootSprite(0, 0, null), fill: C.ink2, dot: S.cat.nine ? C.eye : null, down: In.heldIn(bx, y, bw, bh) }); if (In.tapIn(bx, y, bw, bh)) sootGuide(); }
+      else if (btn(ctx, 'book', bx, y, bw, bh, '', Object.assign(o, { icon: Icons.book }))) openBook(0);
+    });
+    return bh + 3;
+  }
   const bs = w >= 78 ? 18 : 16, gap = Math.max(2, Math.min(6, Math.floor((w - items.length * bs) / Math.max(1, items.length - 1))));
   const per = Math.max(1, Math.floor((w + gap) / (bs + gap)));
   items.forEach((k, i) => {
     const bx = x + (i % per) * (bs + gap), by = y + Math.floor(i / per) * (bs + 3);
     if (k === 'hint') { if (btn(ctx, 'hint', bx, by, bs, bs, '', { icon: bigIcon('qmark'), nofocus: true, fill: C.ink2 })) openHints(); }
     else if (k === 'fs') fsButton(ctx, 'fshud', bx, by, bs, bs);
+    else if (k === 'map') { if (btn(ctx, 'mapbtn', bx, by, bs, bs, '', { icon: tabIcon('map'), nofocus: true, fill: C.ink2 })) openMap(); }
     else if (k === 'cat') { HiUI.push({ k: 'r', x: bx, y: by, w: bs, h: bs, icon: SO.mode === 'stay' ? sootSprite(0, 0, 'sleep') : sootSprite(0, 0, null), fill: C.ink2, dot: S.cat.nine ? C.eye : null, down: In.heldIn(bx, by, bs, bs) }); if (In.tapIn(bx, by, bs, bs)) sootGuide(); }
     else if (btn(ctx, 'book', bx, by, bs, bs, '', { icon: Icons.book, nofocus: true })) openBook(0);
   });
@@ -5823,17 +5877,97 @@ function drawPanelHUD() {
   let y = c.y;
   y += heartRowW(u, c.x, y, Math.max(1, Math.floor((c.w + 1) / 8))) + 2;
   mpBar(u, c.x, y, c.w - 14); T(u, 'MP', c.x + c.w - 12, y - 1, C.moon3); y += 10;
-  hudCounts(u, c.x, y, c.w); y += 12;
-  y += hudMap(u, c.x, y, c.w, touch && Lay.mode === 'side' ? 30 : 42);
-  y += hudMenu(u, c.x, y, c.w) + 2; Panel.infoBottom = y;
-  if (!touch && Lay.mode === 'side') {
-    Panel.spellY = y;
-    const ly = Math.max(y + 18 + 36, VH - 42);
-    ['J cast K act', 'L dash I cat', 'Q/E spells', 'H help M mute'].forEach((l, i) => T(u, fitStr(l, c.w), c.x, ly + i * 10, C.bone2, { shadow: false }));
+  y += hudCounts(u, c.x, y, c.w);
+  if (Lay.mode === 'side') {
+    // the spell menu needs its rows; the minimap gets whatever height is left above it (and steps aside if there is none)
+    const rows = Math.ceil(Math.max(1, knownSpells().length) / menuCols(c.w + 4)), gridH = SPELL_HEAD + 10 + rows * 15, menuH = 21;
+    const limit = touch ? touchPanelLimit() : VH - 46 - (Object.keys(S.songs).length ? 16 : 0);
+    // on a touch screen the room's name is left to the room card and the map, so the minimap can use the whole gap
+    if (!touch) y += hudMap(u, c.x, y, c.w, Math.max(14, Math.min(42, limit - y - menuH - gridH - 4 - 16)));
+    y += hudMenu(u, c.x, y, c.w) + 2; Panel.infoBottom = y;
+    // touch: the menu sits in the middle of the room left above the buttons
+    if (touch) { Panel.menuFits = limit - y >= gridH; y = Math.max(y, Math.round(y + (limit - y - gridH) / 2)); }
+    if (!touch || Panel.menuFits) y = drawSpellMenu(u, c.x - 2, y + 1, c.w + 4);
+    if (!touch) {
+      if (Object.keys(S.songs).length) { const sw = c.w, sx = c.x; if (btn(u, 'songpanel', sx, y + 2, sw, 13, '\u266A Songs', { nofocus: true, fill: C.ink3, col: C.fire1 })) openSong(); y += 16; }
+      const ly = Math.max(y + 4, VH - 42);
+      ['J cast K act', 'L dash I cat', 'Q/E spells', 'H help M mute'].forEach((l, i) => { if (ly + i * 10 + 8 <= VH - 1) T(u, fitStr(l, c.w), c.x, ly + i * 10, C.bone2, { shadow: false }); });
+    }
+  } else if (bigGutter()) {
+    // both side panels (wide iPads): the left one is Juniper's side (how she is, the map, one row of menu buttons) with the rest
+    // left clear as the thumb's pad (the stick only starts below the buttons, so a thumb on the move never opens one);
+    // the right one is for spells
+    y += hudMap(u, c.x, y, c.w, 42);
+    y += hudMenu(u, c.x, y, c.w); Panel.btnBottom = Panel.infoBottom = y;
+    if (cols.act) {
+      const a = cols.act, fs = !fsStandalone(), top = fs ? 22 : 4, lim = touchPanelLimit(), gh = SPELL_HEAD + 10 + Math.ceil(Math.max(1, knownSpells().length) / menuCols(a.w + 4)) * 15;
+      if (fs) fsButton(u, 'fshud', a.x + a.w - 16, 4, 16, 15);
+      pauseButton(u, a.x + a.w - (fs ? 35 : 16), 4, 16, 15);
+      // the Surge meter sits just over the spot where its star button appears, so the bar and the button read as one thing
+      const sp = surgeSpot(), mw = 40; Juice.meter(u, Math.round(clamp(sp.x - mw / 2, a.x, a.x + a.w - mw)), Math.round(sp.y - sp.r - 6), mw, true);
+      Panel.menuFits = lim - top >= gh; if (spellMenuOn()) drawSpellMenu(u, a.x - 2, Math.max(top, Math.round(top + (lim - top - gh) / 2)), a.w + 4);
+    }
+  } else {
+    y += hudMap(u, c.x, y, c.w, 42);
+    y += hudMenu(u, c.x, y, c.w) + 2; Panel.infoBottom = y; Panel.btnBottom = 0;
   }
   if (Aud.muted) T(u, 'MUTED (M)', c.x, (Lay.mode === 'side' && !touch ? VH - 62 : y), C.vel2);
 }
-const Panel = { spellY: 0, infoBottom: 0 };
+/* ===== PAUSE: everything stops and goes quiet (and the game saves) until a tap anywhere, or P ===== */
+function pauseIcon(play) { return cached('pause' + (play ? 1 : 0), () => strIcon(play ? ['w....', 'www..', 'wwwww', 'www..', 'w....'] : ['ww.ww', 'ww.ww', 'ww.ww', 'ww.ww', 'ww.ww'], { w: C.bone0 })); }
+function pauseButton(u, x, y, w, h) { if (btn(u, 'pausehud', x, y, w, h, '', { icon: pauseIcon(Game.state === 'pause'), nofocus: true, fill: C.ink2 })) { if (Game.state === 'play') pauseGame(); } }
+function pauseGame() {
+  if (Game.state !== 'play' || Game.cutscene || Game.trans || Game.fade || P.dead) return;
+  Aud.sfx('select'); Game.state = 'pause'; Game.pauseT = 0; In.taps.length = 0; saveSoon(true);
+  setTimeout(() => { if (Game.state === 'pause') Aud.setHidden(true); }, 120); // after the click has sounded
+}
+function resumeGame() { Game.state = 'play'; Aud.setHidden(!!Game.hidden); Aud.sfx('select'); In.taps.length = 0; In.tc = {}; In.hold = {}; }
+function drawPause(ctx, dt) {
+  Game.pauseT = (Game.pauseT || 0) + dt;
+  // a tap anywhere (after a moment, so the tap that paused can't also unpause), Escape, Enter or CAST plays on
+  if (Game.pauseT > 0.25 && (In.taps.length || In.raw.Escape || In.raw.Enter || In.edge.cast)) { resumeGame(); return; }
+  drawWorld(ctx); drawHUD(ctx); HiUI.dim(0.5);
+  ctx.fillStyle = 'rgba(13,10,20,.6)'; ctx.fillRect(0, 0, VW, VH);
+  const cx = Math.round(VW / 2), cy = Math.round(VH / 2);
+  panel(ctx, cx - 72, cy - 26, 144, 50);
+  TK(ctx, 'Paused', cx, cy - 18, C.fire0, 2, { align: 'c' });
+  T(ctx, In.mode === 'touch' ? 'Tap anywhere to play' : 'Press P to play', cx, cy + 8, Math.floor(Game.pauseT * 2) % 2 ? C.fire1 : C.bone1, { align: 'c' });
+}
+// both side panels on an iPad-sized touch screen (a phone on its side keeps the compact panels)
+function bigGutter() { return Lay.mode === 'gutter' && In.mode === 'touch' && Disp.ptPx >= 2.4; }
+const Panel = { spellY: 0, infoBottom: 0, btnBottom: 0, menuFits: true };
+// the highest point the touch controls reach in the side panel (CAT's song button, CAST's arrows): the spell menu stays above it
+function touchPanelLimit() {
+  let top = VH; for (const b of layoutTouch()) {
+    if (b.x < VW) continue; top = Math.min(top, b.y - b.r - 3);
+    if (b.name === 'cast') top = Math.min(top, Math.round(b.y - b.r - 5 / Disp.ptPx - Math.round(46 / Disp.ptPx)));
+    if (b.name === 'cat' && Object.keys(S.songs).length) top = Math.min(top, songAbove(b).y);
+  }
+  if (bigGutter() && (S.flags.surge_on || S.surge > 0)) { const sp = surgeSpot(); top = Math.min(top, Math.round(sp.y - sp.r - 13)); }
+  return top - 3;
+}
+// the spell menu: every spell Juniper knows, the current one lit; tap or click one to pick it, tap the lit one for the spell ring
+const SPELL_HEAD = 11;
+function drawSpellMenu(u, x, y, w) {
+  const ks = knownSpells(); if (!ks.length) return y;
+  // a quiet heading, set between two short rules, so the grid reads as the spellbook's page and not as more buttons
+  const hw = Font.w('Spells'), hx = Math.round(x + w / 2 - hw / 2); T(u, 'Spells', hx, y, C.bone2, { shadow: false });
+  u.fillStyle = C.ink3; if (hx - x > 6) { u.fillRect(x + 1, y + 4, hx - x - 4, 1); u.fillRect(hx + hw + 3, y + 4, x + w - hx - hw - 4, 1); }
+  y += SPELL_HEAD;
+  const id = S.eq, nm = (SPELL_NAME[id] || '').toUpperCase(), mp = SPELL_MP[id] + ' MP';
+  if (Font.w(nm + ' ' + mp) <= w) { T(u, nm, x, y, C.fire0); T(u, mp, x + w, y, C.moon3, { align: 'r' }); }
+  else { Mini.draw(u, nm, x, y + 2, C.fire0); Mini.draw(u, mp, x + w - Mini.w(mp), y + 2, C.moon3); }
+  y += 10;
+  const n = menuCols(w), cw = Math.min(16, Math.floor((w + 1) / n)), gx = x + Math.floor((w - (cw * n - 1)) / 2);
+  ks.forEach((k, i) => {
+    const bx = gx + (i % n) * cw, by = y + Math.floor(i / n) * 15, sel = k === S.eq;
+    HiUI.push({ k: 'r', x: bx, y: by, w: cw - 1, h: 14, icon: Icons['sp_' + k], fill: sel ? C.vel1 : C.ink2, ring: sel ? C.fire1 : null, flat: true, round: 3, down: In.heldIn(bx, by, cw - 1, 14) });
+    if (In.tapIn(bx, by, cw - 1, 14)) { if (sel) openRing(); else { S.eq = k; Aud.sfx('select'); } }
+  });
+  return y + Math.ceil(ks.length / n) * 15;
+}
+// as many 15-pixel spell buttons across as fit, up to five
+function menuCols(w) { return clamp(Math.floor((w + 1) / 15), 3, 5); }
 // where the spell picker goes: { x, y } of its 22x22 frame
 function spellFrameAt(sf) {
   const touch = In.mode === 'touch', pt = Disp.ptPx;
