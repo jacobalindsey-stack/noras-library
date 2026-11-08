@@ -2177,6 +2177,7 @@ function updateCar(c, inp, dt) {
   }
   // curbs: a glancing hit slides you along the curb and straightens you out, instead of stopping you dead
   curbDeflect(c, dt);
+  solidDeflect(c, dt);
   // move with collision; curbs hold you on the pavement unless you hit them hard enough to hop
   const nx = c.x + c.vx * dt;
   if (hitsSolid(c, nx, c.y)) { bump(c, Math.abs(c.vx)); c.vx = -c.vx * 0.12; c.vy *= 0.92; }
@@ -2270,6 +2271,27 @@ function leafLogic(c, dt) {
     if (b.ang < 40 * Math.PI / 180) { c.onLeaf = true; }
     else { c.vx = -c.vx * 0.3; c.vy = -c.vy * 0.3; c.x -= e.ux * 6; c.y -= e.uy * 6; bump(c, 120); if (c.isPlayer) showMsg('TOO STEEP!', 'Wait for the bridge to come back down', 1.5); }
   }
+}
+// buildings, trees and walls: a glancing blow skids you along the wall and points you the way you were going
+function solidDeflect(c, dt) {
+  if (c.onRoof || c.z > 26 || c.dead > 0) return;
+  const sp = Math.hypot(c.vx, c.vy); if (sp < 25) return;
+  const x = c.x + c.vx * dt * 1.5, y = c.y + c.vy * dt * 1.5; if (!hitsSolid(c, x, y)) return;
+  const fx = Math.cos(c.h), fy = Math.sin(c.h), hl = c.len / 2 * 0.85, hw = c.wid / 2 * 0.8;
+  let P = null; for (const [a, b] of [[hl, 0], [hl, hw], [hl, -hw], [-hl, hw], [-hl, -hw]]) { const px = x + fx * a - fy * b, py = y + fy * a + fx * b; const t = cellAt(px, py); if (SOLID[t] && t !== T.RAIL) { P = [px, py]; break; } }
+  if (!P) return;
+  const gx = P[0] / C | 0, gy = P[1] / C | 0; let sx = 0, sy = 0;
+  for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) { const t = cellAt((gx + i) * C + C / 2, (gy + j) * C + C / 2); if (!SOLID[t] || t === T.RAIL) continue; const dx = c.x - ((gx + i) * C + C / 2), dy = c.y - ((gy + j) * C + C / 2); const d2 = dx * dx + dy * dy + 30; sx += dx / d2; sy += dy / d2; }
+  const L = Math.hypot(sx, sy); if (L < 1e-6) return; const n = [sx / L, sy / L];
+  const vn = c.vx * n[0] + c.vy * n[1]; if (vn >= 0) return; const across = -vn;
+  if (across > sp * 0.78) return; // nearly head-on: that's a real crash, the old stop-and-bounce-back handles it
+  bump(c, across);
+  c.vx -= vn * n[0] * 1.25; c.vy -= vn * n[1] * 1.25;
+  const keep = 1 - clamp(across / 700, 0, 0.2); c.vx *= keep; c.vy *= keep;
+  let ta = Math.atan2(n[0], -n[1]); if (Math.abs(angDiff(c.h, ta)) > Math.PI / 2) ta += Math.PI;
+  const d = angDiff(c.h, ta), h0 = c.h;
+  for (const f of [0.65, 0.35, 0]) { c.h = h0 + d * f; if (!hitsSolid(c, c.x, c.y)) break; }
+  if (across > 60) { c.vz = Math.min(80, 40 + across * 0.25); c.z = Math.max(c.z, 0.6); }
 }
 function bump(c, sp) {
   if (sp < 40) return;
