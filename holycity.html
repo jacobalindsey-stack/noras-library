@@ -1648,7 +1648,7 @@ function statsFor(vid) {
   return {
     speed: v.speed + (u.engine || 0) * 12, accel: v.accel + (u.engine || 0) * 12, grip: v.grip + (u.tires || 0) * 0.6, turn: v.turn + (u.tires || 0) * 0.12,
     tough: v.tough + (u.bumper || 0) * 0.22, wade: v.wade, nitro: v.nitro + (u.nitro || 0),
-    hop: v.hop || CURB_HOP, lift: v.lift || 1, rough: v.rough || 0, brake: (v.brake || 430) + (u.tires || 0) * 15, resp: v.resp || 10,
+    hop: Math.round((v.hop || CURB_HOP) * 0.8), lift: v.lift || 1, rough: v.rough || 0, brake: (v.brake || 430) + (u.tires || 0) * 15, resp: v.resp || 10,
     steerHi: v.steerHi != null ? v.steerHi : 0.22, steerLo: v.steerLo || 70, slide: v.slide || 0,
   };
 }
@@ -2226,11 +2226,14 @@ function curbDeflect(c, dt) {
   const hop = (c.st && c.st.hop) || CURB_HOP, lift = (c.st && c.st.lift) || 1, across = -vn;
   if (across > hop) { c.vz = (70 + (across - hop) * 0.4) * lift; c.z = 0.6; if (c.isPlayer) { sfx('jump'); if (!c.hopMsg || c.hopMsg < G.real) { c.hopMsg = G.real + 3; showMsg('CURB HOP!', '', 0.7); } } return; }
   // shove back into the lane: drop the push into the curb, keep most of the roll along it
-  c.vx -= vn * n[0] * 1.15; c.vy -= vn * n[1] * 1.15;
-  const keep = 1 - clamp(across / 600, 0, 0.25); c.vx *= keep; c.vy *= keep;
+  c.vx -= vn * n[0] * 1.3; c.vy -= vn * n[1] * 1.3;
+  const keep = 1 - clamp(across / 900, 0, 0.12); c.vx *= keep; c.vy *= keep;
   // turn the car toward running along the curb
   let ta = Math.atan2(n[0], -n[1]); if (Math.abs(angDiff(c.h, ta)) > Math.PI / 2) ta += Math.PI;
-  const d = angDiff(c.h, ta); if (Math.abs(d) < 1.2) c.h += d * Math.min(1, 9 * dt);
+  const d = angDiff(c.h, ta);
+  // RC Pro-Am style: a real knock bounces the car up and it lands pointed the way it's going
+  if (across > 45) { c.vz = Math.min(100, 50 + across * 0.3); c.z = 0.6; if (Math.abs(d) < 1.3) c.h += d * 0.65; }
+  else if (Math.abs(d) < 1.2) c.h += d * Math.min(1, 9 * dt);
   if (c.isPlayer && across > Math.min(70, hop * 0.7) && (!c.curbT || c.curbT < G.real)) { c.curbT = G.real + 0.25; sfx('bump', across * 0.5); cam.shake = Math.max(cam.shake, 1.2); }
 }
 function curbBlocks(c, x, y, across) {
