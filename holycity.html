@@ -77,6 +77,9 @@ body.touch #touch.on{display:block}
 #touch.edit #stick,#touch.edit .tbtn{outline:2px dashed var(--butter);outline-offset:4px;cursor:grab}
 #touch.edit #stick *{pointer-events:none}
 #stick.wheel{background:none!important}
+#stick.wheel::before{content:'';position:absolute;inset:-34px}
+#touch.arrows #stick{display:none!important}
+#touch:not(.arrows) #bLeft,#touch:not(.arrows) #bRight{display:none!important}
 #stick.wheel #knob{transition:transform .06s linear}
 body.compact .chip{font-size:8px;padding:3px 5px;border-width:1px;box-shadow:none}
 body.compact #hObj{font-size:11px;max-width:28vw;padding:3px 6px}
@@ -354,6 +357,8 @@ body.phone-land #rotate{display:flex}
   <div id="touch">
     <div id="deck"><div id="deckBar"></div><div id="navBand"></div><div id="navIdle"></div><div id="deckSpeed">0 <span>MPH</span></div></div>
     <div id="stick"><div id="knob"></div></div>
+    <div class="tbtn" id="bLeft"></div>
+    <div class="tbtn" id="bRight"></div>
     <div class="tbtn" id="bGas">GAS</div>
     <div class="tbtn" id="bBrake">BRAKE</div>
     <div class="tbtn" id="bNitro">TEA</div>
@@ -485,8 +490,8 @@ body.phone-land #rotate{display:flex}
       <div class="setrow"><span>Touch buttons</span><div class="seg" id="sBtnSize"><button data-v="0.8">SMALL</button><button data-v="1">MEDIUM</button><button data-v="1.25">LARGE</button></div></div>
       <div class="setrow"><span>Button layout</span><button class="btn alt" id="sLayout" style="font-size:9px;padding:8px 10px">ARRANGE…</button></div>
       <div class="setrow"><span>Driving help</span><div class="seg" id="sAssist"><button data-v="1">ON</button><button data-v="0">OFF</button></div></div>
-      <div class="setrow"><span>Steering</span><div class="seg" id="sSteer"><button data-v="wheel">WHEEL</button><button data-v="point">4-WAY</button></div></div>
-      <p class="keys" style="margin-top:12px"><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> steer · <kbd>↑</kbd>/<kbd>W</kbd> gas · <kbd>↓</kbd>/<kbd>S</kbd> brake &amp; reverse · <kbd>SPACE</kbd> sweet tea boost · <kbd>H</kbd> honk · <kbd>P</kbd> pause. A gamepad works too. On a touch screen, WHEEL steers left and right like a real steering wheel (drag it sideways); 4-WAY points the car wherever you push the stick. Driving help keeps the car straight along the road whenever you let go of the steering.</p>
+      <div class="setrow"><span>Steering</span><div class="seg" id="sSteer"><button data-v="buttons">ARROWS</button><button data-v="wheel">WHEEL</button><button data-v="point">4-WAY</button></div></div>
+      <p class="keys" style="margin-top:12px"><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> steer · <kbd>↑</kbd>/<kbd>W</kbd> gas · <kbd>↓</kbd>/<kbd>S</kbd> brake &amp; reverse · <kbd>SPACE</kbd> sweet tea boost · <kbd>H</kbd> honk · <kbd>P</kbd> pause. A gamepad works too. On a touch screen, ARROWS are two big left and right buttons (slide your thumb between them); WHEEL steers left and right like a real steering wheel (drag it sideways); 4-WAY points the car wherever you push the stick. Driving help keeps the car straight along the road whenever you let go of the steering.</p>
       <div class="setrow" style="border:none"><span>Erase all progress</span><button class="btn warn" id="sReset" style="font-size:9px;padding:8px 10px">ERASE…</button></div>
       <div id="sConfirm" hidden style="background:#3a1620;border:2px solid var(--bad);padding:10px;margin-top:6px">
         <p style="font-size:16px">Erase every dollar, car and medal? This can't be undone.</p>
@@ -1649,10 +1654,10 @@ function statsFor(vid) {
 }
 
 /* ---------- save ---------- */
-const DEFAULT_SAVE = () => ({ v: 1, money: 0, owned: { volvo: true }, car: 'volvo', upgrades: { volvo: {} }, best: {}, stickers: {}, dog: { n: 0, adopted: false }, settings: { diff: 'normal', music: 1, sfx: 1, steer: 'wheel', btnSize: 1, layout: {}, assist: 1, steerV: 2 }, seenIntro: false });
+const DEFAULT_SAVE = () => ({ v: 1, money: 0, owned: { volvo: true }, car: 'volvo', upgrades: { volvo: {} }, best: {}, stickers: {}, dog: { n: 0, adopted: false }, settings: { diff: 'normal', music: 1, sfx: 1, steer: 'buttons', btnSize: 1, layout: {}, assist: 1, steerV: 3 }, seenIntro: false });
 let SAVE = DEFAULT_SAVE();
 function loadSave() {
-  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) { const s = JSON.parse(raw); const d = DEFAULT_SAVE(); SAVE = Object.assign(d, s); SAVE.settings = Object.assign(d.settings, s.settings || {}); if (!SAVE.settings.layout || typeof SAVE.settings.layout !== 'object') SAVE.settings.layout = {}; if (SAVE.settings.steerV !== 2) { SAVE.settings.steer = 'wheel'; SAVE.settings.steerV = 2; } SAVE.owned = Object.assign({ volvo: true }, s.owned || {}); SAVE.upgrades = s.upgrades || {}; if (!VEHICLES[SAVE.car] || !SAVE.owned[SAVE.car]) SAVE.car = 'volvo'; if (!SAVE.stickers || typeof SAVE.stickers !== 'object') SAVE.stickers = {}; if (!SAVE.dog || typeof SAVE.dog !== 'object') SAVE.dog = { n: 0, adopted: false }; } } catch (e) { SAVE = DEFAULT_SAVE(); }
+  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) { const s = JSON.parse(raw); const d = DEFAULT_SAVE(); SAVE = Object.assign(d, s); SAVE.settings = Object.assign(d.settings, s.settings || {}); if (!SAVE.settings.layout || typeof SAVE.settings.layout !== 'object') SAVE.settings.layout = {}; if (SAVE.settings.steerV !== 3) { SAVE.settings.steer = 'buttons'; SAVE.settings.steerV = 3; } SAVE.owned = Object.assign({ volvo: true }, s.owned || {}); SAVE.upgrades = s.upgrades || {}; if (!VEHICLES[SAVE.car] || !SAVE.owned[SAVE.car]) SAVE.car = 'volvo'; if (!SAVE.stickers || typeof SAVE.stickers !== 'object') SAVE.stickers = {}; if (!SAVE.dog || typeof SAVE.dog !== 'object') SAVE.dog = { n: 0, adopted: false }; } } catch (e) { SAVE = DEFAULT_SAVE(); }
 }
 function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) { } }
 
@@ -3448,7 +3453,7 @@ document.addEventListener('touchend', e => {
   lastTouchEnd = now;
 }, { passive: false });
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-const keys = {}; const touch = { sx: 0, sy: 0, active: false, gas: false, brake: false, nitro: false, honk: false };
+const keys = {}; const touch = { sx: 0, sy: 0, active: false, gas: false, brake: false, nitro: false, honk: false, left: false, right: false, holdT: 0 };
 let edgeNitro = false, edgeHonk = false;
 addEventListener('keydown', e => {
   if (e.repeat && (e.code === 'Space' || e.code === 'KeyH')) return;
@@ -3500,9 +3505,31 @@ function wheelArt() {
   g.fillStyle = '#9fd8dc'; g.fillRect(18, 18, 4, 4); g.fillStyle = '#fff'; g.fillRect(18, 18, 1, 1);
   return c.toDataURL();
 }
-function steerMode() { return SAVE.settings.steer === 'point' ? 'point' : 'wheel'; }
+function steerMode() { const s = SAVE.settings.steer; return s === 'point' || s === 'wheel' ? s : 'buttons'; }
+function arrowButtonArt(dir) {
+  const out = {}, N = 30;
+  for (const pressed of [0, 1]) {
+    const c = mkCanvas(N, N), g = c.getContext('2d');
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const cx = Math.max(0, Math.abs(x - 14.5) - 10), cy = Math.max(0, Math.abs(y - 14.5) - 10), d = Math.hypot(cx, cy); if (d > 4.6) continue; // rounded square
+      let col = pressed ? '#6fb8c0' : '#9fd8dc';
+      if (d > 3.6 || x === 0 || y === 0 || x === N - 1 || y === N - 1) col = '#000';
+      else if (!pressed && y >= N - 4) col = '#3f7f88';
+      else if (!pressed && (y <= 2 || x <= 2)) col = '#e2f6f6';
+      else if (pressed && (y <= 2 || x <= 2)) col = '#3f7f88';
+      g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    }
+    const o = pressed ? 1 : 0; g.fillStyle = '#0b1022';
+    for (let i = 0; i <= 8; i++) { const h = i; const x = dir < 0 ? 6 + i : 23 - i; g.fillRect(x, 14 - h + o, 1, h * 2 + 1); }
+    for (let i = 0; i < 7; i++) { const x = dir < 0 ? 15 + i : 14 - i; g.fillRect(x, 11 + o, 1, 7); }
+    if (!pressed) { g.fillStyle = '#fff'; g.fillRect(4, 4, 3, 1); g.fillRect(4, 5, 1, 2); }
+    out[pressed ? 'down' : 'up'] = c.toDataURL();
+  }
+  return out;
+}
 function applySteerArt() {
   if (!ART.stick) return; const stick = $('#stick'), knob = $('#knob');
+  $('#touch').classList.toggle('arrows', steerMode() === 'buttons');
   if (steerMode() === 'wheel') { stick.style.backgroundImage = 'none'; knob.style.backgroundImage = `url(${ART.wheel})`; stick.classList.add('wheel'); }
   else { stick.style.backgroundImage = `url(${ART.stick.base})`; knob.style.backgroundImage = `url(${ART.stick.knob})`; stick.classList.remove('wheel'); }
   layoutControls();
@@ -3522,6 +3549,8 @@ function stickArt() {
   return { base: c.toDataURL(), knob: k.toDataURL() };
 }
 const CTRL = [
+  { id: 'bLeft', size: 96, pp: (dk, ins, sc) => ({ x: ins.l + 12 + 48 * sc, y: dk.cy }), def: (ins, sc) => ({ x: ins.l + 20 + 67 * sc, y: innerHeight - ins.b - 24 - 67 * sc }), big: 1.4 },
+  { id: 'bRight', size: 96, pp: (dk, ins, sc) => ({ x: ins.l + 12 + 48 * sc + 100 * sc, y: dk.cy }), def: (ins, sc) => ({ x: ins.l + 20 + 67 * sc + 148 * sc, y: innerHeight - ins.b - 24 - 67 * sc }), big: 1.4 },
   { id: 'stick', size: 150, pp: (dk, ins, sc) => ({ x: ins.l + 14 + 75 * sc, y: dk.cy }), def: (ins, sc) => ({ x: ins.l + 18 + 75 * sc, y: innerHeight - ins.b - 18 - 75 * sc }) },
   { id: 'bGas', size: 92, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 46 * sc, y: dk.cy + 22 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 46 * sc, y: innerHeight - ins.b - 30 - 46 * sc }) },
   { id: 'bBrake', size: 66, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 92 * sc - 30 * sc, y: dk.cy + 44 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 104 * sc - 33 * sc, y: innerHeight - ins.b - 18 - 33 * sc }) },
@@ -3551,12 +3580,12 @@ function layoutControls() {
   // iPhone: the status chips ride in the deck too, so the street view is clear
   for (const id of ['hClock', 'hPlace', 'hMoney', 'hNitro', 'hTide', 'hCargo', 'pauseBtn']) { const el = $('#' + id); if (!el._home) el._home = { p: el.parentNode, n: el.nextSibling }; if (pp) { if (el.parentNode !== $('#deckBar')) $('#deckBar').appendChild(el); } else if (el.parentNode !== el._home.p) el._home.p.insertBefore(el, el._home.n && el._home.n.parentNode === el._home.p ? el._home.n : null); }
   for (const c of CTRL) {
-    const el = $('#' + c.id), sz = Math.round(c.size * sc);
+    const el = $('#' + c.id), wheelBig = c.id === 'stick' && steerMode() === 'wheel' ? (pp ? 1.1 : 1.3) : 1, sz = Math.round(c.size * sc * wheelBig * (!pp && c.big ? c.big : 1));
     let p = L[c.id] ? { x: L[c.id][0] * innerWidth, y: L[c.id][1] * innerHeight } : pp ? c.pp(dk, ins, sc) : c.def(ins, sc);
     p.x = clamp(p.x, sz / 2 + 4, innerWidth - sz / 2 - 4); p.y = clamp(p.y, sz / 2 + 4, innerHeight - sz / 2 - 4);
     Object.assign(el.style, { left: (p.x - sz / 2) + 'px', top: (p.y - sz / 2) + 'px', right: 'auto', bottom: 'auto', width: sz + 'px', height: sz + 'px' });
   }
-  const k = $('#knob'), ks = steerMode() === 'wheel' ? Math.round(150 * sc * 0.96) : Math.round(58 * sc); Object.assign(k.style, { width: ks + 'px', height: ks + 'px', margin: (-ks / 2) + 'px 0 0 ' + (-ks / 2) + 'px' });
+  const k = $('#knob'), ks = steerMode() === 'wheel' ? Math.round($('#stick').offsetWidth * 0.96 || 150 * sc) : Math.round(58 * sc); Object.assign(k.style, { width: ks + 'px', height: ks + 'px', margin: (-ks / 2) + 'px 0 0 ' + (-ks / 2) + 'px' });
 }
 const ART = {};
 function makeControlArt() {
@@ -3564,9 +3593,9 @@ function makeControlArt() {
   ART.brake = pixelButtonArt('BRAKE', '#e2574c', '#f6a49a', '#8a2a24', '#fff', 26);
   ART.nitro = pixelButtonArt('TEA', '#f08a6b', '#ffd2a8', '#a8553e', '#0b1022', 22);
   ART.honk = pixelButtonArt('HONK', '#f6d77a', '#fff3c4', '#b8952e', '#0b1022', 22);
-  ART.stick = stickArt(); ART.wheel = wheelArt();
-  for (const el of ['stick', 'knob', 'bGas', 'bBrake', 'bNitro', 'bHonk'].map(i => $('#' + i))) Object.assign(el.style, { backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent' });
-  for (const [id, k] of [['bGas', 'gas'], ['bBrake', 'brake'], ['bNitro', 'nitro'], ['bHonk', 'honk']]) $('#' + id).style.backgroundImage = `url(${ART[k].up})`;
+  ART.stick = stickArt(); ART.wheel = wheelArt(); ART.left = arrowButtonArt(-1); ART.right = arrowButtonArt(1);
+  for (const el of ['stick', 'knob', 'bGas', 'bBrake', 'bNitro', 'bHonk', 'bLeft', 'bRight'].map(i => $('#' + i))) Object.assign(el.style, { backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat', backgroundColor: 'transparent' });
+  for (const [id, k] of [['bGas', 'gas'], ['bBrake', 'brake'], ['bNitro', 'nitro'], ['bHonk', 'honk'], ['bLeft', 'left'], ['bRight', 'right']]) $('#' + id).style.backgroundImage = `url(${ART[k].up})`;
   applySteerArt();
 }
 function setPressed(id, k, on) { const el = $('#' + id); el.classList.toggle('down', on); el.style.backgroundImage = `url(${ART[k][on ? 'down' : 'up']})`; }
@@ -3597,11 +3626,21 @@ function closeLayoutEditor() {
 })();
 (function setupTouch() {
   const stick = $('#stick'), knob = $('#knob'); let pid = null, pid0x = null;
-  const setStick = (e) => { const r = stick.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2; let dx = (e.clientX - cx) / (r.width / 2), dy = (e.clientY - cy) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } touch.sx = dx; touch.sy = dy; if (steerMode() === 'wheel') { const ox = (e.clientX - (pid0x != null ? pid0x : cx)) / (r.width * 0.42); touch.sx = clamp(ox, -1, 1); touch.sy = 0; knob.style.transform = `rotate(${touch.sx * 110}deg)`; } else knob.style.transform = `translate(${dx * r.width * 0.33}px,${dy * r.height * 0.33}px)`; };
+  const setStick = (e) => { const r = stick.getBoundingClientRect(); const cx = r.left + r.width / 2, cy = r.top + r.height / 2; let dx = (e.clientX - cx) / (r.width / 2), dy = (e.clientY - cy) / (r.height / 2); const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; } touch.sx = dx; touch.sy = dy; if (steerMode() === 'wheel') { const ox = (e.clientX - (pid0x != null ? pid0x : cx)) / (r.width * 0.3); touch.sx = clamp(ox, -1, 1); touch.sy = 0; knob.style.transform = `rotate(${touch.sx * 110}deg)`; } else knob.style.transform = `translate(${dx * r.width * 0.33}px,${dy * r.height * 0.33}px)`; };
   stick.addEventListener('pointerdown', e => { if (layoutEditing) return; pid0x = e.clientX; pid = e.pointerId; stick.setPointerCapture(pid); touch.active = true; setStick(e); audioInit(); e.preventDefault(); });
   stick.addEventListener('pointermove', e => { if (e.pointerId === pid) setStick(e); });
   const end = e => { if (e.pointerId !== pid) return; pid = null; touch.active = false; touch.sx = touch.sy = 0; knob.style.transform = ''; };
   stick.addEventListener('pointerup', end); stick.addEventListener('pointercancel', end);
+  { const bl = $('#bLeft'), br = $('#bRight'), held = new Map();
+    const sync = () => { const v = [...held.values()]; const L = v.includes(-1), R = v.includes(1); if (L !== touch.left) setPressed('bLeft', 'left', L); if (R !== touch.right) setPressed('bRight', 'right', R); if ((L || R) && !(touch.left || touch.right)) touch.holdT = performance.now(); touch.left = L; touch.right = R; };
+    const sideAt = x => { const a = bl.getBoundingClientRect(), b = br.getBoundingClientRect(); return x < (a.left + a.width / 2 + b.left + b.width / 2) / 2 ? -1 : 1; };
+    for (const [b, sd] of [[bl, -1], [br, 1]]) {
+      b.addEventListener('pointerdown', e => { if (layoutEditing) return; b.setPointerCapture(e.pointerId); held.set(e.pointerId, sd); sync(); audioInit(); e.preventDefault(); });
+      b.addEventListener('pointermove', e => { if (layoutEditing || !held.has(e.pointerId)) return; const s2 = sideAt(e.clientX); if (s2 !== held.get(e.pointerId)) { held.set(e.pointerId, s2); touch.holdT = performance.now(); sync(); } });
+      const up = e => { if (layoutEditing) return; held.delete(e.pointerId); sync(); };
+      b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
+    }
+  }
   for (const [id, k] of [['bGas', 'gas'], ['bBrake', 'brake'], ['bNitro', 'nitro'], ['bHonk', 'honk']]) {
     const b = $('#' + id);
     b.addEventListener('pointerdown', e => { if (layoutEditing) return; b.setPointerCapture(e.pointerId); touch[k] = true; setPressed(id, k, true); if (k === 'nitro') edgeNitro = true; if (k === 'honk') edgeHonk = true; audioInit(); e.preventDefault(); });
@@ -3614,6 +3653,7 @@ function readInput(car) {
   if (keys.ArrowLeft || keys.KeyA) inp.steer -= 1; if (keys.ArrowRight || keys.KeyD) inp.steer += 1;
   if (keys.ArrowUp || keys.KeyW) inp.gas = 1; if (keys.ArrowDown || keys.KeyS) inp.brake = 1;
   if (touch.gas) inp.gas = 1; if (touch.brake) inp.brake = 1;
+  if (touch.left !== touch.right) { const ramp = 0.5 + 0.5 * clamp((performance.now() - touch.holdT) / 300, 0, 1); inp.steer = (touch.right ? 1 : -1) * ramp; }
   if (touch.active) {
     const m = Math.hypot(touch.sx, touch.sy);
     if (steerMode() === 'wheel') { const v = Math.abs(touch.sx) < 0.08 ? 0 : touch.sx; inp.steer = clamp(Math.sign(v) * Math.pow(Math.abs(v), 0.8) * 1.15, -1, 1); }
