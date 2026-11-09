@@ -79,6 +79,18 @@ body.touch #touch.on{display:block}
 #stick.wheel{background:none!important}
 #stick.wheel::before{content:'';position:absolute;inset:-34px}
 #touch.arrows #stick{display:none!important}
+#touch.tdrive #stick,#touch.tdrive #bLeft,#touch.tdrive #bRight,#touch.tdrive #bGas,#touch.tdrive #bBrake{display:none!important}
+#game{touch-action:none}
+#easyBtn{pointer-events:auto;cursor:pointer;font-family:var(--f-display);color:var(--cream);touch-action:manipulation}
+#easyBtn b{color:#f08a6b;margin-left:4px}
+#easyBtn.on{background:#1f5a34;border-color:#7fd38a}#easyBtn.on b{color:#c8f2c8}
+body.phone-port #easyBtn{font-size:8px;padding:6px 8px}
+#hWarn{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:#e2574c;color:#fff;border:3px solid #000;box-shadow:0 4px 0 #000;padding:8px 14px;font-family:var(--f-display);font-size:12px;white-space:nowrap;animation:warnblink .5s steps(2) infinite;z-index:4}
+#hWarn[hidden]{display:none}
+@keyframes warnblink{50%{background:#f6d77a;color:#0b1022}}
+body.compact #hWarn{font-size:9px;padding:6px 10px}
+#deckHint{display:none}
+body.phone-port.tdrive #deckHint{display:block;position:absolute;left:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);font-family:var(--f-display);font-size:8px;color:#7f8fb8}
 #touch:not(.arrows) #bLeft,#touch:not(.arrows) #bRight{display:none!important}
 #stick.wheel #knob{transition:transform .06s linear}
 body.compact .chip{font-size:8px;padding:3px 5px;border-width:1px;box-shadow:none}
@@ -151,8 +163,7 @@ body.compact #tDir{font-size:10px} body.compact #tStreet{font-size:11px} body.co
 .st-tx{min-width:0;display:flex;flex-direction:column;gap:3px}.st-tx b{font-family:var(--f-display);font-size:8px;line-height:1.5;color:var(--butter)}.sticker:not(.got) .st-tx b{color:#7f8fb8}
 .st-tx span{font-size:14px;line-height:1.3;color:#d8dcef}
 #hRadio{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);background:rgba(11,16,34,.85);border:2px solid var(--haint);padding:5px 10px;font-family:var(--f-display);font-size:8px;color:var(--butter);opacity:0;transition:opacity .4s;white-space:nowrap;pointer-events:none}
-body.touch #hRadio{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 100px)}
-body.phone-port #hRadio{top:calc(env(safe-area-inset-top,0px) + 8px)}
+body.phone-port #hRadio{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 8px);left:auto;right:8px;transform:none}
 .btn.warn{background:var(--bad);color:#fff}
 .btn[disabled]{background:#4a5170;color:#8d93ad;box-shadow:none;cursor:default}
 
@@ -334,7 +345,8 @@ body.phone-land #rotate{display:flex}
 
   <div id="hud" hidden>
     <div class="hud-row">
-      <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+        <button class="chip" id="easyBtn">EASY STEERING <b>OFF</b></button>
         <div class="chip" id="hClock">7:44 AM <b>→ 8:00</b><div id="hTimeBar"><i></i></div></div>
         <div class="chip" id="hObj">Get to Ashley Hall</div>
       </div>
@@ -350,12 +362,13 @@ body.phone-land #rotate{display:flex}
     <div id="hTurn" hidden><canvas id="turnIcon" width="16" height="16"></canvas><div class="tt"><b id="tDir">RIGHT</b><span id="tStreet"></span></div><div id="tDist"></div></div>
     <div id="hMsg"></div>
     <div id="hRadio"></div>
+    <div id="hWarn" hidden>PROCEED TO ROUTE</div>
     <div id="hCount"></div>
   </div>
   <canvas id="minimap" width="116" height="116" hidden></canvas>
 
   <div id="touch">
-    <div id="deck"><div id="deckBar"></div><div id="navBand"></div><div id="navIdle"></div><div id="deckSpeed">0 <span>MPH</span></div></div>
+    <div id="deck"><div id="deckBar"></div><div id="deckHint">TOUCH THE STREET TO DRIVE</div><div id="navBand"></div><div id="navIdle"></div><div id="deckSpeed">0 <span>MPH</span></div></div>
     <div id="stick"><div id="knob"></div></div>
     <div class="tbtn" id="bLeft"></div>
     <div class="tbtn" id="bRight"></div>
@@ -490,8 +503,8 @@ body.phone-land #rotate{display:flex}
       <div class="setrow"><span>Touch buttons</span><div class="seg" id="sBtnSize"><button data-v="0.8">SMALL</button><button data-v="1">MEDIUM</button><button data-v="1.25">LARGE</button></div></div>
       <div class="setrow"><span>Button layout</span><button class="btn alt" id="sLayout" style="font-size:9px;padding:8px 10px">ARRANGE…</button></div>
       <div class="setrow"><span>Driving help</span><div class="seg" id="sAssist"><button data-v="1">ON</button><button data-v="0">OFF</button></div></div>
-      <div class="setrow"><span>Steering</span><div class="seg" id="sSteer"><button data-v="buttons">ARROWS</button><button data-v="wheel">WHEEL</button><button data-v="point">4-WAY</button></div></div>
-      <p class="keys" style="margin-top:12px"><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> steer · <kbd>↑</kbd>/<kbd>W</kbd> gas · <kbd>↓</kbd>/<kbd>S</kbd> brake &amp; reverse · <kbd>SPACE</kbd> sweet tea boost · <kbd>H</kbd> honk · <kbd>P</kbd> pause. A gamepad works too. On a touch screen, ARROWS are two big left and right buttons (slide your thumb between them); WHEEL steers left and right like a real steering wheel (drag it sideways); 4-WAY points the car wherever you push the stick. Driving help keeps the car straight along the road whenever you let go of the steering.</p>
+      <div class="setrow"><span>Steering</span><div class="seg" id="sSteer"><button data-v="touch">TOUCH</button><button data-v="buttons">ARROWS</button><button data-v="wheel">WHEEL</button><button data-v="point">4-WAY</button></div></div>
+      <p class="keys" style="margin-top:12px"><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> steer · <kbd>↑</kbd>/<kbd>W</kbd> gas · <kbd>↓</kbd>/<kbd>S</kbd> brake &amp; reverse · <kbd>SPACE</kbd> sweet tea boost · <kbd>H</kbd> honk · <kbd>P</kbd> pause. A gamepad works too. On a touch screen, TOUCH drives the car to wherever your finger is on the street (farther from the car = faster, lift to stop); ARROWS are two big left and right buttons (slide your thumb between them); WHEEL steers left and right like a real steering wheel (drag it sideways); 4-WAY points the car wherever you push the stick. Driving help keeps the car straight along the road whenever you let go of the steering.</p>
       <div class="setrow" style="border:none"><span>Erase all progress</span><button class="btn warn" id="sReset" style="font-size:9px;padding:8px 10px">ERASE…</button></div>
       <div id="sConfirm" hidden style="background:#3a1620;border:2px solid var(--bad);padding:10px;margin-top:6px">
         <p style="font-size:16px">Erase every dollar, car and medal? This can't be undone.</p>
@@ -1654,10 +1667,10 @@ function statsFor(vid) {
 }
 
 /* ---------- save ---------- */
-const DEFAULT_SAVE = () => ({ v: 1, money: 0, owned: { volvo: true }, car: 'volvo', upgrades: { volvo: {} }, best: {}, stickers: {}, dog: { n: 0, adopted: false }, settings: { diff: 'normal', music: 1, sfx: 1, steer: 'buttons', btnSize: 1, layout: {}, assist: 1, steerV: 3 }, seenIntro: false });
+const DEFAULT_SAVE = () => ({ v: 1, money: 0, owned: { volvo: true }, car: 'volvo', upgrades: { volvo: {} }, best: {}, stickers: {}, dog: { n: 0, adopted: false }, settings: { diff: 'normal', music: 1, sfx: 1, steer: 'touch', btnSize: 1, layout: {}, assist: 1, steerV: 4, easy: 0 }, seenIntro: false });
 let SAVE = DEFAULT_SAVE();
 function loadSave() {
-  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) { const s = JSON.parse(raw); const d = DEFAULT_SAVE(); SAVE = Object.assign(d, s); SAVE.settings = Object.assign(d.settings, s.settings || {}); if (!SAVE.settings.layout || typeof SAVE.settings.layout !== 'object') SAVE.settings.layout = {}; if (SAVE.settings.steerV !== 3) { SAVE.settings.steer = 'buttons'; SAVE.settings.steerV = 3; } SAVE.owned = Object.assign({ volvo: true }, s.owned || {}); SAVE.upgrades = s.upgrades || {}; if (!VEHICLES[SAVE.car] || !SAVE.owned[SAVE.car]) SAVE.car = 'volvo'; if (!SAVE.stickers || typeof SAVE.stickers !== 'object') SAVE.stickers = {}; if (!SAVE.dog || typeof SAVE.dog !== 'object') SAVE.dog = { n: 0, adopted: false }; } } catch (e) { SAVE = DEFAULT_SAVE(); }
+  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) { const s = JSON.parse(raw); const d = DEFAULT_SAVE(); SAVE = Object.assign(d, s); SAVE.settings = Object.assign(d.settings, s.settings || {}); if (!SAVE.settings.layout || typeof SAVE.settings.layout !== 'object') SAVE.settings.layout = {}; if (SAVE.settings.steerV !== 4) { SAVE.settings.steer = 'touch'; SAVE.settings.steerV = 4; } SAVE.owned = Object.assign({ volvo: true }, s.owned || {}); SAVE.upgrades = s.upgrades || {}; if (!VEHICLES[SAVE.car] || !SAVE.owned[SAVE.car]) SAVE.car = 'volvo'; if (!SAVE.stickers || typeof SAVE.stickers !== 'object') SAVE.stickers = {}; if (!SAVE.dog || typeof SAVE.dog !== 'object') SAVE.dog = { n: 0, adopted: false }; } } catch (e) { SAVE = DEFAULT_SAVE(); }
 }
 function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) { } }
 
@@ -2136,7 +2149,7 @@ function updateCar(c, inp, dt) {
     if (vF < -3) turn = -turn;
     c.h += turn * dt;
   } else c.h += inp.steer * 1.2 * dt;
-  if (c.isPlayer && grounded && SAVE.settings.assist !== 0 && Math.abs(inp.steer) < 0.2 && Math.abs(vF) > 40 && !G.autopilot) {
+  if (c.isPlayer && grounded && SAVE.settings.assist !== 0 && Math.abs(inp.steer) < 0.2 && Math.abs(vF) > 40 && !G.autopilot && !G.easyAct) {
     c.assistT = (c.assistT || 0) - 1; if (c.assistT <= 0) { c.assistT = 4; c.assistE = nearestEdge(c.x, c.y, 50); }
     const ne = c.assistE; if (ne && !isBridge(ne.e) || (ne && ne.e)) { const e = ne.e; const a1 = Math.atan2(e.uy, e.ux), a2 = a1 + Math.PI; const d1 = angDiff(c.h, a1), d2 = angDiff(c.h, a2); const d = Math.abs(d1) < Math.abs(d2) ? d1 : d2;
       if (Math.abs(d) < 0.55) c.h += d * Math.min(1, 4.5 * dt);
@@ -2206,7 +2219,7 @@ function updateCar(c, inp, dt) {
     if ((t === T.ROAD || t === T.BRIDGE || t === T.LOT) && !nearSpan(c.x, c.y)) c.lastSafe = { x: c.x, y: c.y, h: Math.hypot(c.vx, c.vy) > 20 ? Math.atan2(c.vy, c.vx) : c.h };
   }
   // stuck detection for AI
-  if (!c.isPlayer || G.autopilot) { if (Math.hypot(c.vx, c.vy) < 6 && inp.gas > 0) c.stuckT += dt; else c.stuckT = Math.max(0, c.stuckT - dt); }
+  if (!c.isPlayer || G.autopilot || G.easyAct) { if (Math.hypot(c.vx, c.vy) < 6 && inp.gas > 0) c.stuckT += dt; else c.stuckT = Math.max(0, c.stuckT - dt); }
 }
 const PAVED = new Uint8Array(16); PAVED[T.ROAD] = PAVED[T.BRIDGE] = PAVED[T.WALK] = PAVED[T.COBBLE] = PAVED[T.LOT] = PAVED[T.DRAW] = PAVED[T.SWING] = 1;
 const OFFROAD = new Uint8Array(16); OFFROAD[T.LAND] = OFFROAD[T.PARK] = OFFROAD[T.SAND] = OFFROAD[T.MARSH] = 1;
@@ -2612,7 +2625,7 @@ function tick(dt) {
         const tgt = G.target ? NODES[G.target.node] : null;
         inp = aiDrive(p, G.route.pts, dt, { stopAt: G.m.type === 'race' ? null : tgt, useNitro: true }).inp;
       }
-    } else inp = readInput(p);
+    } else { inp = readInput(p); if (easyOn()) inp = easyDrive(p, inp, dt); else G.easyAct = false; }
     updateCar(p, inp, dt);
     hazards(p, dt);
     if (inp.honk) doHonk();
@@ -2748,6 +2761,9 @@ function award(id, quiet, delay) {
 /* ---------- run setup ---------- */
 function extrasStart() {
   G.free = G.m.type === 'free'; if (G.free) { G.freeClock0 = G.m.clock; G.freeT0 = 0; }
+  drive.active = false; drive.revUntil = 0; drive.stuckAt = 0; drive.rt = null; drive.rtT = -9;
+  G.easyAct = false; G.easyNode = null; G.offT = 0; G.warnPrev = null; G.wrongD = 0; $('#hWarn').hidden = true; syncEasyBtn();
+  if (!G.demo && steerMode() === 'touch' && (SAVE.settings.touchHints || 0) < 4) { SAVE.settings.touchHints = (SAVE.settings.touchHints || 0) + 1; G.msgQ = [{ t: 4.2, a: 'TOUCH THE STREET', b: 'The car drives to your finger. Farther away = faster.', d: 3 }]; }
   G.dog = null; G.bug = null; G.lap = { a: null, sum: 0 }; G.gush = -9; G.boom = null; G.gull = null; G.dolphSeen = false; G.side = null;
   if (G.demo) return;
   if (SAVE.dog && SAVE.dog.adopted) G.dog = { state: 'pet' };
@@ -2893,7 +2909,7 @@ function extrasTick(dt) {
   // stickers lying in the street
   if (SAVE.stickers) for (const st of STICKERS) { if (st.egg || SAVE.stickers[st.id]) continue; const q = stickerPos(st); if (q && Math.abs(q[0] - p.x) < 20 && Math.abs(q[1] - p.y) < 20 && p.z < 24) award(st.id); }
   if (G.msgQ && G.msgQ.length && G.msgQ[0].t <= G.real) { const q = G.msgQ.shift(); showMsg(q.a, q.b, q.d); }
-  lunaTick(); if (G.state !== 'run') return;
+  lunaTick(); routeWarnTick(dt); if (G.state !== 'run') return;
   dogTick(dt); eggsTick(dt);
   // free drive GPS to Biscuit's house
   if (G.free) {
@@ -2943,6 +2959,7 @@ function extrasSprites(spr, now) {
   // side target pad (Biscuit's house)
   if (G.side) { const n = NODES[G.side.node]; if (inCam(n.x, n.y, 80)) spr.push({ y: n.y - 60, f: () => { ctx.strokeStyle = 'rgba(242,167,184,.9)'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.lineDashOffset = -now * 20; ctx.beginPath(); ctx.arc(n.x, n.y, 44, 0, TAU); ctx.stroke(); ctx.setLineDash([]); ctx.drawImage(iconSprite('house', '#f2a7b8'), Math.round(n.x - 5), Math.round(n.y - 34 + Math.sin(now * 4) * 2)); } }); }
   // palmetto bug
+  if (drive.active) spr.push({ y: 1e9, f: () => drawDriveMarker(now) });
   const b = G.bug; if (b && !b.caught && b.x && inCam(b.x, b.y)) spr.push({ y: b.y, f: () => { const x = Math.round(b.x), y = Math.round(b.y), l = Math.floor(b.leg) % 2; ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x - 4, y + 2, 9, 2); ctx.fillStyle = '#1e1f24'; for (let i = -1; i <= 1; i++) { ctx.fillRect(x - 5, y + i * 2 + (l ? 1 : 0), 2, 1); ctx.fillRect(x + 4, y + i * 2 + (l ? 0 : 1), 2, 1); } ctx.fillStyle = '#6b4a2a'; ctx.fillRect(x - 3, y - 3, 7, 6); ctx.fillStyle = '#8a5a3a'; ctx.fillRect(x - 2, y - 2, 2, 4); ctx.fillStyle = '#1e1f24'; const fwd = b.dir * (b.e.ux >= 0 ? 1 : -1); ctx.fillRect(x + fwd * 4, y - 5, 1, 2); ctx.fillRect(x + fwd * 5, y - 6, 1, 1); } });
   // gull flying off with the loot
   if (G.gull) { const gl = G.gull, x = gl.x + gl.t * 70, y = gl.y - gl.t * 40; if (inCam(x, y)) spr.push({ y: y + 200, f: () => { const fl = Math.floor(G.real * 8) % 2; ctx.fillStyle = '#fbf3df'; ctx.fillRect(x - 2, y, 5, 3); ctx.fillStyle = '#9a9890'; ctx.fillRect(x - 7, y - fl, 5, 1); ctx.fillRect(x + 3, y - fl, 5, 1); ctx.fillStyle = '#f6d77a'; ctx.fillRect(x + 3, y + 1, 2, 1); if (gl.k) { ctx.fillStyle = '#efe0c8'; ctx.fillRect(x - 1, y + 3, 3, 3); } } }); }
@@ -3041,6 +3058,102 @@ function makePostcard() {
   mode = 'postcard'; showScreen('postcard');
   $('#pcImg').src = url; const a = $('#pcSave'); a.href = url; a.download = 'charleston-postcard.png';
   award('postcard', true);
+}
+
+/* ---------- touch to drive, easy steering (follow the GPS), and the off-route warning ---------- */
+const drive = { active: false, id: null, cx: 0, cy: 0, stuckAt: 0, revUntil: 0, lastTouch: false };
+function driveWorld() { const r = canvas.getBoundingClientRect(); return [cam.x + ((drive.cx - r.left) / r.width - 0.5) * VW, cam.y + ((drive.cy - r.top) / r.height - 0.5) * VH]; }
+function driveFar(car) { const q = driveWorld(); return clamp((dist(q[0], q[1], car.x, car.y) - 24) / 120, 0, 1); }
+// the car heads for your finger: farther away = faster, on the car = stop
+function touchDrive(car, inp) {
+  const now = G.real * 1000, sp = Math.hypot(car.vx, car.vy), vF = car.vx * Math.cos(car.h) + car.vy * Math.sin(car.h);
+  const q = driveWorld(), tx = q[0], ty = q[1], dd = dist(tx, ty, car.x, car.y);
+  if (dd < 14) { if (vF > 10) inp.brake = 1; drive.stuckAt = 0; return; }
+  let want = Math.atan2(ty - car.y, tx - car.x), byRoad = false;
+  // finger around the corner, or a house, tree or river in the way: take the streets there instead of a straight line
+  const ne = nearestEdge(car.x, car.y, 46), fe = nearestEdge(tx, ty, 600);
+  const fingerOnStreet = fe && Math.abs((tx - fe.e.ax) * fe.e.nx + (ty - fe.e.ay) * fe.e.ny) < fe.e.w / 2 + 16;
+  if (fe && (lineBlocked(car.x, car.y, tx, ty) || (ne && fingerOnStreet && fe.e !== ne.e && SAVE.settings.assist !== 0))) {
+    if (!drive.rt || G.real - drive.rtT > 0.4 || dist(drive.rtx, drive.rty, tx, ty) > 40) { drive.rt = routeFrom(car.x, car.y, fe.t < fe.e.len / 2 ? fe.e.a : fe.e.b); drive.rtT = G.real; drive.rtx = tx; drive.rty = ty; }
+    if (drive.rt && drive.rt.pts.length > 1) {
+      const pr = projectOn(drive.rt.pts, car.x, car.y), q2 = pointAlong(drive.rt.pts, pr.along + 46 + sp * 0.25);
+      want = Math.atan2(q2[1] + Math.cos(q2[2]) * LW * 0.5 - car.y, q2[0] - Math.sin(q2[2]) * LW * 0.5 - car.x); byRoad = true;
+    }
+  }
+  // road magnetism: a finger that is roughly down the street keeps the car in its lane
+  if (!byRoad && SAVE.settings.assist !== 0) {
+    if (ne) {
+      const e = ne.e; let a = Math.atan2(e.uy, e.ux), s = 1; if (Math.abs(angDiff(want, a)) > Math.PI / 2) { a += Math.PI; s = -1; }
+      const lf = (tx - e.ax) * e.nx + (ty - e.ay) * e.ny, tf = (tx - e.ax) * e.ux + (ty - e.ay) * e.uy;
+      if (Math.abs(angDiff(want, a)) < 0.6 && Math.abs(lf) < e.w / 2 + 26 && tf > -20 && tf < e.len + 20) {
+        const off = (e.L >= 2 ? LW * 0.5 + 3 : LW * 0.5) * s, t = clamp(ne.t + s * (46 + sp * 0.3), 0, e.len);
+        want = Math.atan2(e.ay + e.uy * t + e.ny * off - car.y, e.ax + e.ux * t + e.nx * off - car.x);
+      }
+    }
+  }
+  const d = angDiff(car.h, want);
+  inp.steer = clamp(d * 2.4, -1, 1);
+  if (now < drive.revUntil) { inp.gas = 0; inp.brake = 1; inp.steer = -inp.steer; return; }
+  if (Math.abs(d) > 2.2 && dd < 120 && sp < 45) { inp.brake = 1; inp.steer = -inp.steer; drive.stuckAt = 0; return; } // finger just behind the car: back up to it
+  let cap = 45 + clamp((dd - 24) / 120, 0, 1) * 300; if (Math.abs(d) > 1.0) cap = Math.min(cap, 75);
+  if (sp < cap) inp.gas = 1; else if (sp > cap + 35 && vF > 0) inp.brake = 1;
+  // nose against a wall: back out by itself
+  if (inp.gas && sp < 6) { if (!drive.stuckAt) drive.stuckAt = now; else if (now - drive.stuckAt > 700) { drive.revUntil = now + 650; drive.stuckAt = 0; } } else drive.stuckAt = 0;
+}
+function lineBlocked(x0, y0, x1, y1) {
+  const d = Math.min(700, Math.hypot(x1 - x0, y1 - y0)), n = Math.ceil(d / 10); if (n < 2) return false; const ux = (x1 - x0) / Math.hypot(x1 - x0, y1 - y0), uy = (y1 - y0) / Math.hypot(x1 - x0, y1 - y0);
+  for (let i = 2; i <= n; i++) { const t = cellAt(x0 + ux * i * 10, y0 + uy * i * 10); if ((SOLID[t] && t !== T.RAIL) || t === T.WATER) return true; }
+  return false;
+}
+function easyOn() { return !!SAVE.settings.easy; }
+// easy steering: hold the screen (or GAS) and the car follows the GPS by itself
+function easyDrive(p, inp, dt) {
+  G.easyAct = false;
+  const go = inp.gas > 0 || drive.active; let pts = null, stopAt = null, maxSpeed = 9999;
+  if ((!G.free || G.side) && G.route) { pts = G.route.pts; stopAt = G.m.type === 'race' ? null : (G.target ? NODES[G.target.node] : null); }
+  else if (G.free && drive.active) {
+    // free drive: take the roads to the corner nearest your finger
+    const q = driveWorld(); const fe = nearestEdge(q[0], q[1], 500), ce = nearestEdge(p.x, p.y, 60);
+    if (fe && !(ce && ce.e === fe.e)) {
+      const e = fe.e, id = fe.t < e.len / 2 ? e.a : e.b;
+      if (id !== G.easyNode || G.real - (G.easyRT || 0) > 0.6) { G.easyNode = id; G.easyRT = G.real; G.easyRoute = routeFrom(p.x, p.y, id); }
+      if (G.easyRoute) { pts = G.easyRoute.pts; stopAt = NODES[id]; }
+    }
+  }
+  if (!pts) { if (drive.active) { const i2 = { steer: 0, gas: 0, brake: 0, nitro: inp.nitro, honk: inp.honk }; touchDrive(p, i2); return i2; } return inp; } // nothing to follow: head for the finger, or ordinary steering
+  if (!go) { const vF = p.vx * Math.cos(p.h) + p.vy * Math.sin(p.h); return { steer: 0, gas: 0, brake: vF > 8 ? 1 : 0, nitro: false, honk: inp.honk }; }
+  if (drive.active) maxSpeed = 70 + driveFar(p) * 300;
+  G.easyAct = true;
+  const ai = aiDrive(p, pts, dt, { stopAt, useNitro: false, maxSpeed }).inp; ai.nitro = inp.nitro; ai.honk = inp.honk; return ai;
+}
+function syncEasyBtn() { const b = $('#easyBtn'); if (!b) return; b.classList.toggle('on', easyOn()); b.querySelector('b').textContent = easyOn() ? 'ON' : 'OFF'; }
+function toggleEasy() {
+  SAVE.settings.easy = easyOn() ? 0 : 1; writeSave(); syncEasyBtn(); sfx('click');
+  if (G && !G.demo) showMsg(easyOn() ? 'EASY STEERING ON' : 'EASY STEERING OFF', easyOn() ? (G.free && !G.side ? 'Touch where you want to go and the car takes the roads there' : 'Hold the screen and the car follows the GPS') : 'You are steering again', 2.2);
+}
+// "PROCEED TO ROUTE": off in the weeds, or driving away from where the GPS is sending you
+function routeWarnTick(dt) {
+  const el = $('#hWarn'); let show = false;
+  if (G.state === 'run' && !G.free && G.route && G.t > 3) {
+    const p = G.player, pr = projectOn(G.route.pts, p.x, p.y), rem = G.route.len, key = G.target ? G.target.node : '', sp = Math.hypot(p.vx, p.vy);
+    if (key !== G.warnKey || G.warnPrev == null) { G.warnKey = key; G.warnPrev = rem; G.wrongD = 0; G.warnRef = G.route; G.warnT = G.t; }
+    // distance driven the wrong way: only count changes the car itself could have made (a re-route around an open bridge is not your fault)
+    if (G.route !== G.warnRef) { const dr = rem - G.warnPrev, el = G.t - G.warnT; G.warnPrev = rem; G.warnRef = G.route; G.warnT = G.t;
+      if (Math.abs(dr) <= sp * el * 1.6 + 20) G.wrongD = clamp((G.wrongD || 0) + (dr > 0 ? dr : dr * 2), 0, 900); }
+    const off = pr.d > 190 || G.wrongD > 420, back = pr.d < 120 && G.wrongD < 200;
+    if (off) G.offT = (G.offT || 0) + dt; else if (back) G.offT = 0;
+    show = (G.offT || 0) > 0.9;
+    if (show && !G.warnOn && AC && SAVE.settings.sfx) { tone(660, 0.12, 'square', 0.12); tone(440, 0.16, 'square', 0.12, AC.currentTime + 0.14); }
+  }
+  G.warnOn = show; if (el.hidden === show) el.hidden = !show;
+}
+function drawDriveMarker(now) {
+  if (!G || G.demo || !drive.active || mode !== 'play') return;
+  const q = driveWorld(), x = Math.round(q[0]), y = Math.round(q[1]), r = 7 + Math.sin(now * 8) * 1.5;
+  ctx.strokeStyle = 'rgba(11,16,34,.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = '#f6d77a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.stroke();
+  ctx.fillStyle = '#f6d77a'; ctx.fillRect(x - 1, y - 1, 2, 2);
+  if (G.easyAct && G.free && G.easyNode && NODES[G.easyNode]) { const n = NODES[G.easyNode]; ctx.drawImage(iconSprite('flag', '#f6d77a'), Math.round(n.x - 4), Math.round(n.y - 14 + Math.sin(now * 5) * 2)); }
 }
 
 /* =================== frame rendering =================== */
@@ -3530,7 +3643,7 @@ function wheelArt() {
   g.fillStyle = '#9fd8dc'; g.fillRect(18, 18, 4, 4); g.fillStyle = '#fff'; g.fillRect(18, 18, 1, 1);
   return c.toDataURL();
 }
-function steerMode() { const s = SAVE.settings.steer; return s === 'point' || s === 'wheel' ? s : 'buttons'; }
+function steerMode() { const s = SAVE.settings.steer; return s === 'point' || s === 'wheel' || s === 'buttons' ? s : 'touch'; }
 function arrowButtonArt(dir) {
   const out = {}, N = 30;
   for (const pressed of [0, 1]) {
@@ -3554,7 +3667,7 @@ function arrowButtonArt(dir) {
 }
 function applySteerArt() {
   if (!ART.stick) return; const stick = $('#stick'), knob = $('#knob');
-  $('#touch').classList.toggle('arrows', steerMode() === 'buttons');
+  $('#touch').classList.toggle('arrows', steerMode() === 'buttons'); $('#touch').classList.toggle('tdrive', steerMode() === 'touch'); document.body.classList.toggle('tdrive', steerMode() === 'touch');
   if (steerMode() === 'wheel') { stick.style.backgroundImage = 'none'; knob.style.backgroundImage = `url(${ART.wheel})`; stick.classList.add('wheel'); }
   else { stick.style.backgroundImage = `url(${ART.stick.base})`; knob.style.backgroundImage = `url(${ART.stick.knob})`; stick.classList.remove('wheel'); }
   layoutControls();
@@ -3579,8 +3692,8 @@ const CTRL = [
   { id: 'stick', size: 150, pp: (dk, ins, sc) => ({ x: ins.l + 14 + 75 * sc, y: dk.cy }), def: (ins, sc) => ({ x: ins.l + 18 + 75 * sc, y: innerHeight - ins.b - 18 - 75 * sc }) },
   { id: 'bGas', size: 92, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 46 * sc, y: dk.cy + 22 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 46 * sc, y: innerHeight - ins.b - 30 - 46 * sc }) },
   { id: 'bBrake', size: 66, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 92 * sc - 30 * sc, y: dk.cy + 44 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 104 * sc - 33 * sc, y: innerHeight - ins.b - 18 - 33 * sc }) },
-  { id: 'bNitro', size: 66, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 40 * sc, y: dk.cy - 62 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 30 - 33 * sc, y: innerHeight - ins.b - 134 * sc - 33 * sc }) },
-  { id: 'bHonk', size: 58, pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 118 * sc, y: dk.cy - 30 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 92 * sc - 29 * sc, y: innerHeight - ins.b - 98 * sc - 29 * sc }) },
+  { id: 'bNitro', size: 66, td: (pp, dk, ins, sc) => pp ? ({ x: innerWidth - ins.r - 12 - 33 * sc, y: dk.cy }) : ({ x: innerWidth - ins.r - 24 - 33 * sc, y: innerHeight - ins.b - 24 - 33 * sc }), pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 40 * sc, y: dk.cy - 62 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 30 - 33 * sc, y: innerHeight - ins.b - 134 * sc - 33 * sc }) },
+  { id: 'bHonk', size: 58, td: (pp, dk, ins, sc) => pp ? ({ x: innerWidth - ins.r - 12 - 66 * sc - 12 - 29 * sc, y: dk.cy }) : ({ x: innerWidth - ins.r - 24 - 66 * sc - 18 - 29 * sc, y: innerHeight - ins.b - 24 - 29 * sc }), pp: (dk, ins, sc) => ({ x: innerWidth - ins.r - 16 - 118 * sc, y: dk.cy - 30 * sc }), def: (ins, sc) => ({ x: innerWidth - ins.r - 22 - 92 * sc - 29 * sc, y: innerHeight - ins.b - 98 * sc - 29 * sc }) },
 ];
 function safeInsets() {
   let p = document.getElementById('insetProbe');
@@ -3590,7 +3703,7 @@ function safeInsets() {
 function isPhone() { return isTouch && Math.min(innerWidth, innerHeight) < 520; }
 function isPhonePortrait() { return isPhone() && innerHeight > innerWidth; }
 const NAV_TOP = 80; // iPhone: status bar (30) + turn-by-turn strip (50) between the street view and the controls
-function ctrlArea() { return Math.round(clamp(innerHeight * 0.25, 172, 212)); }
+function ctrlArea() { return steerMode() === 'touch' ? 62 : Math.round(clamp(innerHeight * 0.25, 172, 212)); }
 function deckHeight() { if (!isPhonePortrait()) return 0; const ins = safeInsets(); return ctrlArea() + NAV_TOP + ins.b; }
 function orientKey() { return isPhonePortrait() ? 'PP' : innerWidth >= innerHeight ? 'L' : 'P'; }
 function isCompact() { return Math.min(innerWidth, innerHeight) < 500; }
@@ -3606,7 +3719,8 @@ function layoutControls() {
   for (const id of ['hClock', 'hPlace', 'hMoney', 'hNitro', 'hTide', 'hCargo', 'pauseBtn']) { const el = $('#' + id); if (!el._home) el._home = { p: el.parentNode, n: el.nextSibling }; if (pp) { if (el.parentNode !== $('#deckBar')) $('#deckBar').appendChild(el); } else if (el.parentNode !== el._home.p) el._home.p.insertBefore(el, el._home.n && el._home.n.parentNode === el._home.p ? el._home.n : null); }
   for (const c of CTRL) {
     const el = $('#' + c.id), wheelBig = c.id === 'stick' && steerMode() === 'wheel' ? (pp ? 1.1 : 1.3) : 1, sz = Math.round(c.size * sc * wheelBig * (!pp && c.big ? c.big : 1));
-    let p = L[c.id] ? { x: L[c.id][0] * innerWidth, y: L[c.id][1] * innerHeight } : pp ? c.pp(dk, ins, sc) : c.def(ins, sc);
+    const tdm = steerMode() === 'touch' && c.td;
+    let p = tdm ? c.td(pp, dk, ins, sc) : L[c.id] ? { x: L[c.id][0] * innerWidth, y: L[c.id][1] * innerHeight } : pp ? c.pp(dk, ins, sc) : c.def(ins, sc);
     p.x = clamp(p.x, sz / 2 + 4, innerWidth - sz / 2 - 4); p.y = clamp(p.y, sz / 2 + 4, innerHeight - sz / 2 - 4);
     Object.assign(el.style, { left: (p.x - sz / 2) + 'px', top: (p.y - sz / 2) + 'px', right: 'auto', bottom: 'auto', width: sz + 'px', height: sz + 'px' });
   }
@@ -3679,6 +3793,9 @@ function readInput(car) {
   if (keys.ArrowUp || keys.KeyW) inp.gas = 1; if (keys.ArrowDown || keys.KeyS) inp.brake = 1;
   if (touch.gas) inp.gas = 1; if (touch.brake) inp.brake = 1;
   if (touch.left !== touch.right) { const ramp = 0.5 + 0.5 * clamp((performance.now() - touch.holdT) / 300, 0, 1); inp.steer = (touch.right ? 1 : -1) * ramp; }
+  { const kb = inp.steer || inp.gas || inp.brake; if (kb) drive.lastTouch = false;
+    if (drive.active && G && steerMode() === 'touch') touchDrive(car, inp);
+    else if (drive.lastTouch && !kb && G && steerMode() === 'touch') { const vF = car.vx * Math.cos(car.h) + car.vy * Math.sin(car.h); if (vF > 10) inp.brake = 1; } }
   if (touch.active) {
     const m = Math.hypot(touch.sx, touch.sy);
     if (steerMode() === 'wheel') { const v = Math.abs(touch.sx) < 0.08 ? 0 : touch.sx; inp.steer = clamp(Math.sign(v) * Math.pow(Math.abs(v), 0.8) * 1.15, -1, 1); }
@@ -3870,7 +3987,7 @@ function beginMission(i) {
   for (let i = 0; i < 6; i++) prewarm();
 }
 function prewarm() { const c0 = Math.floor((cam.x - VW) / CH), c1 = Math.floor((cam.x + VW) / CH), r0 = Math.floor((cam.y - VH) / CH), r1 = Math.floor((cam.y + VH) / CH); for (let y = r0; y <= r1; y++) for (let x = c0; x <= c1; x++) getChunk(x, y); }
-function pauseGame() { if (mode !== 'play') return; mode = 'pause'; showScreen('pause'); const c = currentCandidates()[0]; $('#pObj').textContent = G.free ? 'Free drive · ' + fmtClock(clockNow()) + ' · Stickers ' + stickerCount() + '/' + STICKERS.length : c ? 'Next: ' + c.label : ''; $('#pRestart').hidden = !!G.free; $('#pFree').hidden = !!G.free; }
+function pauseGame() { if (mode !== 'play') return; drive.active = false; mode = 'pause'; showScreen('pause'); const c = currentCandidates()[0]; $('#pObj').textContent = G.free ? 'Free drive · ' + fmtClock(clockNow()) + ' · Stickers ' + stickerCount() + '/' + STICKERS.length : c ? 'Next: ' + c.label : ''; $('#pRestart').hidden = !!G.free; $('#pFree').hidden = !!G.free; }
 function resumeGame() { mode = 'play'; showScreen(null); sfx('click'); }
 function startDemo() {
   const idx = [1, 5, 3, 0][Math.floor(Math.random() * 4)];
@@ -4163,6 +4280,14 @@ $('#rMap').onclick = goMap; $('#rRetry').onclick = () => beginMission(lastResult
 $('#dBack').onclick = () => { sfx('click'); dealerFrom === 'title' ? goTitle() : goMap(); };
 $('#sBack').onclick = () => { sfx('click'); settingsFrom === 'title' ? goTitle() : goMap(); };
 $('#pauseBtn').onclick = pauseGame; $('#pResume').onclick = resumeGame; $('#pRestart').onclick = () => beginMission(G.idx); $('#pQuit').onclick = () => { writeSave(); goMap(); };
+$('#easyBtn').onclick = toggleEasy;
+{ // touch to drive: a finger (or the mouse) on the street view
+  const cv = $('#game');
+  cv.addEventListener('pointerdown', e => { if (mode !== 'play' || layoutEditing || drive.active || (steerMode() !== 'touch' && !easyOn())) return; drive.active = true; drive.lastTouch = true; drive.id = e.pointerId; drive.cx = e.clientX; drive.cy = e.clientY; try { cv.setPointerCapture(e.pointerId); } catch (err) {} audioInit(); e.preventDefault(); });
+  cv.addEventListener('pointermove', e => { if (drive.active && e.pointerId === drive.id) { drive.cx = e.clientX; drive.cy = e.clientY; } });
+  const up = e => { if (e.pointerId === drive.id) { drive.active = false; drive.id = null; } };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up); cv.addEventListener('lostpointercapture', up);
+}
 $('#pFree').onclick = freeFromHere; $('#pPhoto').onclick = () => { sfx('click'); makePostcard(); }; $('#pcBack').onclick = () => { sfx('click'); mode = 'pause'; showScreen('pause'); if (G.pendingSticker) { const ps = G.pendingSticker; G.pendingSticker = null; $('#pObj').textContent = 'New sticker: ' + STICK_BY[ps.id].name + ' (' + ps.sub + ')'; } };
 $('#mFree').onclick = startFree; $('#mStickers').onclick = () => openStickers('map'); $('#tStickers').onclick = () => openStickers('title'); $('#sbBack').onclick = () => { sfx('click'); bookFrom === 'title' ? goTitle() : goMap(); };
 $('#sReset').onclick = () => { $('#sConfirm').hidden = false; }; $('#sResetNo').onclick = () => { $('#sConfirm').hidden = true; };
