@@ -81,6 +81,11 @@ body.touch #touch.on{display:block}
 #touch.arrows #stick{display:none!important}
 #touch.tdrive #stick,#touch.tdrive #bLeft,#touch.tdrive #bRight,#touch.tdrive #bGas,#touch.tdrive #bBrake{display:none!important}
 #game{touch-action:none}
+#sSens{-webkit-appearance:none;appearance:none;width:150px;margin-left:auto;flex:none;height:26px;background:transparent;touch-action:pan-y}
+#sSens::-webkit-slider-runnable-track{height:8px;background:#0b1022;border:2px solid var(--haint)}
+#sSens::-moz-range-track{height:8px;background:#0b1022;border:2px solid var(--haint)}
+#sSens::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:26px;margin-top:-11px;background:var(--butter);border:3px solid #000;box-shadow:0 2px 0 #000}
+#sSens::-moz-range-thumb{width:18px;height:22px;background:var(--butter);border:3px solid #000;border-radius:0}
 #easyBtn{pointer-events:auto;cursor:pointer;font-family:var(--f-display);color:var(--cream);touch-action:manipulation}
 #easyBtn b{color:#f08a6b;margin-left:4px}
 #easyBtn.on{background:#1f5a34;border-color:#7fd38a}#easyBtn.on b{color:#c8f2c8}
@@ -503,8 +508,9 @@ body.phone-land #rotate{display:flex}
       <div class="setrow"><span>Touch buttons</span><div class="seg" id="sBtnSize"><button data-v="0.8">SMALL</button><button data-v="1">MEDIUM</button><button data-v="1.25">LARGE</button></div></div>
       <div class="setrow"><span>Button layout</span><button class="btn alt" id="sLayout" style="font-size:9px;padding:8px 10px">ARRANGE…</button></div>
       <div class="setrow"><span>Driving help</span><div class="seg" id="sAssist"><button data-v="1">ON</button><button data-v="0">OFF</button></div></div>
+      <div class="setrow"><span>Touch sensitivity <b id="sSensV" style="font-family:var(--f-display);font-size:8px;color:var(--butter);margin-left:6px">HIGH</b></span><input type="range" id="sSens" min="1" max="5" step="1" value="4" aria-label="Touch sensitivity"></div>
       <div class="setrow"><span>Steering</span><div class="seg" id="sSteer"><button data-v="touch">TOUCH</button><button data-v="buttons">ARROWS</button><button data-v="wheel">WHEEL</button><button data-v="point">4-WAY</button></div></div>
-      <p class="keys" style="margin-top:12px"><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> steer · <kbd>↑</kbd>/<kbd>W</kbd> gas · <kbd>↓</kbd>/<kbd>S</kbd> brake &amp; reverse · <kbd>SPACE</kbd> sweet tea boost · <kbd>H</kbd> honk · <kbd>P</kbd> pause. A gamepad works too. On a touch screen, TOUCH drives the car to wherever your finger is on the street (farther from the car = faster, lift to stop); ARROWS are two big left and right buttons (slide your thumb between them); WHEEL steers left and right like a real steering wheel (drag it sideways); 4-WAY points the car wherever you push the stick. Driving help keeps the car straight along the road whenever you let go of the steering.</p>
+      <p class="keys" style="margin-top:12px"><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> steer · <kbd>↑</kbd>/<kbd>W</kbd> gas · <kbd>↓</kbd>/<kbd>S</kbd> brake &amp; reverse · <kbd>SPACE</kbd> sweet tea boost · <kbd>H</kbd> honk · <kbd>P</kbd> pause. A gamepad works too. On a touch screen, TOUCH drives the car to wherever your finger is on the street (farther from the car = faster, lift to stop; Touch sensitivity sets how far you have to reach); ARROWS are two big left and right buttons (slide your thumb between them); WHEEL steers left and right like a real steering wheel (drag it sideways); 4-WAY points the car wherever you push the stick. Driving help keeps the car straight along the road whenever you let go of the steering.</p>
       <div class="setrow" style="border:none"><span>Erase all progress</span><button class="btn warn" id="sReset" style="font-size:9px;padding:8px 10px">ERASE…</button></div>
       <div id="sConfirm" hidden style="background:#3a1620;border:2px solid var(--bad);padding:10px;margin-top:6px">
         <p style="font-size:16px">Erase every dollar, car and medal? This can't be undone.</p>
@@ -2763,7 +2769,7 @@ function extrasStart() {
   G.free = G.m.type === 'free'; if (G.free) { G.freeClock0 = G.m.clock; G.freeT0 = 0; }
   drive.active = false; drive.revUntil = 0; drive.stuckAt = 0; drive.rt = null; drive.rtT = -9;
   G.easyAct = false; G.easyNode = null; G.offT = 0; G.warnPrev = null; G.wrongD = 0; $('#hWarn').hidden = true; syncEasyBtn();
-  if (!G.demo && steerMode() === 'touch' && (SAVE.settings.touchHints || 0) < 4) { SAVE.settings.touchHints = (SAVE.settings.touchHints || 0) + 1; G.msgQ = [{ t: 4.2, a: 'TOUCH THE STREET', b: 'The car drives to your finger. Farther away = faster.', d: 3 }]; }
+  if (!G.demo && steerMode() === 'touch' && (SAVE.settings.touchHints || 0) < 4) { SAVE.settings.touchHints = (SAVE.settings.touchHints || 0) + 1; G.msgQ = [{ t: 4.2, a: 'TOUCH THE STREET', b: 'The car drives to your finger. A little farther = faster.', d: 3 }]; }
   G.dog = null; G.bug = null; G.lap = { a: null, sum: 0 }; G.gush = -9; G.boom = null; G.gull = null; G.dolphSeen = false; G.side = null;
   if (G.demo) return;
   if (SAVE.dog && SAVE.dog.adopted) G.dog = { state: 'pet' };
@@ -3063,12 +3069,15 @@ function makePostcard() {
 /* ---------- touch to drive, easy steering (follow the GPS), and the off-route warning ---------- */
 const drive = { active: false, id: null, cx: 0, cy: 0, stuckAt: 0, revUntil: 0, lastTouch: false };
 function driveWorld() { const r = canvas.getBoundingClientRect(); return [cam.x + ((drive.cx - r.left) / r.width - 0.5) * VW, cam.y + ((drive.cy - r.top) / r.height - 0.5) * VH]; }
-function driveFar(car) { const q = driveWorld(); return clamp((dist(q[0], q[1], car.x, car.y) - 24) / 120, 0, 1); }
+function touchSens() { const s = SAVE.settings.touchSens | 0; return s >= 1 && s <= 5 ? s : 4; }
+function sensFull() { return [150, 110, 78, 52, 34][touchSens() - 1]; } // how far from the car your finger has to be for full speed
+function sensDead() { return Math.min(14, sensFull() * 0.3); }
+function driveFar(car) { const q = driveWorld(); return clamp((dist(q[0], q[1], car.x, car.y) - sensDead()) / (sensFull() - sensDead()), 0, 1); }
 // the car heads for your finger: farther away = faster, on the car = stop
 function touchDrive(car, inp) {
   const now = G.real * 1000, sp = Math.hypot(car.vx, car.vy), vF = car.vx * Math.cos(car.h) + car.vy * Math.sin(car.h);
   const q = driveWorld(), tx = q[0], ty = q[1], dd = dist(tx, ty, car.x, car.y);
-  if (dd < 14) { if (vF > 10) inp.brake = 1; drive.stuckAt = 0; return; }
+  if (dd < sensDead()) { if (vF > 10) inp.brake = 1; drive.stuckAt = 0; return; }
   let want = Math.atan2(ty - car.y, tx - car.x), byRoad = false;
   // finger around the corner, or a house, tree or river in the way: take the streets there instead of a straight line
   const ne = nearestEdge(car.x, car.y, 46), fe = nearestEdge(tx, ty, 600);
@@ -3092,10 +3101,10 @@ function touchDrive(car, inp) {
     }
   }
   const d = angDiff(car.h, want);
-  inp.steer = clamp(d * 2.4, -1, 1);
+  inp.steer = clamp(d * (2.4 + (touchSens() - 3) * 0.6), -1, 1);
   if (now < drive.revUntil) { inp.gas = 0; inp.brake = 1; inp.steer = -inp.steer; return; }
-  if (Math.abs(d) > 2.2 && dd < 120 && sp < 45) { inp.brake = 1; inp.steer = -inp.steer; drive.stuckAt = 0; return; } // finger just behind the car: back up to it
-  let cap = 45 + clamp((dd - 24) / 120, 0, 1) * 300; if (Math.abs(d) > 1.0) cap = Math.min(cap, 75);
+  if (Math.abs(d) > 2.2 && dd < Math.max(60, sensFull()) && sp < 45) { inp.brake = 1; inp.steer = -inp.steer; drive.stuckAt = 0; return; } // finger just behind the car: back up to it
+  let cap = 45 + clamp((dd - sensDead()) / (sensFull() - sensDead()), 0, 1) * 300; if (Math.abs(d) > 1.0) cap = Math.min(cap, 75);
   if (sp < cap) inp.gas = 1; else if (sp > cap + 35 && vF > 0) inp.brake = 1;
   // nose against a wall: back out by itself
   if (inp.gas && sp < 6) { if (!drive.stuckAt) drive.stuckAt = now; else if (now - drive.stuckAt > 700) { drive.revUntil = now + 650; drive.stuckAt = 0; } } else drive.stuckAt = 0;
@@ -3814,7 +3823,7 @@ function readInput(car) {
 /* =================== audio =================== */
 let AC = null, master = null, musicGain = null, sfxGain = null, eng = null, musicOn = false, seqT = 0, step = 0;
 function audioInit() {
-  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  if (AC) { if (AC.state !== 'running') { try { AC.resume(); } catch (e) {} } return; }
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
     master = AC.createGain(); master.gain.value = 0.9; master.connect(AC.destination);
@@ -3827,8 +3836,24 @@ function audioInit() {
     setInterval(musicTick, 25);
   } catch (e) { AC = null; }
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && AC && AC.state !== 'running') AC.resume(); if (document.hidden && mode === 'play') pauseGame(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && AC && AC.state !== 'running') AC.resume(); if (document.hidden && unmuteEl) unmuteEl.pause(); if (document.hidden && mode === 'play') pauseGame(); });
 addEventListener('pointerdown', audioInit, { passive: true });
+// iPhone and iPad only let sound start (or restart after a call, a lock, or Siri) when a finger LIFTS, and the
+// ring/silent switch mutes game audio unless a media element is playing. So: unlock on every lift, and keep a silent clip looping.
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let unmuteEl = null;
+function audioUnlock() {
+  audioInit(); if (AC && AC.state !== 'running') { try { AC.resume(); } catch (e) {} }
+  if (!IS_IOS || document.hidden) return;
+  if (!unmuteEl) {
+    const n = 4000, buf = new ArrayBuffer(44 + n), v = new DataView(buf), str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+    unmuteEl = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }))); unmuteEl.loop = true; unmuteEl.setAttribute('playsinline', ''); unmuteEl.preload = 'auto';
+  }
+  if (unmuteEl.paused) { const pr = unmuteEl.play(); if (pr && pr.catch) pr.catch(() => {}); }
+}
+for (const ev of ['touchend', 'pointerup', 'click', 'keydown']) addEventListener(ev, audioUnlock, { capture: true, passive: true });
 function tone(freq, dur, type, vol, when, slide, dest) {
   if (!AC) return; const t = when || AC.currentTime; const o = AC.createOscillator(), g = AC.createGain();
   o.type = type || 'square'; o.frequency.setValueAtTime(freq, t); if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, slide), t + dur);
@@ -4190,6 +4215,7 @@ function openSettings() { sfx('click'); mode = 'settings'; showScreen('settings'
 function syncSettings() {
   const st = SAVE.settings;
   const seg = (id, val) => $('#' + id).querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === String(val)));
+  { const sl = $('#sSens'); sl.value = touchSens(); $('#sSensV').textContent = ['LOWEST', 'LOW', 'MEDIUM', 'HIGH', 'HIGHEST'][touchSens() - 1]; }
   seg('sDiff', st.diff); seg('sMusic', st.music); seg('sSfx', st.sfx); seg('sSteer', st.steer); seg('sBtnSize', st.btnSize || 1); seg('sAssist', st.assist == null ? 1 : st.assist);
 }
 function bindSeg(id, key, num) { $('#' + id).querySelectorAll('button').forEach(b => b.onclick = () => { SAVE.settings[key] = num ? +b.dataset.v : b.dataset.v; writeSave(); syncSettings(); if (AC) { musicGain.gain.value = SAVE.settings.music ? 0.3 : 0; sfxGain.gain.value = SAVE.settings.sfx ? 0.55 : 0; } sfx('click'); }); }
@@ -4292,6 +4318,7 @@ $('#pFree').onclick = freeFromHere; $('#pPhoto').onclick = () => { sfx('click');
 $('#mFree').onclick = startFree; $('#mStickers').onclick = () => openStickers('map'); $('#tStickers').onclick = () => openStickers('title'); $('#sbBack').onclick = () => { sfx('click'); bookFrom === 'title' ? goTitle() : goMap(); };
 $('#sReset').onclick = () => { $('#sConfirm').hidden = false; }; $('#sResetNo').onclick = () => { $('#sConfirm').hidden = true; };
 $('#sResetYes').onclick = () => { SAVE = DEFAULT_SAVE(); writeSave(); $('#sConfirm').hidden = true; syncSettings(); sfx('click'); };
+$('#sSens').addEventListener('input', e => { SAVE.settings.touchSens = +e.target.value; writeSave(); syncSettings(); });
 bindSeg('sDiff', 'diff'); bindSeg('sMusic', 'music', 1); bindSeg('sSfx', 'sfx', 1); bindSeg('sSteer', 'steer'); $('#sSteer').addEventListener('click', applySteerArt); bindSeg('sBtnSize', 'btnSize', 1); bindSeg('sAssist', 'assist', 1);
 $('#sLayout').onclick = openLayoutEditor;
 $('#sBtnSize').addEventListener('click', () => layoutControls());
