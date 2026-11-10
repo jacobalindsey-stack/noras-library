@@ -92,6 +92,11 @@ body.touch #touch.on{display:block}
 body.phone-port #easyBtn{font-size:8px;padding:6px 8px}
 #hWarn{position:absolute;left:50%;top:22%;transform:translateX(-50%);background:#e2574c;color:#fff;border:3px solid #000;box-shadow:0 4px 0 #000;padding:8px 14px;font-family:var(--f-display);font-size:12px;white-space:nowrap;animation:warnblink .5s steps(2) infinite;z-index:4}
 #hWarn[hidden]{display:none}
+#hCrazy{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 46px);transform:translateX(-50%);background:#0b1022;color:#f6d77a;border:3px solid #f6d77a;box-shadow:0 4px 0 #000;padding:6px 12px 7px;font-family:var(--f-display);font-size:11px;white-space:nowrap;animation:crazyhue .6s steps(5) infinite;z-index:3;text-align:center}
+#hCrazy[hidden]{display:none}
+#hCrazy span{display:block;height:4px;margin-top:5px;background:#2a3550}#hCrazy i{display:block;height:100%;width:100%;background:currentColor}
+@keyframes crazyhue{0%{color:#f6d77a;border-color:#f6d77a}20%{color:#f2a7b8;border-color:#f2a7b8}40%{color:#9fd8dc;border-color:#9fd8dc}60%{color:#7fd38a;border-color:#7fd38a}80%{color:#f08a3a;border-color:#f08a3a}}
+body.phone-port #hCrazy{bottom:10px;font-size:9px}
 @keyframes warnblink{50%{background:#f6d77a;color:#0b1022}}
 body.compact #hWarn{font-size:9px;padding:6px 10px}
 #deckHint{display:none}
@@ -368,6 +373,7 @@ body.phone-land #rotate{display:flex}
     <div id="hMsg"></div>
     <div id="hRadio"></div>
     <div id="hWarn" hidden>PROCEED TO ROUTE</div>
+    <div id="hCrazy" hidden>CRAZY MODE<span><i></i></span></div>
     <div id="hCount"></div>
   </div>
   <canvas id="minimap" width="116" height="116" hidden></canvas>
@@ -1878,6 +1884,7 @@ function seedHazards(routePts) {
   for (let d = 160; d < L - 80; d += gap + R() * 220) {
     const p = pointAlong(routePts, d); const lane = LW * (R() < 0.5 ? 0.5 : 1.3);
     const n = 3; for (let i = 0; i < n; i++) { const q = pointAlong(routePts, d + i * 16); G.pickups.push({ type: 'coin', x: q[0] + Math.cos(q[2] + Math.PI / 2) * lane, y: q[1] + Math.sin(q[2] + Math.PI / 2) * lane, s: R() * 6 }); }
+    if (k % 3 === 0 && d + 120 < L - 60) { const q = pointAlong(routePts, d + 120); G.pickups.push({ type: 'star', x: q[0] + Math.cos(q[2] + Math.PI / 2) * LW * 0.5, y: q[1] + Math.sin(q[2] + Math.PI / 2) * LW * 0.5, s: R() * 6 }); }
     if (++k % 5 === 0) { const q = pointAlong(routePts, d + 70); G.pickups.push({ type: 'tea', x: q[0] + Math.cos(q[2] + Math.PI / 2) * LW * 0.5, y: q[1] + Math.sin(q[2] + Math.PI / 2) * LW * 0.5, s: R() * 6 }); }
   }
   if (m.type === 'free') scatterFreeCoins();
@@ -2082,7 +2089,7 @@ function updateTraffic(dt) {
 const _ca = [], _cb = [];
 function carSurface(c) { return cellAt(c.x, c.y); }
 function hitsSolid(c, x, y) {
-  if (c.onRoof) return false;
+  if (c.onRoof || c.stunt) return false;
   const fx = Math.cos(c.h), fy = Math.sin(c.h), hl = c.len / 2 * 0.85, hw = c.wid / 2 * 0.8;
   const pts = [[hl, hw], [hl, -hw], [-hl, hw], [-hl, -hw], [hl, 0]];
   for (const [a, b] of pts) {
@@ -2188,13 +2195,14 @@ function updateCar(c, inp, dt) {
     c.vz -= GRAV * dt; c.z += c.vz * dt; c.airT += dt;
     if (c.z <= 0) {
       const impact = -c.vz; c.z = 0; c.vz = 0;
-      { const lc = cellAt(c.x, c.y); if (SOLID[lc] && lc !== T.RAIL) { c.onRoof = true; c.z = ROOF_Z; if (c.isPlayer && (!c.roofMsg || c.roofMsg < G.real)) { c.roofMsg = G.real + 4; showMsg(lc === T.TREE ? 'IN THE TREETOPS!' : 'ON THE ROOF!', 'Drive off the edge to get down', 1.4); } } }
-      if (impact > 160) { if (c.isPlayer) { cam.shake = Math.min(7, impact / 60); sfx('land'); cargoHit(impact / 40, 'landing'); } burst(c.x, c.y + 3, '#b9b2a2', 6); }
-      if (c.isPlayer && c.airT > 0.55) { showMsg(c.airT > 0.9 ? 'HUGE AIR!' : 'AIR TIME!', '', 0.9); }
+      { const lc = cellAt(c.x, c.y); if (SOLID[lc] && lc !== T.RAIL && c.isPlayer && (c.stunt || crazyOn())) { stunt(c, 'roof'); } else if (SOLID[lc] && lc !== T.RAIL) { c.onRoof = true; c.z = ROOF_Z; if (c.isPlayer && (!c.roofMsg || c.roofMsg < G.real)) { c.roofMsg = G.real + 4; showMsg(lc === T.TREE ? 'IN THE TREETOPS!' : 'ON THE ROOF!', 'Drive off the edge to get down', 1.4); } } }
+      if (impact > 160) { if (c.isPlayer) { cam.shake = Math.min(7, impact / 60); sfx('land'); if (!c.stunt && !crazyOn()) cargoHit(impact / 40, 'landing'); } burst(c.x, c.y + 3, '#b9b2a2', 6); }
+      if (c.isPlayer && c.airT > 0.55 && !c.stunt) { showMsg(c.airT > 0.9 ? 'HUGE AIR!' : 'AIR TIME!', '', 0.9); }
       c.airT = 0;
     }
   }
   // curbs: a glancing hit slides you along the curb and straightens you out, instead of stopping you dead
+  if (c.isPlayer && !c.stunt && crazyOn() && c.z < 26 && Math.hypot(c.vx, c.vy) > 45 && solidAhead(c, dt)) stunt(c, 'wall');
   curbDeflect(c, dt);
   solidDeflect(c, dt);
   // move with collision; curbs hold you on the pavement unless you hit them hard enough to hop
@@ -2252,6 +2260,7 @@ function curbDeflect(c, dt) {
   let ta = Math.atan2(n[0], -n[1]); if (Math.abs(angDiff(c.h, ta)) > Math.PI / 2) ta += Math.PI;
   const d = angDiff(c.h, ta);
   // RC Pro-Am style: a real knock bounces the car up and it lands pointed the way it's going
+  if (across > 70 && c.isPlayer && crazyOn()) { stunt(c, 'curb'); return; }
   if (across > 45) { c.vz = Math.min(100, 50 + across * 0.3); c.z = 0.6; if (Math.abs(d) < 1.3) c.h += d * 0.65; }
   else if (Math.abs(d) < 1.2) c.h += d * Math.min(1, 9 * dt);
   if (c.isPlayer && across > Math.min(70, hop * 0.7) && (!c.curbT || c.curbT < G.real)) { c.curbT = G.real + 0.25; sfx('bump', across * 0.5); cam.shake = Math.max(cam.shake, 1.2); }
@@ -2347,6 +2356,7 @@ function collideCars() {
       let hit = null;
       for (const ca of _ca) for (const cb of _cb) { const dx = ca[0] - cb[0], dy = ca[1] - cb[1], d = Math.hypot(dx, dy), rr = ca[2] + cb[2]; if (d < rr && d > 0.001) { if (!hit || rr - d > hit.p) hit = { nx: dx / d, ny: dy / d, p: rr - d }; } }
       if (!hit) continue;
+      if (a.isPlayer && crazyOn()) { if (!a.stunt) { stunt(a, 'car'); bubble(t, 'honk'); t.stun = 0.5; } continue; }
       const tvx = Math.cos(t.h) * t.speed + t.kvx, tvy = Math.sin(t.h) * t.speed + t.kvy;
       const rvx = a.vx - tvx, rvy = a.vy - tvy; const vn = rvx * hit.nx + rvy * hit.ny;
       const ma = a.mass, mb = t.mass;
@@ -2414,7 +2424,8 @@ function hazards(c, dt) {
     if (o.got) return;
     if (dist(o.x, o.y, c.x, c.y) < 12 + (c.z < 20 ? 0 : -100)) {
       o.got = true;
-      if (o.type === 'coin') { G.coins++; if (G.free) { SAVE.money++; G.coins--; G.freeCoins = (G.freeCoins || 0) + 1; if (G.freeCoins % 5 === 0) writeSave(); } sfx('coin'); G.particles.push({ x: o.x, y: o.y, vx: 0, vy: -20, vz: 0, z: 6, life: 0.6, col: '#f6d77a', s: 1, txt: '+$1' }); }
+      if (o.type === 'star') { if (!c.isPlayer) { o.got = false; return; } startCrazy(12); }
+      else if (o.type === 'coin') { if (c.isPlayer) coinStreak(); G.coins++; if (G.free) { SAVE.money++; G.coins--; G.freeCoins = (G.freeCoins || 0) + 1; if (G.freeCoins % 5 === 0) writeSave(); } sfx('coin'); G.particles.push({ x: o.x, y: o.y, vx: 0, vy: -20, vz: 0, z: 6, life: 0.6, col: '#f6d77a', s: 1, txt: '+$1' }); }
       else { c.nitros = Math.min(c.nitros + 1, 5); sfx('tea'); showMsg('+1 SWEET TEA', 'Press TEA for a boost', 1.2); }
     }
   });
@@ -2730,6 +2741,7 @@ const STICKERS = [
   { id: 'bug', name: 'Palmetto Bug!', egg: 1, area: 'behind The Citadel', hint: 'Something scuttles along Wagener Terrace. Catch it if you can.', lore: 'Charlestonians call giant cockroaches "palmetto bugs." They can fly. EW.', art: ['.k....k.', '..k..k..', '..mmmm..', '.mvmmvm.', 'kmmvvmmk', '.mmvvmm.', 'kmmmmmmk', '..mmmm..'] },
   { id: 'biscuit', name: 'Biscuit', egg: 1, area: 'anywhere', hint: 'A lost pup is wandering around. Bring him home.', lore: 'Boykin spaniels are the state dog of South Carolina. Biscuit is the best one.', art: ['.mm..mm.', 'mmmmmmmm', 'mkmmmkmm', 'mmmmmmmm', '.mmkkmm.', '..mrrm..', '..mmmm..', '........'] },
   { id: 'luna', name: 'Luna', egg: 1, area: 'home', hint: 'Get home really fast on an errand that ends at home. Someone fluffy might be waiting.', lore: 'Luna is a very fluffy tortoiseshell cat. She only comes out for gold-medal drivers.', art: ['.k....o.', 'kok..oko', 'kkoowkkk', 'kykkoyko', 'okkwkkko', '.okkkok.', 'kkookkwo', '.kk..oo.'] },
+  { id: 'stunt', name: 'Stunt Driver', egg: 1, area: 'anywhere', hint: 'Grab a rainbow star, then crash into something.', lore: 'In CRAZY MODE the car flips over whatever it hits and lands on its wheels. Real cars do not do this.', art: ['...y....', '..oyo...', '.kkkkkk.', 'kbbkbbkk', 'kkkkkkkk', '.s...s..', 'y......p', '.l..b...'] },
   { id: 'postcard', name: 'Postcard Artist', egg: 1, area: 'the pause menu', hint: 'Take a postcard from the pause menu.', lore: 'Greetings from Charleston! Wish you were here.', art: ['kkkkkkkk', 'kbbbbyyk', 'kbbbbyyk', 'kgglbbbk', 'kgggglbk', 'kmmmmmmk', 'kkkkkkkk', '........'] },
 ];
 const STICK_BY = {}; for (const s of STICKERS) STICK_BY[s.id] = s;
@@ -2768,6 +2780,7 @@ function award(id, quiet, delay) {
 function extrasStart() {
   G.free = G.m.type === 'free'; if (G.free) { G.freeClock0 = G.m.clock; G.freeT0 = 0; }
   drive.active = false; drive.revUntil = 0; drive.stuckAt = 0; drive.rt = null; drive.rtT = -9;
+  G.crazyT = 0; G.stunts = 0; G.coinStreak = 0; $('#hCrazy').hidden = true;
   G.easyAct = false; G.easyNode = null; G.offT = 0; G.warnPrev = null; G.wrongD = 0; $('#hWarn').hidden = true; syncEasyBtn();
   if (!G.demo && steerMode() === 'touch' && (SAVE.settings.touchHints || 0) < 4) { SAVE.settings.touchHints = (SAVE.settings.touchHints || 0) + 1; G.msgQ = [{ t: 4.2, a: 'TOUCH THE STREET', b: 'The car drives to your finger. A little farther = faster.', d: 3 }]; }
   G.dog = null; G.bug = null; G.lap = { a: null, sum: 0 }; G.gush = -9; G.boom = null; G.gull = null; G.dolphSeen = false; G.side = null;
@@ -2803,6 +2816,7 @@ function scatterFreeCoins() {
     const e = EDGES[R() * EDGES.length | 0]; if (e.len < 160) continue;
     const t = 60 + R() * (e.len - 120), lane = (R() < 0.5 ? -1 : 1) * LW * 0.5;
     for (let k = 0; k < 3; k++) G.pickups.push({ type: 'coin', x: e.ax + e.ux * (t + k * 16) + e.nx * lane, y: e.ay + e.uy * (t + k * 16) + e.ny * lane, s: R() * 6 });
+    if (i % 4 === 1) G.pickups.push({ type: 'star', x: e.ax + e.ux * (t + 110) + e.nx * lane, y: e.ay + e.uy * (t + 110) + e.ny * lane, s: R() * 6 });
     if (i % 6 === 0) G.pickups.push({ type: 'tea', x: e.ax + e.ux * (t + 70) + e.nx * lane, y: e.ay + e.uy * (t + 70) + e.ny * lane, s: R() * 6 });
   }
 }
@@ -2915,7 +2929,8 @@ function extrasTick(dt) {
   // stickers lying in the street
   if (SAVE.stickers) for (const st of STICKERS) { if (st.egg || SAVE.stickers[st.id]) continue; const q = stickerPos(st); if (q && Math.abs(q[0] - p.x) < 20 && Math.abs(q[1] - p.y) < 20 && p.z < 24) award(st.id); }
   if (G.msgQ && G.msgQ.length && G.msgQ[0].t <= G.real) { const q = G.msgQ.shift(); showMsg(q.a, q.b, q.d); }
-  lunaTick(); routeWarnTick(dt); if (G.state !== 'run') return;
+  lunaTick(); routeWarnTick(dt); if (G.state !== 'run') { if (G.player.stunt || G.crazyT > 0) crazyTick(dt); return; }
+  crazyTick(dt);
   dogTick(dt); eggsTick(dt);
   // free drive GPS to Biscuit's house
   if (G.free) {
@@ -3165,6 +3180,71 @@ function drawDriveMarker(now) {
   if (G.easyAct && G.free && G.easyNode && NODES[G.easyNode]) { const n = NODES[G.easyNode]; ctx.drawImage(iconSprite('flag', '#f6d77a'), Math.round(n.x - 4), Math.round(n.y - 14 + Math.sin(now * 5) * 2)); }
 }
 
+/* ---------- CRAZY MODE: RC-style bounces and flips off anything you hit ---------- */
+const TRICKS = ['BARREL ROLL!', 'DOUBLE FLIP!', 'PALMETTO FLIP!', 'KICKFLIP!', 'PLUFF MUD POP!', 'HOLY CITY HOP!', 'SHRIMP SPIN!', 'BOING!', 'TRIPLE TWIST!', 'RC ROCKET!', 'BRIDGE RUN BOUNCE!', 'SWEET TEA SPIN!'];
+function crazyOn() { return !!G && !G.demo && G.crazyT > 0; }
+function startCrazy(sec, why) {
+  if (!G || G.demo) return;
+  const fresh = !(G.crazyT > 0); G.crazyT = Math.max(G.crazyT || 0, sec); G.crazyMax = Math.max(G.crazyT, 1);
+  $('#hCrazy').hidden = false;
+  if (fresh) showMsg('CRAZY MODE!', why || 'Crash into anything. The car flips right over it.', 2);
+  if (AC && SAVE.settings.sfx) { const t = AC.currentTime; [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, 0.09, 'square', 0.13, t + i * 0.07)); }
+}
+// where a stunt should come down: a little way up the road you were heading along
+function escapeAim(c) {
+  if (!G.free && G.route && G.route.pts.length > 1) { const pr = projectOn(G.route.pts, c.x, c.y), q = pointAlong(G.route.pts, pr.along + 150); return [q[0] - Math.sin(q[2]) * LW * 0.5, q[1] + Math.cos(q[2]) * LW * 0.5]; }
+  const ne = nearestEdge(c.x, c.y, 600); if (!ne) return null;
+  const e = ne.e, s = (c.vx * e.ux + c.vy * e.uy) >= 0 ? 1 : -1, t = clamp(ne.t + s * 150, 10, e.len - 10);
+  return [e.ax + e.ux * t + e.nx * LW * 0.5 * s, e.ay + e.uy * t + e.ny * LW * 0.5 * s];
+}
+function solidAhead(c, dt) {
+  const x = c.x + c.vx * dt * 1.5, y = c.y + c.vy * dt * 1.5, fx = Math.cos(c.h), fy = Math.sin(c.h), hl = c.len / 2 * 0.85, hw = c.wid / 2 * 0.8;
+  for (const [a, b] of [[hl, 0], [hl, hw], [hl, -hw], [-hl, hw], [-hl, -hw]]) { const t = cellAt(x + fx * a - fy * b, y + fy * a + fx * b); if (SOLID[t] && t !== T.RAIL) return true; }
+  return false;
+}
+function stunt(c, kind) {
+  if (c.stunt && c.stunt.t < 0.15) return;
+  const big = kind !== 'curb', vz = big ? 270 + Math.random() * 60 : 175, air = 2 * vz / GRAV, aim = escapeAim(c);
+  let ang, sp;
+  if (aim) { ang = Math.atan2(aim[1] - c.y, aim[0] - c.x); sp = clamp(dist(aim[0], aim[1], c.x, c.y) / air, 110, 300); }
+  else { ang = Math.atan2(-c.vy, -c.vx); sp = 140; }
+  c.vx = Math.cos(ang) * sp; c.vy = Math.sin(ang) * sp; c.vz = vz; c.z = Math.max(c.z, 1); c.onRoof = false; c.airT = 0; c.steerS = 0;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  c.stunt = { t: 0, air, h0: c.h, h1: ang, spins: (big ? 2 + (Math.random() < 0.35 ? 1 : 0) : 1) * dir, rolls: big ? 2 : 1, name: big ? TRICKS[Math.random() * TRICKS.length | 0] : 'CURB FLIP!', kind };
+  cam.shake = Math.max(cam.shake, big ? 5 : 2);
+  if (AC && SAVE.settings.sfx) { const t = AC.currentTime; tone(240, 0.28, 'square', 0.16, t, 980); tone(480, 0.2, 'triangle', 0.12, t + 0.05, 1500); if (big) noise(0.12, 0.2, 1400, t); }
+  for (let i = 0; i < (big ? 16 : 8); i++) G.particles.push({ x: c.x, y: c.y, vx: (Math.random() - .5) * 160, vy: (Math.random() - .5) * 160, vz: 80 + Math.random() * 120, z: 4, life: 0.9, col: ['#f6d77a', '#f2a7b8', '#9fd8dc', '#7fd38a', '#f08a3a', '#fbf3df'][i % 6], s: 2 });
+}
+function crazyTick(dt) {
+  const p = G.player, st = p.stunt;
+  if (st) {
+    st.t += dt; const k = clamp(st.t / st.air, 0, 1), e = k * k * (3 - 2 * k);
+    p.h = st.h0 + angDiff(st.h0, st.h1) * e;
+    if (st.t > 0.12 && p.z <= 0.01 && !p.onRoof) { // touchdown: pointing down the road, still rolling
+      p.h = st.h1; const sp = Math.max(150, Math.hypot(p.vx, p.vy)); p.vx = Math.cos(p.h) * sp; p.vy = Math.sin(p.h) * sp; p.stunt = null;
+      G.stunts = (G.stunts || 0) + 1; const cash = st.kind === 'curb' ? 1 : 2; if (G.free) { SAVE.money += cash; } else G.coins += cash;
+      G.particles.push({ x: p.x, y: p.y - 6, vx: 0, vy: -24, vz: 0, z: 10, life: 1.1, col: '#f6d77a', s: 1, txt: st.name + ' +$' + cash });
+      if (st.kind !== 'curb') { showMsg(st.name, '+$' + cash + ' stunt bonus', 0.9); award('stunt', false, 1.2); }
+      sfx('land'); burst(p.x, p.y + 3, '#f6d77a', 8);
+    } else if (st.t > st.air + 1.5) p.stunt = null; // safety net
+  }
+  if (G.crazyT > 0) {
+    G.crazyT -= dt;
+    const el = $('#hCrazy'); el.querySelector('i').style.width = Math.max(0, G.crazyT / G.crazyMax * 100) + '%';
+    if (Math.random() < dt * 22 && p.dead <= 0) G.particles.push({ x: p.x - Math.cos(p.h) * 9 + (Math.random() - .5) * 6, y: p.y - Math.sin(p.h) * 9 + (Math.random() - .5) * 6, vx: (Math.random() - .5) * 20, vy: (Math.random() - .5) * 20, vz: 30, z: 2 + p.z, life: 0.5, col: ['#f6d77a', '#f2a7b8', '#9fd8dc', '#7fd38a', '#f08a3a'][Math.random() * 5 | 0], s: 2 });
+    if (G.crazyT <= 0) { G.crazyT = 0; el.hidden = true; if (G.state === 'run') showMsg('CRAZY MODE OVER', 'Grab a star or 6 sand dollars in a row for more', 1.6); }
+  }
+  if (G.coinStreak && G.real - G.coinStreakT > 6) G.coinStreak = 0;
+}
+function coinStreak() { G.coinStreak = (G.real - (G.coinStreakT || -99) > 6 ? 0 : (G.coinStreak || 0)) + 1; G.coinStreakT = G.real; if (G.coinStreak >= 6) { G.coinStreak = 0; startCrazy(9, '6 sand dollars in a row! Crash into anything.'); } }
+function drawStar(o, now) {
+  const x = Math.round(o.x), y = Math.round(o.y - 10 + Math.sin(now * 5 + o.s) * 2), cols = ['#f6d77a', '#f2a7b8', '#9fd8dc', '#7fd38a', '#f08a3a'], c1 = cols[Math.floor(now * 8 + o.s) % 5];
+  ctx.fillStyle = 'rgba(246,215,122,' + (0.2 + 0.15 * Math.sin(now * 6)) + ')'; ctx.beginPath(); ctx.ellipse(x, Math.round(o.y) + 2, 12, 6, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#000'; ctx.fillRect(x - 2, y - 8, 5, 17); ctx.fillRect(x - 8, y - 3, 17, 6); ctx.fillRect(x - 6, y - 6, 13, 12);
+  ctx.fillStyle = c1; ctx.fillRect(x - 1, y - 7, 3, 15); ctx.fillRect(x - 7, y - 2, 15, 4); ctx.fillRect(x - 5, y - 5, 11, 10);
+  ctx.fillStyle = '#fff'; ctx.fillRect(x - 3, y - 3, 2, 2); ctx.fillStyle = '#1e1f24'; ctx.fillRect(x - 3, y, 2, 2); ctx.fillRect(x + 2, y, 2, 2); ctx.fillRect(x - 2, y + 3, 5, 1);
+}
+
 /* =================== frame rendering =================== */
 const canvas = $('#game'); const ctx = canvas.getContext('2d');
 let GLOW = null;
@@ -3305,7 +3385,11 @@ function drawCarBody(c, now) {
   // shadow
   const sh = clamp(1 - c.z / 160, 0.4, 1);
   ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(c.x + 1, c.y + 2, (c.len / 2 + 1) * sh * (0.6 + 0.4 * Math.abs(Math.cos(c.h))) + 2, (c.wid / 2 + 1) * sh + 1, 0, 0, TAU); ctx.fill();
-  ctx.drawImage(spr, Math.round(c.x - 22), Math.round(c.y - 22 - c.z));
+  if (c.stunt) { // spinning and rolling through the air
+    const k = clamp(c.stunt.t / c.stunt.air, 0, 1), sa = c.h + k * TAU * c.stunt.spins, si = ((Math.round(sa / TAU * ANG) % ANG) + ANG) % ANG;
+    const sp2 = c.vid && VEHICLES[c.vid] ? vehicleSprite(VEHICLES[c.vid], si, c.vid) : vehicleSprite(c.spec, si, c.spec.key); let sy = Math.cos(k * TAU * c.stunt.rolls); if (Math.abs(sy) < 0.18) sy = sy < 0 ? -0.18 : 0.18;
+    ctx.save(); ctx.translate(Math.round(c.x), Math.round(c.y - c.z)); ctx.scale(1.12, sy * 1.12); ctx.drawImage(sp2, -22, -22); ctx.restore();
+  } else ctx.drawImage(spr, Math.round(c.x - 22), Math.round(c.y - 22 - c.z));
   if (c.wet > 0.2 && c.z < 2) { const hgt = Math.min(7, 2 + c.wet * 3); ctx.fillStyle = 'rgba(52,86,100,0.8)'; ctx.fillRect(Math.round(c.x - c.len / 2 - 2), Math.round(c.y + 3 - hgt), c.len + 4, hgt); ctx.fillStyle = 'rgba(220,240,240,.7)'; ctx.fillRect(Math.round(c.x - c.len / 2 - 2), Math.round(c.y + 3 - hgt), c.len + 4, 1); }
   if (c.stalled) { const k = Math.floor(performance.now() / 250) % 2; ctx.fillStyle = '#fff'; ctx.fillRect(Math.round(c.x - 6), Math.round(c.y - 22 - c.z), 13, 8); pixText(ctx, k ? '...' : 'SPUT', Math.round(c.x - (k ? 5 : 7)), Math.round(c.y - 21 - c.z), '#1f2f5a'); }
   if (c.rival && c.name) { const w = pixTextW(c.name.split(' ')[0]); pixText(ctx, c.name.split(' ')[0], Math.round(c.x - w / 2), Math.round(c.y - 20 - c.z), '#000'); pixText(ctx, c.name.split(' ')[0], Math.round(c.x - w / 2) - 1, Math.round(c.y - 21 - c.z), '#f6d77a'); }
@@ -3329,6 +3413,7 @@ function drawProp(o) {
 function drawPickup(o, now) {
   const b = Math.sin(now * 5 + o.s) * 1.5;
   ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fillRect(Math.round(o.x - 3), Math.round(o.y + 2), 6, 2);
+  if (o.type === 'star') { drawStar(o, now); return; }
   if (o.type === 'coin') { // sand dollar
     const y = Math.round(o.y - 5 + b), x = Math.round(o.x);
     ctx.fillStyle = '#efe0c8'; ctx.fillRect(x - 3, y - 2, 6, 4); ctx.fillRect(x - 2, y - 3, 4, 6); ctx.fillStyle = '#b9a07a'; ctx.fillRect(x, y - 2, 1, 1); ctx.fillRect(x - 2, y, 1, 1); ctx.fillRect(x + 1, y, 1, 1); ctx.fillRect(x - 1, y + 1, 1, 1);
