@@ -78,7 +78,7 @@ The front page lists the games in this order (games.js order):
 | Blackthorn Manor | `blackthorn.html` | `blackthornmanor.` prefix | SNES-style 3/4 top-down action adventure. **Don't edit it in this repo:** edit it in reimagined-chainsaw and sync it in. |
 | Blackthorn Manor II | `blackthorn2.html` | `bm2.save.v1` | 3D platformer (raw WebGL2), **beta**. Same rule: build it in reimagined-chainsaw and sync it in. |
 | Cat Bakery | `catbakery/` | `catbakery.save.v2` | Cozy bakery sim. Playtested Nov 1 2026. |
-| Mirror of Algol | `algol.html` | `mirror-save` | Dev menu only with `?dev`. |
+| Mirror of Algol | `algol.html` | `mirror-save` | Dev menu only with `?dev`. Audited and battles reworked Nov 16 2026 (see README). Plays by tap as well as keys: screens register tappable areas with `hot()` as they draw. Enemy art is cached per enemy by `enemyArt()`; battle backdrops are in `BBG_PAINT`. Battle damage rules were left alone. |
 | Adriatica | `adriatica/` | `sq_save_v1` | "Thirteen Sphinxes". Jump panels only with `?dev`. |
 | Adriatica II | `adriatica2/` | `adriatica-save-v2` | Dev panel only with `?dev`. Also still served at adriatica2.noralindsey.com until that subdomain is retired. |
 | The Long Apprenticeship | `apprenticeship/` | `wilderlore:save:v1` | "Wilderlore" caravan journey. Difficulty values live in `src/app.jsx`. |

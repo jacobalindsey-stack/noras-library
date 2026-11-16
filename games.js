@@ -75,7 +75,7 @@ window.NORA_GAMES = [
     kind: 'Retro turn-based RPG',
     platforms: ['PC', 'iPad', 'iPhone'],
     blurb: "Alys wakes in Glass Camineet, a city of mirror-stone under one moon and its impossible reflection, remembering nothing but the word home.",
-    howto: "Arrow keys to move, Z to confirm, X to go back. On a touch screen an on-screen pad appears.",
+    howto: "Arrow keys to move, Z to confirm, X to go back. On a touch screen, tap where you want to walk and tap what you want to use; a pad and buttons appear too.",
     shots: ['previews/algol-play.jpg', 'previews/algol-title.jpg'],
     href: 'algol.html',
     ground: '#0b0640',
