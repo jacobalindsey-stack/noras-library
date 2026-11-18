@@ -31,7 +31,7 @@ window.NORA_GAMES = [
     key: 'blackthorn',
     title: 'Blackthorn Manor',
     kind: 'Spellcasting action adventure',
-    platforms: ['PC', 'iPad', 'iPhone'],
+    platforms: ['PC', 'iPad'],
     blurb: "Juniper, a witch who can only cast Spark, is summoned to Blackthorn Manor with one instruction: bring the cat. Inside, every clock has read 11:59 for thirty years.",
     howto: "Arrow keys to move, J to cast, K to act, L to dash, I for the cat. A gamepad or the on-screen buttons work too.",
     shots: ['previews/blackthorn-play.jpg', 'previews/blackthorn-title.jpg'],
@@ -147,5 +147,21 @@ window.NORA_GAMES = [
     ground: '#1f2f5a',
     foil: '#f6d77a',
     emblem: '<path d="M6 46h52"/><path d="M20 46V14M44 46V14"/><path d="M20 14L8 46M20 14l12 32M44 14L32 46M44 14l12 32"/><path d="M14 58h36"/><rect x="24" y="50" width="16" height="7" rx="2"/>'
+  },
+  {
+    key: 'georgiabuns',
+    title: 'Georgia Buns',
+    kind: 'Side-scrolling speed adventure',
+    isNew: true,
+    beta: true,
+    platforms: ['iPad', 'PC'],
+    blurb: "One of seventeen bunny cousins woke up with one thing on his mind: throw some rocks in the creek. Run the forest, pay the Nibbin' Bun in carrots, outrun the bobcat, and make it to the cookout by sundown.",
+    howto: "Arrow keys or WASD to run, Space to jump, Down to roll (hold Down and tap jump to rev up). On an iPad, slide a thumb anywhere on the left to run and tap JUMP; the EASY button lets you just hold where you want to go.",
+    note: "Day 1 of the Georgia Buns, from six years of bedtime stories.",
+    shots: ['previews/georgiabuns-play.jpg', 'previews/georgiabuns-title.jpg'],
+    href: 'georgiabuns.html',
+    ground: '#2a2058',
+    foil: '#f6c645',
+    emblem: '<path d="M25 29c-5-9-6-21-2-25 4 3 6 13 6 24"/><path d="M39 29c5-9 6-21 2-25-4 3-6 13-6 24"/><circle cx="32" cy="40" r="13"/><circle cx="27" cy="38" r="1.6" fill="currentColor" stroke="none"/><circle cx="37" cy="38" r="1.6" fill="currentColor" stroke="none"/><path d="M30 44l2 2 2-2"/><path d="M23 55q9 5 18 0"/><path d="M32 57v4"/>'
   }
 ];
