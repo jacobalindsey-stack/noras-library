@@ -770,9 +770,11 @@ function auUnlock() {
   }
   if (AU.el && AU.el.paused) AU.el.play().catch(() => {});
 }
+function auJuke(id) { AU.juke = id; AU.pending = id || MODE_SONG[AU.mode] || 'buns'; }
 function auSetOn(on) { AU.on = on; if (AU.master) AU.master.gain.value = on ? 1 : 0; }
-const MODE_SONG = { title: 'buns', lawn: 'buns', theme: 'theme', chase: 'chase', cookout: 'cookout', crew: 'cookout', creek: 'creek' };
-function auMode(m) { if (AU.mode === m) return; AU.mode = m; const s = MODE_SONG[m] || 'theme'; if (!AU.song || AU.song.id !== s) AU.pending = s; }
+const MODE_SONG = { title: 'buns', lawn: 'sunny', theme: 'nibbin', chase: 'bobcat', cookout: 'garden', crew: 'icebox', creek: 'marsh' };
+AU.juke = null;
+function auMode(m) { if (AU.mode === m) return; AU.mode = m; if (AU.juke) return; const s = MODE_SONG[m] || 'buns'; if (!AU.song || AU.song.id !== s) AU.pending = s; }
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 function env(g, t, a, peak, d, end = 0.0001) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(end, t + a + d); }
 function noiseSrc(t, dur) { const s = AU.ctx.createBufferSource(); s.buffer = AU.noise; s.start(t, Math.random() * .5); s.stop(t + dur); return s; }
@@ -808,10 +810,10 @@ function dShaker(t, v = .05) { const c = AU.ctx, f = c.createBiquadFilter(), g =
 
 /* --- harmony --- */
 const CH = {
-  Ebmaj7: [39, [63, 67, 70, 74]], Cm7: [36, [60, 63, 67, 70]], Abmaj7: [44, [60, 63, 67, 68]], Bb: [34, [62, 65, 70]], Bbsus: [34, [63, 65, 70]],
-  Ab: [44, [60, 63, 68]], Gm7: [43, [62, 65, 67, 70]], EbG: [43, [63, 67, 70]], Cm: [36, [60, 63, 67]], G: [43, [59, 62, 67]], Fm: [41, [60, 65, 68]],
-  A: [33, [64, 69, 73]], 'F#m': [30, [61, 66, 69]], D: [26, [62, 66, 69]], E: [28, [64, 68, 71]],
-  BbM: [34, [62, 65, 70]], Eb: [39, [63, 67, 70]], F: [41, [60, 65, 69]], Gm: [43, [62, 67, 70]], Dm: [38, [62, 65, 69]], Am: [45, [60, 64, 69]], C: [36, [60, 64, 67]], F7: [41, [60, 63, 65, 69]]
+  A: [33, [64, 69, 73]], 'F#m': [30, [61, 66, 69]], D: [38, [62, 66, 69]], E: [28, [64, 68, 71]], G: [31, [62, 67, 71]], Am: [33, [64, 69, 72]],
+  Bb: [34, [62, 65, 70]], Eb: [27, [63, 67, 70]], F: [29, [60, 65, 69]], Gm: [31, [62, 67, 70]], Dm: [38, [62, 65, 69]],
+  Fm: [29, [60, 65, 68]], Db: [37, [61, 65, 68]], C: [36, [60, 64, 67]], Bm: [35, [62, 66, 71]], 'F#': [30, [61, 66, 70]], Gb: [30, [61, 66, 70]],
+  Bbm: [34, [61, 65, 70]], Ab: [32, [60, 63, 68]], Ebm: [27, [63, 66, 70]]
 };
 const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 function parseBar(s) { // 16 tokens: note like Eb5, '-' hold, '.' rest  ->  [[step, midi, lenSteps]]
@@ -836,11 +838,16 @@ const DR = {
   funk: { k: 'x.....x...x..x..', c: '....x.......x...', h: 'x.xxx.xxx.xxx.xo' },
   funkfill: { k: 'x.....x...x.....', c: '....x.......x...', s: '..........xx.xxx', h: 'x.xxx.xxx.xxx.xo' },
   creek: { k: 'x.........x.....', r: '........x.......', z: 'x.x.x.x.x.x.x.x.' },
+  ballad: { k: 'x.........x.....', c: '........x.......', h: 'x.x.x.x.x.x.x.x.' },
+  ballad2: { k: 'x.........x..x..', c: '........x.......', h: 'x.x.x.x.x.x.rrrr' },
+  marsh: { k: 'x......x..x.....', c: '........x.......', h: 'x.x.x.x.x.x.x.x.', z: '..x...x...x...x.' },
+  marsh2: { k: 'x......x..x...x.', c: '........x.......', h: 'x.x.x.x.x.rrx.x.', z: 'x.x.x.x.x.x.x.x.' },
+  bounce: { k: 'x..x..x...x..x..', c: '....x.......x...', h: 'x.x.x.x.x.x.x.x.' },
   creek2: { k: 'x.........x..x..', r: '....x.......x...', z: 'xxxxxxxxxxxxxxxx' }
 };
 const SONG = {
-  // "Georgia Buns" — Jacob's theme (A major, 152), hook transcribed from the Suno track
-  buns: { bpm: 152, arp: '0.1.2.1.0.1.2.1.', lead: 'sega', loopTo: 2, bars: [
+  // "Georgia Buns" (A major, 152): title screen
+  buns: { name: 'GEORGIA BUNS', bpm: 152, arp: '0.1.2.1.0.1.2.1.', lead: 'sega', loopTo: 2, bars: [
     ['A', 'intro', ''],
     ['E', 'intro', '. . . . . . . . E5 - F#5 - G#5 - B5 -'],
     ['A', 'A', 'E5 - E5 - E5 - E5 - F#5 - - - C#5 - - -'],
@@ -859,66 +866,95 @@ const SONG = {
     ['D', 'B', 'F#5 - F#5 - F#5 - C#5 - C#5 - C#5 - E5 - E5 -'],
     ['E', 'B', 'E5 - E5 - B4 - B4 - B4 - A4 - C#5 - - -'],
     ['E', 'fill', '. . . . . . . . E5 - F#5 - G#5 - B5 -']] },
-  theme: { bpm: 140, arp: '0.2.1.3.0.2.1.3.', lead: 'whistle', bars: [
-    ['Ebmaj7', 'intro', 'Bb4 . Eb5 . G5 - Bb5 - . G5 Bb5 - C6 - Bb5 -'],
-    ['Cm7', 'A', 'G5 - - - Eb5 - - . F5 G5 - Eb5 - C5 - .'],
-    ['Abmaj7', 'A', 'C5 . Eb5 . Ab5 - C6 - . Ab5 C6 - Eb6 - D6 -'],
-    ['Bb', 'A2', 'C6 - Bb5 - - - G5 - F5 - - - . . . .'],
-    ['Ebmaj7', 'A', 'Bb4 . Eb5 . G5 - Bb5 - . G5 Bb5 - C6 - Bb5 -'],
-    ['Cm7', 'A', 'G5 - - - Bb5 - - . C6 - Bb5 - G5 - Eb5 -'],
-    ['Abmaj7', 'A', 'F5 - - Ab5 - - C6 - Bb5 - Ab5 - G5 - F5 -'],
-    ['Bbsus', 'fill', 'Eb5 - - - - - - - . . Bb4 . D5 . F5 .'],
-    ['Ab', 'B', 'Eb6 - - - - - C6 - - - Ab5 - - - Bb5 -'],
-    ['Bb', 'B', 'C6 - - - D6 - - - Bb5 - - - F5 - - -'],
-    ['Gm7', 'B', 'G5 - - - Bb5 - - - D6 - - - C6 - Bb5 -'],
-    ['Cm7', 'B', 'G5 - - - - - - - . . Eb5 - F5 - G5 -'],
-    ['Ab', 'B', 'Ab5 - - - C6 - - - Eb6 - - - F6 - Eb6 -'],
-    ['Bb', 'B', 'D6 - - - - - Bb5 - - - C6 - D6 - F6 -'],
-    ['EbG', 'B', 'Eb6 - - - - - - - G5 - Bb5 - Eb6 - G6 -'],
-    ['Bbsus', 'fill', 'F6 - - - D6 - - - Bb5 - - - . . . .']] },
-  chase: { bpm: 150, arp: '0123012301230123', arpOct: 12, lead: 'growl', bars: [
-    ['Cm', 'chase', 'C4 - - - Eb4 - G4 - F4 - G4 - Eb4 - D4 -'],
-    ['Cm', 'chase', 'C4 - - - - - - - . . . . G3 - Bb3 -'],
-    ['Ab', 'chase', 'C4 - - - Eb4 - G4 - Ab4 - G4 - F4 - Eb4 -'],
-    ['G', 'chase2', 'D4 - - - - - - - B3 - - - D4 - F4 -'],
-    ['Cm', 'chase', 'C4 - - - Eb4 - G4 - F4 - G4 - Eb4 - D4 -'],
-    ['Cm', 'chase', 'C4 - - - - - - - . . . . G3 - Bb3 -'],
-    ['Ab', 'chase', 'C4 - - - Eb4 - G4 - Ab4 - G4 - F4 - Eb4 -'],
-    ['G', 'chase2', 'D4 - - - - - - - B3 - - - D4 - F4 -'],
-    ['Cm', 'chase', 'G5 . G5 . Eb5 . G5 . C6 - - - Bb5 - G5 -', 'pluck'],
-    ['Fm', 'chase', 'Ab5 . Ab5 . F5 . Ab5 . C6 - - - Bb5 - Ab5 -', 'pluck'],
-    ['Cm', 'chase', 'G5 . G5 . Eb5 . G5 . C6 - D6 - Eb6 - D6 -', 'pluck'],
-    ['G', 'chase2', 'B5 - - - - - - - D6 - - - F6 - G6 -', 'pluck']] },
-  cookout: { bpm: 104, swing: .17, horns: 'x.....x...x.....', lead: 'brass', bars: [
-    ['BbM', 'funk', 'F5 . D5 . F5 - G5 . Bb5 - . G5 F5 - D5 .'],
-    ['Eb', 'funk', 'Eb5 - - . G5 . Bb5 . C6 - Bb5 . G5 - Eb5 .'],
-    ['F', 'funk', 'F5 - - . A5 . C6 . F6 - Eb6 . C6 - A5 .'],
-    ['Gm', 'funkfill', 'Bb5 - - - G5 - - . D5 - F5 - G5 - - .'],
-    ['BbM', 'funk', 'F5 . D5 . F5 - G5 . Bb5 - . G5 F5 - D5 .'],
-    ['Eb', 'funk', 'Eb5 - - . G5 . Bb5 . C6 - Bb5 . G5 - Eb5 .'],
-    ['F', 'funk', 'F5 - - . A5 . C6 . F6 - Eb6 . C6 - A5 .'],
-    ['Gm', 'funkfill', 'Bb5 - - - G5 - - . D5 - F5 - G5 - - .'],
-    ['Eb', 'funk', 'G5 - - - Bb5 - - - Eb6 - - - D6 - C6 -'],
-    ['F', 'funk', 'C6 - - - - - A5 - F5 - - - . . . .'],
-    ['Dm', 'funk', 'F5 - A5 - D6 - - - C6 - A5 - F5 - D5 -'],
-    ['Gm', 'funk', 'D5 - - - - - - - . . Bb4 - D5 - G5 -'],
-    ['Eb', 'funk', 'G5 - Bb5 - Eb6 - - - G6 - F6 - Eb6 - D6 -'],
-    ['F', 'funk', 'C6 - - - D6 - - - Eb6 - - - F6 - - -'],
-    ['Gm', 'funk', 'D6 - - - Bb5 - - - F5 - G5 - Bb5 - D6 -'],
-    ['F7', 'funkfill', 'Bb5 - - - - - - - . . . . . . . .']] },
-  creek: { bpm: 88, gain: 2.3, arp: '0213210302132103', arpOct: 0, lead: 'bell', bars: [
-    ['F', 'creek', 'C6 - - - A5 - - - F5 - - - G5 - A5 -'],
-    ['Am', 'creek', 'E5 - - - - - - - . . . . C5 - E5 -'],
-    ['Bb', 'creek', 'F5 - - - D5 - - - Bb4 - - - D5 - F5 -'],
-    ['C', 'creek', 'G5 - - - - - - - E5 - - - C5 - - -'],
-    ['F', 'creek2', 'A5 - - - C6 - - - F6 - - - E6 - D6 -'],
-    ['Dm', 'creek2', 'D6 - - - - - - - A5 - - - F5 - A5 -'],
-    ['Bb', 'creek2', 'Bb5 - - - A5 - - - G5 - - - F5 - D5 -'],
-    ['C', 'creek2', 'E5 - - - - - - - G5 - - - - - - -']] }
+  // "Sunny the Squirrel" (Bb / G minor, 74): the burrow and the lawn
+  sunny: { name: 'SUNNY THE SQUIRREL', bpm: 74, gain: 1.35, arp: '0..1..2.0..1..2.', lead: 'whistle', loopTo: 1, bars: [
+    ['Bb', 'intro', ''],
+    ['Bb', 'ballad', '. . F5 - D5 - D5 - D5 - A5 - A5 - G5 -'],
+    ['Eb', 'ballad', 'G5 - G5 - F5 - F5 - . . . . . . Bb4 -'],
+    ['F', 'ballad', 'C5 - F5 - F5 - Bb4 - C5 - F5 - . . A4 -'],
+    ['Gm', 'ballad2', 'A4 - Bb4 - . . Eb5 - D5 - C5 - F4 - Bb4 -'],
+    ['F', 'ballad', 'A5 - A5 - A5 - A5 - G5 - G5 - D5 - D5 -'],
+    ['Gm', 'ballad', 'D5 - C6 - Bb5 - Bb4 - Bb5 - G5 - F5 - . .'],
+    ['Bb', 'ballad', 'D5 - D5 - Bb5 - G5 - C5 - C5 - C5 - Bb4 -'],
+    ['Eb', 'ballad2', 'D5 - G4 - C5 - D5 - F5 - . . . . C5 -'],
+    ['Dm', 'ballad', 'D5 - C5 - D5 - A5 - A5 - A5 - Bb5 - G5 -'],
+    ['Gm', 'ballad', 'D5 - Bb4 - D5 - D5 - Eb5 - F5 - F5 - F5 -'],
+    ['Bb', 'ballad', 'D5 - D5 - Bb5 - D5 - D5 - D5 - Bb5 - C6 -'],
+    ['Gm', 'ballad2', 'C6 - D6 - Bb5 - G5 - D5 - C5 - C5 - Bb4 -']] },
+  // "Nibbin' Bun" (F minor, 160): the forest
+  nibbin: { name: "NIBBIN' BUN", bpm: 160, arp: '0.0.1.0.2.0.1.0.', arpVoice: 'fm', lead: 'pluck', bars: [
+    ['Fm', 'A', 'F5 - F5 - F4 - . . . . . . Ab5 - Ab5 -'],
+    ['Fm', 'A', 'Ab4 - G4 - G4 - G4 - . . F4 - . . . .'],
+    ['Db', 'A', '. . . . Bb4 - Db5 - Db5 - Db5 - C5 - C5 -'],
+    ['C', 'A2', '. . Bb4 - Bb4 - Bb4 - Db5 - Db5 - C5 - C5 -'],
+    ['Fm', 'A', '. . . . C5 - C5 - Db5 - D5 - Bb4 - A4 -'],
+    ['Fm', 'A', '. . . . Db5 - Db5 - Db5 - Db5 - . . . .'],
+    ['Db', 'A', 'Db5 - Db5 - Bb4 - Ab5 - Ab5 - Ab5 - C5 - B4 -'],
+    ['C', 'fill', '. . . . C5 - C5 - C5 - B4 - . . . .'],
+    ['Fm', 'B', 'F5 - F5 - F5 - F5 - G5 - Gb5 - Ab5 - Ab5 -'],
+    ['Fm', 'B', 'C6 - - - Bb5 - Ab5 - F5 - - - . . F5 -'],
+    ['Db', 'B', 'Db6 - Db6 - C6 - - - C6 - B5 - Bb5 - Bb5 -'],
+    ['C', 'fill', 'B5 - - - C6 - - - . . E5 - G5 - Bb5 -']] },
+  // "The Bobcat" (B minor, 152): the chase
+  bobcat: { name: 'THE BOBCAT', bpm: 152, arp: '0123012301230123', arpVoice: 'fm', arpOct: 12, lead: 'growl', bars: [
+    ['Bm', 'chase', 'B3 - B3 - B3 - B3 - C#4 - B3 - C#4 - B3 -'],
+    ['Bm', 'chase', 'C#4 - B3 - F#4 - F#4 - F#4 - E4 - . . . .'],
+    ['F#', 'chase', 'C#4 - C#4 - C#4 - . . C#4 - C#4 - C#4 - B3 -'],
+    ['Bm', 'chase2', 'D4 - C#4 - B3 - B3 - F#3 - F#3 - F#3 - . .'],
+    ['Bm', 'chase', 'B3 - B3 - B3 - B3 - C#4 - B3 - C#4 - B3 -'],
+    ['Bm', 'chase', 'C#4 - B3 - F#4 - F#4 - F#4 - E4 - . . . .'],
+    ['G', 'chase', 'D4 - D4 - C#4 - . . C4 - B3 - C4 - B3 -'],
+    ['F#', 'chase2', 'C#4 - C4 - C4 - B3 - F#4 - F#4 - E#4 - E4 -'],
+    ['Bm', 'chase', 'B4 - B4 - B4 - B4 - C#5 - B4 - C#5 - B4 -', 'pluck'],
+    ['Bm', 'chase', 'C#5 - B4 - F#5 - F#5 - F#5 - E5 - . . . .', 'pluck'],
+    ['G', 'chase', 'D5 - D5 - C#5 - . . C#5 - B4 - C#5 - B4 -', 'pluck'],
+    ['F#', 'chase2', 'F#4 - - - F#4 - F#4 - F#4 - - - A#4 - C#5 -', 'pluck']] },
+  // "Garden Party" (Bb Dorian, 99, swung): the cookout
+  garden: { name: 'GARDEN PARTY', bpm: 99, swing: .17, horns: 'x.....x...x.....', lead: 'brass', bars: [
+    ['Bbm', 'funk', 'Bb5 - Bb5 - Bb5 - Bb5 - Db6 - Db6 - Bb5 - . .'],
+    ['Eb', 'funk', 'Db6 - Db6 - Ab5 - Ab5 - Bb5 - Bb5 - Ab5 - Eb6 -'],
+    ['Gb', 'funk', 'Db6 - Db6 - Db6 - . . Bb5 - Bb5 - D6 - F6 -'],
+    ['F', 'funkfill', 'Db6 - Db6 - Ab5 - Bb5 - Bb5 - Bb5 - Bb5 - Bb5 -'],
+    ['Bbm', 'funk', 'Eb6 - Eb6 - Eb6 - Db6 - Db6 - Bb5 - Bb5 - Ab5 -'],
+    ['Ab', 'funk', '. . Db6 - Db6 - Db6 - G5 - Ab5 - Bb5 - Bb5 -'],
+    ['Gb', 'funk', 'Db6 - C6 - C6 - Db6 - Db6 - Bb5 - Bb5 - Bb5 -'],
+    ['F', 'funkfill', 'Bb5 - . . Bb5 - Bb5 - Bb5 - Bb5 - Eb6 - F6 -']] },
+  // "Marsh Buns" (D minor, 160): the creek
+  marsh: { name: 'MARSH BUNS', bpm: 160, arp: '0.2.1.2.0.2.1.2.', lead: 'steel', gain: 1.1, bars: [
+    ['Dm', 'marsh', '. . . . . . . . G5 - G5 - G5 - G5 -'],
+    ['Dm', 'marsh', 'A5 - A5 - . . . . G5 - G5 - G5 - G5 -'],
+    ['F', 'marsh', 'A5 - . . . . . . . . G5 - F5 - F5 -'],
+    ['A', 'marsh2', 'A5 - . . . . . . F5 - F5 - C6 - . .'],
+    ['Dm', 'marsh', '. . . . . . . . C6 - A5 - A5 - A5 -'],
+    ['Dm', 'marsh', 'A5 - A5 - A5 - . . G5 - . . . . . .'],
+    ['Am', 'marsh', 'A5 - A5 - A5 - A5 - . . . . E5 - G5 -'],
+    ['Dm', 'marsh2', 'G5 - G5 - . . . . . . A5 - A5 - A5 -'],
+    ['Am', 'marsh', 'A5 - A5 - A5 - A5 - . . . . . . . .'],
+    ['Am', 'marsh', 'Bb5 - . . . . A5 - A5 - A5 - A5 - A5 -'],
+    ['Gm', 'marsh', 'A5 - A5 - A5 - A5 - . . . . E5 - . .'],
+    ['A', 'fill', '. . . . . . . . C6 - A5 - A5 - G#5 -']] },
+  // "Ice Box" (Eb minor, 172): the Cousin Crew power-up
+  icebox: { name: 'ICE BOX', bpm: 172, arp: '0..2..1.0..2..1.', arpVoice: 'fm', arpOct: 12, lead: 'bell', bars: [
+    ['Ebm', 'bounce', '. . . . Bb5 - Bb5 - Bb5 - Gb5 - Ab5 - Ab5 -'],
+    ['Bbm', 'bounce', '. . . . Bb5 - Bb5 - Bb5 - Ab5 - Ab5 - Gb5 -'],
+    ['Ebm', 'bounce', '. . . . Db5 - Bb5 - Bb5 - Ab5 - Ab5 - Gb5 -'],
+    ['Gb', 'fill', '. . . . . . . . Ab5 - Gb5 - Bb5 - . .']] },
+  // "Dexter" (E country, 160): saved for Dexter's day on the farm; in the jukebox now
+  dexter: { name: 'DEXTER', bpm: 160, arp: '0213021302130213', lead: 'fiddle', bars: [
+    ['E', 'A', 'E5 - E5 - D5 - E5 - E5 - E5 - E5 - E5 -'],
+    ['E', 'A', 'E5 - E5 - . . . . G5 - G5 - E5 - E5 -'],
+    ['E', 'A', 'E5 - E5 - D5 - E5 - E5 - E5 - E5 - E5 -'],
+    ['E', 'A2', 'E5 - E5 - B4 - . . D5 - D5 - . . . .'],
+    ['E', 'A', 'E5 - E5 - A5 - B5 - B5 - B5 - . . . .'],
+    ['A', 'A', '. . . . A5 - A5 - G5 - G5 - . . . .'],
+    ['G', 'A', '. . G5 - B5 - B5 - B5 - B5 - D6 - D6 -'],
+    ['A', 'fill', 'D6 - . . A5 - A5 - E6 - D6 - . . . .']] }
 };
 for (const k in SONG) { SONG[k].id = k; SONG[k].bars.forEach(b => { b.notes = parseBar(b[2]); }); }
 const LEADS = {
   sega: (t, m, d) => { vFM(t, m, d, { ratio: 1, index: 2.4, sustainI: .45, idecay: .12, vib: 1, vol: .085, att: .008, rel: .06, wet: .3 }); vFM(t, m + 12, d, { ratio: 2, index: 1, sustainI: .3, vol: .022, att: .01, rel: .05 }); },
+  steel: (t, m, d) => vFM(t, m, d, { ratio: 2, index: 1.6, sustainI: .1, idecay: .2, pluck: Math.min(.9, d + .25), vol: .085, wet: .4 }),
+  fiddle: (t, m, d) => { vFM(t, m, d, { ratio: 1, index: 2.8, sustainI: .6, idecay: .1, vib: 1, vol: .07, att: .03, rel: .07, wet: .25 }); vFM(t, m, d, { ratio: 3, index: .7, vol: .02, att: .03, rel: .05 }); },
   whistle: (t, m, d) => vFM(t, m, d, { ratio: 1, index: 1.1, sustainI: .35, idecay: .2, vib: 1, vol: .085, att: .03, rel: .12, wet: .35 }),
   growl: (t, m, d) => vGrowl(t, m, d),
   pluck: (t, m, d) => vFM(t, m, d, { ratio: 2, index: 3, sustainI: .1, idecay: .15, pluck: .32, vol: .07, wet: .25 }),
@@ -927,7 +963,7 @@ const LEADS = {
 };
 function auTick() {
   const c = AU.ctx; if (!c || c.state !== 'running') return;
-  if (!AU.song) { AU.song = SONG[MODE_SONG[AU.mode] || 'theme']; AU.bar = 0; AU.step = 0; }
+  if (!AU.song) { AU.song = SONG[AU.juke || MODE_SONG[AU.mode] || 'buns']; AU.bar = 0; AU.step = 0; }
   if (AU.next < c.currentTime - .2) AU.next = c.currentTime + .06;
   while (AU.next < c.currentTime + .12) {
     if (AU.pending && (AU.step === 0 || AU.step === 8)) { AU.song = SONG[AU.pending]; AU.pending = null; AU.bar = 0; AU.step = 0; }
@@ -950,14 +986,13 @@ function playStep(s, bar, st, t, sd) {
   if (dr.h) { const h = dr.h[st]; if (h === 'x') dHat(t, st % 4 === 0 ? .11 : .07); else if (h === 'r') { dHat(t, .07); dHat(t + sd / 2, .05); } else if (h === 'o') dHat(t, .09, true); }
   // 808 bass on the kicks, walking to the fifth
   const kick = dr.k && dr.k[st] === 'x';
-  if (kick && s.id !== 'creek') { const m = root + 12 + (st === 10 && (s.id === 'theme' || s.id === 'buns') ? 7 : 0); v808(t, m, s.id === 'chase' ? .32 : .5); vFM(t, m + 12, .14, { ratio: 1, index: 1.6, sustainI: .2, idecay: .1, pluck: .22, vol: .045 }); }
-  if (s.id === 'creek' && (st === 0 || st === 8)) vFM(t, root + 12 + (st === 8 ? 7 : 0), sd * 7, { ratio: 1, index: .8, sustainI: .3, vol: .07, rel: .2 });
-  if (s.id === 'cookout' && [0, 3, 6, 10, 12].includes(st)) vFM(t, root + 12 + (st === 6 ? 7 : st === 12 ? 12 : 0), sd * 1.6, { ratio: 1, index: 3, sustainI: .3, idecay: .08, pluck: .25, vol: .08 });
+  if (kick) { const m = root + 12 + (st === 10 && s.walk !== false ? 7 : 0); v808(t, m, s.bpm > 150 ? .34 : .5); vFM(t, m + 12, .14, { ratio: 1, index: 1.6, sustainI: .2, idecay: .1, pluck: .22, vol: .045 }); }
+  if (s.id === 'garden' && [0, 3, 6, 10, 12].includes(st)) vFM(t, root + 12 + (st === 6 ? 7 : st === 12 ? 12 : 0), sd * 1.6, { ratio: 1, index: 3, sustainI: .3, idecay: .08, pluck: .25, vol: .08 });
   // pad
-  if (st === 0 && !intro) vPad(t, tones, sd * 16, s.id === 'creek' ? .02 : .016);
+  if (st === 0 && !intro) vPad(t, tones, sd * 16, s.id === 'sunny' ? .022 : .015);
   if (st === 0 && intro) vPad(t, tones, sd * 16, .024);
   // banjo / arps
-  if (s.arp && !intro) { const a = s.arp[st]; if (a && a !== '.') { const i = +a % tones.length; s.id === 'chase' ? vFM(t, tones[i] + (s.arpOct || 0), sd, { ratio: 2, index: 2, sustainI: .1, pluck: .12, vol: .03 }) : vBanjo(t, tones[i] + (s.arpOct || 0) + ((s.id === 'theme' || s.id === 'buns') && st > 7 ? 12 : 0), s.id === 'creek' ? .06 : .05); } }
+  if (s.arp && !intro) { const a = s.arp[st]; if (a && a !== '.') { const i = +a % tones.length; s.arpVoice === 'fm' ? vFM(t, tones[i] + (s.arpOct || 0), sd, { ratio: 2, index: 2, sustainI: .1, pluck: .12, vol: .03 }) : vBanjo(t, tones[i] + (s.arpOct || 0) + (st > 7 && s.bpm > 140 ? 12 : 0), s.id === 'dexter' ? .07 : .05); } }
   // horn stabs
   if (s.horns && s.horns[st] === 'x') vHorn(t, tones.slice(0, 3), st === 0 ? sd * 3 : sd * 1.5, .028);
   // lead
@@ -1251,7 +1286,7 @@ function stepWorld() {
   }
   // pebble phone: call the cousins
   for (const tk of L.tokens) if (!tk.got && Math.abs(tk.x - pcx) < 18 && Math.abs(tk.y - pcy) < 20) {
-    tk.got = true; S.crew = 600; sfx('crew'); auMode('cookout'); say('hero', 'CUZ! PULL UP!', 100); for (let i = 0; i < 6; i++) sparkle(tk.x + (Math.random() - .5) * 20, tk.y + (Math.random() - .5) * 20);
+    tk.got = true; S.crew = 600; sfx('crew'); auMode('crew'); say('hero', 'CUZ! PULL UP!', 100); for (let i = 0; i < 6; i++) sparkle(tk.x + (Math.random() - .5) * 20, tk.y + (Math.random() - .5) * 20);
   }
   // sleeping cousins
   for (const c of L.cousins) {
@@ -1863,6 +1898,8 @@ function buildMenu() {
   row('RESUME', closeMenu);
   row('EASY MODE: ' + (SAVE.easy ? 'ON' : 'OFF'), () => { SAVE.easy = !SAVE.easy; SAVE.easySeen = true; writeSave(); refreshEasy(); layout(); buildMenu(); if (SAVE.easy && S) S.easyHint = 300; }, 'Hold where you want to go. Tap to jump. Big rocks get hopped for you.');
   row('BUTTONS: ' + ({ S: 'SMALL', M: 'MEDIUM', L: 'LARGE' })[SAVE.size], () => { SAVE.size = SAVE.size === 'S' ? 'M' : SAVE.size === 'M' ? 'L' : 'S'; writeSave(); layout(); buildMenu(); }, 'Size of the jump button and stick.');
+  const ids = [null].concat(Object.keys(SONG));
+  row('MUSIC: ' + (AU.juke ? SONG[AU.juke].name : 'AUTO'), () => { const i = ids.indexOf(AU.juke); auJuke(ids[(i + 1) % ids.length]); buildMenu(); }, 'Auto plays each song in its place. Tap to pick any song on the album.');
   row('SOUND: ' + (SAVE.sound ? 'ON' : 'OFF'), () => { SAVE.sound = !SAVE.sound; auSetOn(SAVE.sound); writeSave(); buildMenu(); });
   row('START THE DAY OVER', () => { closeMenu(); $('again').hidden = true; newGame('intro'); startIntro(); });
   row('TITLE SCREEN', () => { closeMenu(); $('again').hidden = true; newGame('title'); auMode('title'); });
