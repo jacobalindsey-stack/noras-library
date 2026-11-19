@@ -38,16 +38,15 @@ function buildUI() {
   ART.jump = jumpArt(0).toDataURL(); ART.jumpD = jumpArt(1).toDataURL(); ART.base = stickArt(0).toDataURL(); ART.knob = stickArt(1).toDataURL();
   $('jump').style.backgroundImage = 'url(' + ART.jump + ')';
   $('stickBase').style.backgroundImage = 'url(' + ART.base + ')'; $('stickKnob').style.backgroundImage = 'url(' + ART.knob + ')';
-  $('pause').appendChild(pixImg(pauseArt(), 3));
+  refreshPause();
   refreshEasy();
-  const stop = e => { e.stopPropagation(); };
-  for (const id of ['easy', 'pause']) { $(id).addEventListener('pointerdown', stop); }
-  $('easy').addEventListener('click', () => { auUnlock(); SAVE.easy = !SAVE.easy; SAVE.easySeen = true; writeSave(); refreshEasy(); layout(); sfx('tap'); easyExplain(); });
-  $('pause').addEventListener('click', () => { auUnlock(); openMenu(); });
-  $('again').addEventListener('pointerdown', stop);
-  $('again').addEventListener('click', () => { auUnlock(); $('again').hidden = true; enterHub(); });
-  setLabel($('again'), 'BACK TO THE BURROW', 3);
-  setLabel($('menuTitle'), 'PAUSED', 4, '#f6c645');
+  // the page cancels touchstart (no zoom/scroll), which also cancels click on touch screens, so buttons act on pointerup
+  const btn = (id, fn) => { const el = $(id); let down = null; el.addEventListener('pointerdown', e => { e.stopPropagation(); down = e.pointerId; }); el.addEventListener('pointerup', e => { e.stopPropagation(); if (down === e.pointerId) { down = null; fn(); } }); el.addEventListener('pointercancel', () => { down = null; }); };
+  btn('easy', () => { auUnlock(); SAVE.easy = !SAVE.easy; SAVE.easySeen = true; writeSave(); refreshEasy(); layout(); sfx('tap'); easyExplain(); });
+  btn('pause', () => { auUnlock(); openMenu(); });
+  btn('again', () => { auUnlock(); $('again').hidden = true; enterHub(); });
+  setLabel($('again'), 'BACK TO THE BURROW', hudScale());
+  setLabel($('menuTitle'), 'PAUSED', hudScale() + 1, '#f6c645');
   window.onCookout = () => setTimeout(() => { if (S && S.mode === 'cook') $('again').hidden = false; }, 1400);
   buildMenu();
 }
@@ -56,12 +55,14 @@ function easyExplain() {
   if (SAVE.easy) { S.easyHint = 300; say('hero', 'EASY MODE: HOLD YOUR FINGER WHERE YOU WANT ME TO GO. TAP TO JUMP.', 300); }
   else { S.easyHint = 0; say('hero', 'STICK MODE: LEFT THUMB RUNS. JUMP BUTTON JUMPS.', 220); }
 }
-function refreshEasy() { const e = $('easy'); e.textContent = ''; e.appendChild(pixImg(easyArt(SAVE.easy), 3)); e.classList.toggle('on', SAVE.easy); e.classList.toggle('invite', !SAVE.easySeen); }
+function hudScale() { const W = innerWidth, H = innerHeight; return Math.min(W, H) < 520 ? 2 : 3; }
+function refreshPause() { const e = $('pause'); e.textContent = ''; e.appendChild(pixImg(pauseArt(), hudScale())); }
+function refreshEasy() { const e = $('easy'); e.textContent = ''; e.appendChild(pixImg(easyArt(SAVE.easy), hudScale())); e.classList.toggle('on', SAVE.easy); e.classList.toggle('invite', !SAVE.easySeen); }
 
 /* ---------- menu ---------- */
 function buildMenu() {
   const m = $('menuItems'); m.textContent = '';
-  const row = (label, fn, note) => { const b = document.createElement('button'); b.className = 'mbtn'; setLabel(b, label, 3); b.addEventListener('click', e => { e.stopPropagation(); sfx('tap'); fn(); }); m.appendChild(b); if (note) { const n = document.createElement('div'); n.className = 'note'; n.textContent = note; m.appendChild(n); } };
+  const row = (label, fn, note) => { const b = document.createElement('button'); b.className = 'mbtn'; setLabel(b, label, hudScale()); b.addEventListener('click', e => { e.stopPropagation(); sfx('tap'); fn(); }); m.appendChild(b); if (note) { const n = document.createElement('div'); n.className = 'note'; n.textContent = note; m.appendChild(n); } };
   row('RESUME', closeMenu);
   row('EASY MODE: ' + (SAVE.easy ? 'ON' : 'OFF'), () => { SAVE.easy = !SAVE.easy; SAVE.easySeen = true; writeSave(); refreshEasy(); layout(); buildMenu(); if (SAVE.easy && S) S.easyHint = 300; }, 'Hold where you want to go. Tap to jump. Big rocks get hopped for you.');
   row('BUTTONS: ' + ({ S: 'SMALL', M: 'MEDIUM', L: 'LARGE' })[SAVE.size], () => { SAVE.size = SAVE.size === 'S' ? 'M' : SAVE.size === 'M' ? 'L' : 'S'; writeSave(); layout(); buildMenu(); }, 'Size of the jump button and stick.');
@@ -80,7 +81,7 @@ function layout() {
   const vv = window.visualViewport, W = Math.round(vv ? vv.width : innerWidth), H = Math.round(vv ? vv.height : innerHeight);
   UI.W = W; UI.H = H; UI.portrait = H > W * 1.08;
   let playH = H, deckH = 0;
-  if (UI.portrait) { const want = Math.round(W * .7); deckH = Math.max(H - want, Math.min(260, H * .4)); playH = H - deckH; }
+  if (UI.portrait) { playH = Math.min(Math.round(W * 320 / NW), H - 220); deckH = H - playH; }
   UI.playW = W; UI.playH = playH;
   const newNH = clamp(Math.round(NW * playH / W), 200, 320);
   if (newNH !== NH) { NH = newNH; scr.height = NH; g = scr.getContext('2d'); g.imageSmoothingEnabled = false; }
@@ -102,6 +103,12 @@ function layout() {
   jb.hidden = !showCtl; sb.hidden = !showCtl || SAVE.easy; kn.hidden = sb.hidden;
   $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub'; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
   $('hint').hidden = !(UI.portrait && SAVE.easy && showCtl);
+  // EASY and pause: smaller on phones; in portrait they sit at the top of the control deck, below the game
+  const hs = hudScale(); if (UI.hs !== hs) { UI.hs = hs; refreshEasy(); refreshPause(); }
+  const eb = $('easy'), pb = $('pause'), pad = hs === 2 ? 2 : 4;
+  let bt = pad; if (UI.portrait) bt = ctlMode ? playH + 4 + pad : Math.round((H - playH) / 2) + pad;
+  eb.style.top = pb.style.top = bt + 'px';
+  if (UI.portrait && ctlMode) { const top = playH + 4 + pad + 15 * hs + 16, rest = H - top; jb.style.top = Math.round(top + rest * .45 - jd / 2) + 'px'; UI.ghost = [W * .25, top + rest * .45]; placeStick(null); const hn = $('hint'); hn.style.top = top + 'px'; hn.style.height = rest + 'px'; hn.style.bottom = 'auto'; }
   UI.lastMode = S && S.mode;
 }
 function placeStick(pt) {
