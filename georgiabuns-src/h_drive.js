@@ -95,14 +95,14 @@ function initDrive() {
 function stepDrive() {
   const D = S.drv; D.t++;
   if (D.phase === 'shop') { stepShop(D); return; }
-  if (D.phase === 'arrive') { D.sp *= .95; D.z += D.sp; if (D.sp < 8) { D.phase = 'shop'; D.t = 0; say('hero', 'PICK SOME DRIP, CUZ.', 160); } return; }
+  if (D.phase === 'arrive') { D.sp *= .95; D.z += D.sp; if (D.sp < 8 && MISSION && !MISSION.shop) { if (!S.fadeTo) { S.score = D.ice; S.fadeTo = 'cook'; say('hero', 'THAT\'S PEACHTREE.', 120); } return; } if (D.sp < 8) { D.phase = 'shop'; D.t = 0; say('hero', 'PICK SOME DRIP, CUZ.', 160); } return; }
   const seg = D.segs[Math.floor(D.z / DRV.SEG) % D.segs.length], pct = D.sp / D.max;
   const off = Math.abs(D.x) > 1.05;
   D.sp += (off ? (D.sp > D.max * .55 ? -4 : 2) : 3.2); D.sp = clamp(D.sp, 0, D.max);
   if (D.bump > 0) D.bump--;
   D.x += IN.ix * .05 * Math.max(.35, pct); D.x -= .05 * pct * seg.curve * .045;
   if (Math.abs(D.x) > 1.65) { D.x = sgn(D.x) * 1.6; sfx('bonk'); D.sp *= .9; }
-  if (IN.jumpP && D.hop <= 0) { D.hv = 7.5; D.hop = .01; sfx('jump'); }
+  if (IN.jumpP && D.hop <= 0) { D.hv = perk('hydro') ? 9 : 7.5; D.hop = .01; sfx('jump'); }
   if (D.hop > 0) { D.hop += D.hv; D.hv -= .55; if (D.hop <= 0) { D.hop = 0; sfx('land'); } }
   D.z += D.sp; D.bg -= seg.curve * pct * .9;
   for (const c of D.cars) { c.z += c.sp; if (c.z > D.L) c.z -= D.L; const dz = c.z - D.z; if (dz > 0 && dz < 220 && Math.abs(c.x - D.x) < .34 && D.hop < 12 && D.bump === 0) { D.sp *= .74; D.x += sgn(D.x - c.x || 1) * .3; c.z += 300; D.bump = 30; sfx('bonk'); popText(NW / 2, NH * .55, 'BUMP!'); S.shake = 6; } }

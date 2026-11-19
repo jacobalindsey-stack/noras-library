@@ -41,7 +41,7 @@ function buildUI() {
   refreshPause();
   refreshEasy();
   // the page cancels touchstart (no zoom/scroll), which also cancels click on touch screens, so buttons act on pointerup
-  const btn = (id, fn) => { const el = $(id); let down = null; el.addEventListener('pointerdown', e => { e.stopPropagation(); down = e.pointerId; }); el.addEventListener('pointerup', e => { e.stopPropagation(); if (down === e.pointerId) { down = null; fn(); } }); el.addEventListener('pointercancel', () => { down = null; }); };
+  const btn = (id, fn) => { const el = $(id); let down = null; el.addEventListener('pointerdown', e => { e.stopPropagation(); down = e.pointerId; }); el.addEventListener('pointerup', e => { e.stopPropagation(); if (down === e.pointerId) { down = null; fn(); } }); el.addEventListener('pointercancel', () => { down = null; }); el.addEventListener('click', e => { if (e.detail === 0) fn(); }); };
   btn('easy', () => { auUnlock(); SAVE.easy = !SAVE.easy; SAVE.easySeen = true; writeSave(); refreshEasy(); layout(); sfx('tap'); easyExplain(); });
   btn('pause', () => { auUnlock(); openMenu(); });
   btn('again', () => { auUnlock(); $('again').hidden = true; enterHub(); });
@@ -69,11 +69,18 @@ function buildMenu() {
   const ids = [null].concat(Object.keys(SONG));
   row('MUSIC: ' + (AU.juke ? SONG[AU.juke].name : 'AUTO'), () => { const i = ids.indexOf(AU.juke); auJuke(ids[(i + 1) % ids.length]); buildMenu(); }, 'Auto plays each song in its place. Tap to pick any song on the album.');
   row('SOUND: ' + (SAVE.sound ? 'ON' : 'OFF'), () => { SAVE.sound = !SAVE.sound; auSetOn(SAVE.sound); writeSave(); buildMenu(); });
-  row('START THE DAY OVER', () => { closeMenu(); $('again').hidden = true; startDay(S.day); });
-  row('BACK TO THE BURROW', () => { closeMenu(); $('again').hidden = true; enterHub(); });
-  row('TITLE SCREEN', () => { closeMenu(); $('again').hidden = true; newGame('title'); auMode('title'); });
+  if (S && S.mode !== 'saga') {
+    if (MISSION) {
+      row('START THIS RUN OVER', () => { closeMenu(); restartRun(); });
+      row('LEAVE THE RUN', () => { closeMenu(); abortRun(); }, 'Back to the burrow. You keep nothing from this run, and the sun comes back.');
+    } else {
+      row('START THE DAY OVER', () => { closeMenu(); $('again').hidden = true; startDay(S.day); });
+      row('BACK TO THE BURROW', () => { closeMenu(); $('again').hidden = true; enterHub(); });
+    }
+  }
+  row('TITLE SCREEN', () => { closeMenu(); $('again').hidden = true; if (MISSION) { restoreLV(); if (SAVE.saga) SAVE.saga.sun = Math.min(sunsPerDay(), SAVE.saga.sun + 1); MISSION = null; writeSave(); } newGame('title', 'creek'); auMode('title'); });
 }
-function openMenu() { if (!S || S.mode === 'title' || S.mode === 'hub') return; paused = true; PTR.clear(); buildMenu(); $('menu').hidden = false; }
+function openMenu() { if (!S || S.mode === 'title' || S.mode === 'hub') return; if (S.mode === 'saga' && SG.scr === 'cook' && SG.d.credits) return; paused = true; PTR.clear(); buildMenu(); $('menu').hidden = false; }
 function closeMenu() { paused = false; $('menu').hidden = true; PTR.clear(); }
 
 /* ---------- layout ---------- */
@@ -109,10 +116,11 @@ function layout() {
   placeStick(null);
   const showCtl = S && (S.mode === 'play' || S.mode === 'throw' || S.mode === 'intro' || S.mode === 'drive' || S.mode === 'goal');
   jb.hidden = !showCtl; sb.hidden = !showCtl || SAVE.easy; kn.hidden = sb.hidden;
-  $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub'; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
+  $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub' || S.mode === 'saga'; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
   $('hint').hidden = !(UI.portrait && SAVE.easy && showCtl);
   // EASY and pause: smaller on phones; in portrait they sit at the top of the control deck, below the game
   const hs = hudScale(); if (UI.hs !== hs) { UI.hs = hs; refreshEasy(); refreshPause(); }
+  UI.pauseV = Math.ceil((15 * hs + 18) * NW / W) + 2;
   const eb = $('easy'), pb = $('pause'), pad = hs === 2 ? 2 : 4;
   let bt = pad; if (UI.portrait) bt = ctlMode ? playH + 4 + pad : Math.round((H - playH) / 2) + pad;
   eb.style.top = pb.style.top = bt + 'px';
@@ -129,7 +137,7 @@ function placeStick(pt) {
 /* ---------- pointers ---------- */
 function zoneFor(x, y) {
   if (!S) return 'tap';
-  if (S.mode === 'title' || S.mode === 'cook' || S.mode === 'intro' || S.mode === 'hub' || S.mode === 'goal' || (S.mode === 'drive' && S.drv && S.drv.phase === 'shop')) return 'tap';
+  if (S.mode === 'title' || S.mode === 'cook' || S.mode === 'intro' || S.mode === 'hub' || S.mode === 'saga' || S.mode === 'goal' || (S.mode === 'drive' && S.drv && S.drv.phase === 'shop')) return 'tap';
   if (S.mode === 'throw') return 'jump';
   const jd = UI.jd, jb = $('jump').getBoundingClientRect(), jcx = jb.left + jb.width / 2, jcy = jb.top + jb.height / 2;
   const nearJump = Math.hypot(x - jcx, y - jcy) < jd * .75;
@@ -208,8 +216,8 @@ function readInput() {
 let acc = 0, last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
-  let dt = (now - last) / 1000; last = now; if (dt > .25) dt = .25;
-  if (!paused && S) { acc += dt; let n = 0; while (acc >= 1 / 60 && n < 5) { readInput(); update(); acc -= 1 / 60; n++; } if (n >= 5) acc = 0; }
+  let dt = (now - last) / 1000; last = now; if (dt > .25) dt = .25; const spd = window.GBSPEED || 1; dt *= spd;
+  if (!paused && S) { acc += dt; let n = 0; while (acc >= 1 / 60 && n < 5 * spd) { readInput(); update(); acc -= 1 / 60; n++; } if (n >= 5 * spd) acc = 0; }
   if (S && UI.lastMode !== S.mode) layout();
   render();
   dctx.imageSmoothingEnabled = false; dctx.drawImage(scr, 0, 0, disp.width, disp.height);
@@ -232,13 +240,14 @@ function boot() {
   for (const ev of ['gesturestart', 'gesturechange', 'dblclick']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
   addEventListener('keydown', e => {
     auUnlock();
+    if (e.code === 'Escape' && S && S.mode === 'hub' && !paused) { enterSaga('hub'); e.preventDefault(); return; }
     if (e.code === 'Escape' || e.code === 'KeyP') { paused ? closeMenu() : openMenu(); e.preventDefault(); return; }
-    if (!KEY[e.code] && (e.code === 'Enter' || e.code === 'Space')) { IN.press = true; IN.tapX = null; if (S && S.mode === 'cook' && !$('again').hidden) $('again').click(); }
+    if (!KEY[e.code] && (e.code === 'Enter' || (e.code === 'Space' && (!S || S.mode !== 'saga')))) { IN.press = true; IN.tapX = null; if (S && S.mode === 'cook' && !$('again').hidden) $('again').click(); }
     KEY[e.code] = true; if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
   });
   addEventListener('keyup', e => { KEY[e.code] = false; });
   auSetOn(SAVE.sound);
   requestAnimationFrame(frame);
-  window.GB = { get S() { return S; }, IN, SAVE, UI };
+  window.GB = { get S() { return S; }, IN, get SAVE() { return SAVE; }, UI, get SG() { return SG; }, get MISSION() { return MISSION; }, hots: () => UIH.prev.map(h => ({ x: h.x, y: h.y, w: h.w, h: h.h, label: h.o.label || '', off: !!h.o.off })), NW, get NH() { return NH; } };
 }
 boot();

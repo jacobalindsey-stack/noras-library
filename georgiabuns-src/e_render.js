@@ -8,7 +8,7 @@ function drawSpr(cv, x, y, ang, face, ax, ay) {
   g.drawImage(cv, -ax, -ay); g.restore();
 }
 function pixCircle(cx, cy, r, col) { g.fillStyle = col; for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y)); g.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1); } }
-function progress() { if (!S || S.mode === 'title' || S.mode === 'hub') return .05; if (S.mode === 'intro') return 0; if (S.mode === 'throw' || S.mode === 'goal') return 1; return clamp((S.pl.x - LV.start) / (LV.goal - LV.start), 0, 1); }
+function progress() { if (!S || S.mode === 'title' || S.mode === 'hub' || S.mode === 'saga') return .05; { const mp = missionProgress(); if (mp != null && S.mode !== 'goal') return mp; } if (S.mode === 'intro') return 0; if (S.mode === 'throw' || S.mode === 'goal') return 1; return clamp((S.pl.x - LV.start) / (LV.goal - LV.start), 0, 1); }
 
 const SKYC = new Map(), BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 function skyCanvas(pr) {
@@ -118,7 +118,8 @@ function drawWorld(cx, cy) {
   }
   for (const c of L.cousins) {
     if (!vis(c.x)) continue;
-    const set = A.cuz[c.fur];
+    const set = c.fam != null ? famSet(c.fam) : A.cuz[c.fur];
+    if (c.dazed && !c.woke) { drawSpr(set.idle[0], c.x, c.y, 0, -1, BAX, BAY); if (S.t % 40 < 26) tx('?', c.x - 2, c.y - 54, '#fff3b0', { oc: '#2a140c' }); continue; }
     if (!c.woke) { drawSpr(set.sleep[0], c.x, c.y, 0, -1, BAX, BAY); if (S.t % 70 === (c.x | 0) % 70) part({ type: 'z', x: c.x - 6, y: c.y - 16, vx: -.2, vy: -.4, life: 60 }); }
     else if (c.t < 150) drawSpr(set.cheer[(S.t >> 3) & 1], c.x, c.y, 0, -1, BAX, BAY);
     else if (c.t < 190) { g.globalAlpha = 1 - (c.t - 150) / 40; drawSpr(set.run[(S.t >> 2) & 3], c.x + (c.t - 150) * 4, c.y, 0, 1, BAX, BAY); g.globalAlpha = 1; }
@@ -144,7 +145,7 @@ function drawWorld(cx, cy) {
   // cousin crew stampede
   if (S.crew > 0 && S.mode === 'play' && (S.crew > 60 || (S.t & 4))) {
     const furs = ['white', 'ginger', 'dark', 'smoke', 'honey', 'white'];
-    for (let i = 5; i >= 0; i--) { const h = S.hist[S.hist.length - 1 - (i + 1) * 4]; if (!h) continue; drawSpr(A.cuz[furs[i]].run[((S.t >> 2) + i) & 3], h[0], h[1], h[2], h[3], BAX, BAY); }
+    for (let i = 5; i >= 0; i--) { const h = S.hist[S.hist.length - 1 - (i + 1) * 4]; if (!h) continue; const cs = MISSION ? famSet([3, 4, 5, 6, 7, 8, 9][(i + (MISSION.runner || 0)) % 7]) : A.cuz[furs[i]]; drawSpr(cs.run[((S.t >> 2) + i) & 3], h[0], h[1], h[2], h[3], BAX, BAY); }
   }
   for (const c of S.amb) if (vis(c.x)) { const fl = (S.t >> 2) & 1, x = Math.round(c.x), y = Math.round(c.y);
     if (c.k === 'fly') { g.fillStyle = c.c; g.fillRect(x - 2, y - (fl ? 2 : 0), 2, 2); g.fillRect(x + 1, y - (fl ? 2 : 0), 2, 2); g.fillStyle = '#2a140c'; g.fillRect(x, y - 1, 1, 3); }
@@ -156,14 +157,15 @@ function drawWorld(cx, cy) {
   if (S.mode === 'play' && (plSpeed(p) > 8.5 || S.crew > 0) && S.hist.length > 8) {
     const fr = bunFrame(heroSet(), p); [[3, .3], [6, .14]].forEach(([b, al]) => { const h = S.hist[S.hist.length - 1 - b]; if (!h) return; g.globalAlpha = al; drawSpr(fr, h[0], h[1], (p.ground || p.surf === 'loop') && Math.abs(h[2]) > .3 ? h[2] : 0, h[3], BAX, BAY); }); g.globalAlpha = 1;
   }
+  missionDrawBack(vis);
   // the hero
   if (S.mode === 'intro' && !creek) {
     const t = S.intro, ex = Math.min(LV.start - 120, LV.start - 520 + t * 5), gy0 = groundY(LV.start);
     g.drawImage(A.escL, Math.round(ex - 56), Math.round(groundY(ex) - 49));
-    if (t > 90) { const k = Math.min(1, (t - 90) / 30); drawSpr(A.hero.jump[0], lerp(ex + 30, LV.start, k), gy0 - Math.sin(k * Math.PI) * 30, 0, 1, BAX, BAY); }
+    if (t > 90) { const k = Math.min(1, (t - 90) / 30); drawSpr(heroSet().jump[0], lerp(ex + 30, LV.start, k), gy0 - Math.sin(k * Math.PI) * 30, 0, 1, BAX, BAY); }
   } else if (S.mode === 'intro') {
     const [ix, iy] = introPos(), t = S.intro;
-    const fr = t < 50 ? A.hero.sleep[0] : t < 62 ? A.hero.up[0] : A.hero.run[(t >> 2) & 3];
+    const HS = heroSet(), fr = t < 50 ? HS.sleep[0] : t < 62 ? HS.up[0] : HS.run[(t >> 2) & 3];
     const ang = t >= 105 ? -0.55 : 0;
     drawSpr(fr, ix, iy, ang, 1, BAX, BAY);
     if (t < 50 && t % 30 === 0) part({ type: 'z', x: ix + 8, y: iy - 16, vx: .2, vy: -.4, life: 60 });
@@ -175,6 +177,7 @@ function drawWorld(cx, cy) {
     if (S.ride) drawSpr(heroSet().cheer[(S.t >> 3) & 1], p.x - 4 + Math.sin(ang) * 26, p.y - 24 * Math.cos(ang) - ((S.t >> 2) & 1), ang, 1, BAX, BAY);
     else drawSpr(fr, p.x, p.y + (p.inWater && p.ground ? 1 : 0), ang, p.face, BAX, BAY);
   }
+  if (S.mode === 'play' || S.mode === 'goal') missionDrawFront();
   if (S.mode === 'title') drawSpr(A.hero.idle[(S.t % 200 > 192) ? 1 : 0], 540, 300, 0, -1, BAX, BAY);
   // easy-mode hint: a finger pressing ahead of the bun
   if (S.easyHint > 0 && S.mode === 'play') {
@@ -259,8 +262,8 @@ function drawHUD() {
   g.fillStyle = '#2a140c'; g.fillRect(x0 - 10, y - 5, 8, 9); g.fillStyle = '#c9a06a'; g.fillRect(x0 - 9, y - 1, 6, 4); g.fillStyle = '#4a3648'; g.fillRect(x0 - 10, y - 4, 8, 3);
   g.fillStyle = '#2a140c'; g.fillRect(x1 + 2, y - 4, 10, 8); g.fillStyle = LV.meter || '#3c8ed0'; g.fillRect(x1 + 3, y - 3, 8, 6); g.fillStyle = '#bfe8ff'; g.fillRect(x1 + 4, y - 1, 3, 1); g.fillRect(x1 + 7, y + 1, 3, 1);
   const hx = Math.round(x0 + (x1 - x0) * pr); g.fillStyle = '#2a140c'; g.fillRect(hx - 3, y - 5, 7, 7); g.fillStyle = '#a8683a'; g.fillRect(hx - 2, y - 4, 5, 5); g.fillStyle = '#2a140c'; g.fillRect(hx - 2, y - 9, 2, 4); g.fillRect(hx + 1, y - 9, 2, 4); g.fillStyle = '#ef8e94'; g.fillRect(hx + 1, y - 8, 1, 2);
-  // rocks
-  for (let i = 0; i < 3; i++) {
+  missionMeterMarks(x0, x1, y);
+  if (!missionHUD(mid)) for (let i = 0; i < 3; i++) {
     const rx = mid + 70 + i * 15, used = S.thr && i < S.thr.i;
     const ic = A.items[LV.item][0]; if (S.rocks[i] && !used) g.drawImage(ic, rx - 2, 4); else { g.globalAlpha = .35; g.drawImage(ic, rx - 2, 4); g.globalAlpha = 1; }
   }
@@ -287,14 +290,15 @@ function drawTitle() {
   const gold = (s, x, y, sc) => { drawTextO(g, s, x, y + 2, '#2a140c', sc, '#2a140c', 2); drawTextO(g, s, x, y, '#f6c645', sc, '#2a140c', 2); g.save(); g.beginPath(); g.rect(0, y, NW, sc * 2); g.clip(); drawText(g, s, x, y, '#fff3b0', sc); g.restore(); };
   gold(s1, Math.round(NW / 2 - w1 / 2), by, 4);
   gold(s2, Math.round(NW / 2 - w2 / 2), by + 34, 7);
-  const sub = 'DAY 1: ROCKS IN THE CREEK';
+  const sg = SAVE.saga, sub = sg && sg.started ? 'DAY ' + sg.day + '   ' + knownCount() + ' OF 17 COUSINS KNOWN' + (sg.finale ? '   BIGGEST COOKOUT: DONE' : '') : 'SEVENTEEN COUSINS. ONE ESCALADE.';
   drawTextO(g, sub, Math.round(NW / 2 - textW(sub) / 2), by + 90, '#ffffff', 1, '#2a140c');
   if ((t >> 4) & 1 || t < 20) { const cta = 'TAP TO PLAY'; drawTextO(g, cta, Math.round(NW / 2 - textW(cta, 2) / 2), NH - 34, '#ffffff', 2, '#2a140c'); }
 }
 const CREDITS = ['GEORGIA BUNS', '', 'STARRING', 'SEVENTEEN COUSINS', 'THE ROOF BUN', 'THE NIBBIN\' BUN', 'SUNNY THE SQUIRREL', 'THE BOBCAT', 'DEXTER, SEVEN AND MISS ELLI', 'PONTOON THE MARSH BUN', 'LES ESCARGOTS DISCO', '', 'MUSIC', 'THE GEORGIA BUNS ALBUM', 'IN 16-BIT', '', 'MADE IN GEORGIA', 'IN SPIRIT', '', 'THANKS FOR PLAYING', '', '', 'PSST. CHECK THE BURROW WINDOW.'];
 function drawCredits(t) { const y0 = NH - t * .35; g.globalAlpha = .65; g.fillStyle = '#0a0612'; g.fillRect(NW / 2 - 90, 0, 180, NH); g.globalAlpha = 1; CREDITS.forEach((l, i) => { const y = Math.round(y0 + i * 14); if (y < -10 || y > NH) return; drawTextO(g, l, NW / 2 - textW(l) / 2, y, i === 0 ? '#f6c645' : (CREDITS[i - 1] === '' ? '#7ad050' : '#ffffff'), 1, '#2a140c'); }); }
-function drawCook() {
-  const C = S.cook, t = C.t, gy = NH - 40;
+function drawCook() { drawCookScene(S.cook); drawCookBoard(S.cook); }
+function drawCookScene(C) {
+  const t = C.t, gy = NH - 40;
   // dusk sky
   const top = rgb('#2a2058'), mid = rgb('#8a3a6a'), bot = rgb('#ff9a50');
   for (let i = 0; i < 22; i++) { const k = i / 21; g.fillStyle = css(k < .55 ? mixRGB(top, mid, k / .55) : mixRGB(mid, bot, (k - .55) / .45)); g.fillRect(0, Math.floor(gy * i / 22), NW, Math.ceil(gy / 22) + 1); }
@@ -330,11 +334,12 @@ function drawCook() {
   }
   // the crew
   const homeish = C.scene === 'home' || C.scene === 'garden';
-  const R = C.roster.filter(k => k !== 'roof' && (k !== 'nib' || !homeish));
+  const R = C.roster.filter(k => k !== 'roof' && k !== 0 && ((k !== 'nib' && k !== 1) || !homeish));
   if (homeish) drawSpr(A.nib.chomp[(t >> 3) & 1], 266, gy + 1, 0, -1, BAX, BAY);
+  if (C.extra) C.extra(t, gy);
   for (let i = 0; i < R.length; i++) {
-    const k = R[i], set = k === 'hero' ? heroSet() : k === 'nib' ? A.nib : (A[k] && A[k].idle) ? A[k] : A.cuz[k];
-    const x = 26 + i * Math.min(40, 230 / Math.max(1, R.length - 1)), y = gy + 1, fr = (k === 'pontoon' ? set.catsit : set.cheer)[((t >> 3) + i) & 1];
+    const k = R[i], set = typeof k === 'number' ? famSet(k) : k === 'hero' ? heroSet() : k === 'nib' ? A.nib : (A[k] && A[k].idle) ? A[k] : A.cuz[k];
+    const x = 26 + i * Math.min(40, (C.wide || 230) / Math.max(1, R.length - 1)), y = gy + 1, fr = (k === 'pontoon' ? set.catsit : set.cheer)[((t >> 3) + i) & 1];
     drawSpr(fr, x, y, 0, 1, BAX, BAY);
   }
   for (const q of S.parts) drawPart(q);
@@ -342,6 +347,9 @@ function drawCook() {
   for (const b of S.bubbles) { const lines = wrap(b.text, 22), w = Math.max(...lines.map(l => textW(l))) + 8, h = lines.length * 9 + 5, bx = 290, by = gy - 100; g.fillStyle = '#2a140c'; g.fillRect(bx - 1, by - 1, w + 2, h + 2); g.fillStyle = '#ffe9c8'; g.fillRect(bx, by, w, h); lines.forEach((l, i) => drawText(g, l, bx + 4, by + 3 + i * 9, '#2a140c')); }
   // fireflies
   for (let i = 0; i < 14; i++) { const x = (i * 71 + Math.sin(t * .02 + i) * 20 + 424) % 424, y = gy - 20 - (i * 29 % 70) + Math.sin(t * .03 + i * 2) * 6; if ((t + i * 11) % 50 < 30) { g.fillStyle = '#e8ff8a'; g.fillRect(Math.round(x), Math.round(y), 1, 1); } }
+}
+function drawCookBoard(C) {
+  const t = C.t, gy = NH - 40;
   // results board
   if (t > 30 && !(C.credits && t > 420)) {
     const res = C.res, rows = [[LV.scoreName || 'SKIPS', res.skips, C.nb.skips], ['CARROTS', res.carrots, C.nb.carrots], ['COUSINS', res.cousins, C.nb.cousins], ['GOLDEN CARROTS', res.golds + '/3', false]];
@@ -393,18 +401,19 @@ function drawCard() {
   g.fillStyle = '#2a140c'; g.fillRect(30 + bw, Math.round(-bh + bh * a), 2, bh);
   for (let i = 0; i < 6; i++) { const yy = Math.round(-bh + bh * a + 30 + i * 46); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(30, yy, bw - 4, 18); }
   // the name banner from the right
-  const name = LV.title, sc = textW(name) * 2 > NW - 110 ? 1 : 2, tw = textW(name) * sc, bnW = tw + 40, by = Math.round(NH * .36);
+  const name = MISSION && MISSION.title ? MISSION.title : LV.title, sc = textW(name) * 2 > NW - 110 ? 1 : 2, tw = textW(name) * sc, bnW = tw + 40, by = Math.round(NH * .36);
   const bx = Math.round(NW - bnW * b + (1 - b) * 40);
   g.fillStyle = '#2a140c'; g.fillRect(bx - 2, by - 2, bnW + 60, 10 * sc + 16); g.fillStyle = '#fff6e0'; g.fillRect(bx, by, bnW + 60, 10 * sc + 12);
   g.fillStyle = col; g.fillRect(bx, by + 10 * sc + 8, bnW + 60, 4);
   drawTextO(g, name, bx + 18, by + 6, '#2a140c', sc, '#fff6e0', 1);
   // the day tag from below
-  const dt = 'DAY ' + LV.day, dw = textW(dt) * 2 + 20, dx = Math.round(NW - dw - 26), dy = Math.round(by + 10 * sc + 22 + (1 - c) * (NH - by));
+  const dt = 'DAY ' + (MISSION && SAVE.saga ? SAVE.saga.day : LV.day), dw = textW(dt) * 2 + 20, dx = Math.round(NW - dw - 26), dy = Math.round(by + 10 * sc + 22 + (1 - c) * (NH - by));
   g.fillStyle = '#2a140c'; g.fillRect(dx - 2, dy - 2, dw + 4, 28); g.fillStyle = col; g.fillRect(dx, dy, dw, 24); g.fillStyle = hi; g.fillRect(dx, dy, dw, 2);
   drawTextO(g, dt, dx + 10, dy + 5, hi, 2, '#2a140c', 1);
 }
 function render() {
   if (!S) return;
+  if (S.mode === 'saga') { drawSaga(); if (S.fade > 0) { g.globalAlpha = S.fade; g.fillStyle = '#000'; g.fillRect(0, 0, NW, NH); g.globalAlpha = 1; } return; }
   if (S.mode === 'hub') { drawHub(); if (S.fade > 0) { g.globalAlpha = S.fade; g.fillStyle = '#000'; g.fillRect(0, 0, NW, NH); g.globalAlpha = 1; } return; }
   if (S.mode === 'drive') { drawDrive(); if (S.fade > 0) { g.globalAlpha = S.fade; g.fillStyle = '#000'; g.fillRect(0, 0, NW, NH); g.globalAlpha = 1; } return; }
   if (S.mode === 'cook') { drawCook(); if (S.fade > 0) { g.globalAlpha = S.fade; g.fillStyle = '#000'; g.fillRect(0, 0, NW, NH); g.globalAlpha = 1; } return; }

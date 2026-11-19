@@ -116,4 +116,4 @@ function buildAssets2() {
   A.bb1 = buildBun('white', { beanie: '#c8302a' }); A.bb2 = buildBun('gray', { beanie: '#2f8a3a' }); A.bb3 = buildBun('honey', { beanie: '#2a6ab8' });
   A.snowbank = [0, 1].map(i => smallSpr(36, 16, ['#5a78a0', '#ffffff', '#dfeaf6', '#b8cce4'], s => { s.sphere(18, 16 - (i ? 3 : 6) + 6, 16, i ? 6 : 9, [4, 3, 2, 2]); }));
 }
-function setDrip(kind) { SAVE.drip = kind; writeSave(); A.hero = buildBun('hero', { pendant: kind }); }
+function setDrip(kind) { SAVE.drip = kind; if (MISSION && SAVE.saga) { const k = { rope: 'rope', carrot: 'pendant', ice: 'iced' }[kind]; if (k) { giveStash(k); MISSION.drip = k; } } writeSave(); A.hero = buildBun('hero', { pendant: kind }); }

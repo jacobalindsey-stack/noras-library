@@ -153,10 +153,26 @@ const BUN_FURS = {
   dexter: ['#e2c48e', '#b8955c', '#f6e2b6'],
   marsh: ['#9a8468', '#6e5a44', '#c2ad8e']
 };
-let beanieCol = null;
+let beanieCol = null, accCol = null;
 function bunPal(fur) {
-  const f = BUN_FURS[fur] || BUN_FURS.hero;
-  return palette(['#2a140c', f[0], f[1], f[2], '#f4e2bd', '#d4b88c', '#ef8e94', '#ffffff', '#1a0e0a', '#d95a72', '#f6c645', '#b8860b', '#fff3b0', '#ff8a1c', '#3fb04a', '#121018', beanieCol || '#c8302a', '#ffffff']);
+  const f = BUN_FURS[fur] || BUN_FURS.hero, a = accCol || ['#c8302a', '#8a1a14', '#ff6a5a'];
+  return palette(['#2a140c', f[0], f[1], f[2], '#f4e2bd', '#d4b88c', '#ef8e94', '#ffffff', '#1a0e0a', '#d95a72', '#f6c645', '#b8860b', '#fff3b0', '#ff8a1c', '#3fb04a', '#121018', beanieCol || '#c8302a', '#ffffff', a[0], a[1], a[2]]);
+}
+// cousin accessories, drawn relative to the head (hx, hy); slots 19-21 are the accessory's colors
+function bunHat(s, o, hx, hy) {
+  const A3 = [19, 20, 21];
+  switch (o.hat) {
+    case 'cap': s.ell(hx - .5, hy - 4.2, 6.4, 3.3, A3); s.rect(hx - 6.6, hy - 3.6, 13, 1.4, 20); s.rect(hx - 11, hy - 3.2, 5, 1.6, 19); s.set(hx - 1, hy - 7.2, 21); break;
+    case 'bucket': s.ell(hx, hy - 4.8, 5.4, 3.2, A3); s.rect(hx - 8, hy - 2.8, 16, 1.6, 20); s.rect(hx - 7, hy - 3.2, 14, 1, 19); break;
+    case 'straw': s.ell(hx, hy - 5.2, 4.4, 2.8, A3); s.rect(hx - 10, hy - 3.2, 20, 1.6, 19); s.rect(hx - 9, hy - 2, 18, 1, 20); s.rect(hx - 4.2, hy - 4, 8.6, 1, 16); break;
+    case 'hard': s.ell(hx - .4, hy - 4.6, 6.6, 3.7, A3); s.rect(hx + 2, hy - 2.6, 7, 1.4, 19); s.rect(hx - 1, hy - 8, 1.2, 4, 21); break;
+    case 'band': s.rect(hx - 6.4, hy - 4.8, 12.6, 2.2, 19); s.rect(hx - 6.4, hy - 4.8, 12.6, 1, 21); break;
+    case 'mask': s.rect(hx - 6.5, hy - 5.4, 13, 1.2, 20); s.ell(hx + 2.2, hy - 5.2, 2.6, 1.7, A3); s.ell(hx - 2.6, hy - 5.2, 2.2, 1.5, A3); break;
+    case 'phones': for (let a = 3.3; a < 6.1; a += .12) s.set(hx - .5 + Math.cos(a) * 7.2, hy - .5 + Math.sin(a) * 7.4, 20); s.ell(hx - 2.2, hy + .4, 2.3, 3, A3); s.set(hx - 2.6, hy - .6, 21); break;
+    case 'specs': for (let a = 0; a < 6.3; a += .35) s.set(hx + 2 + Math.cos(a) * 2.7, hy - 1.5 + Math.sin(a) * 3, 19); s.line(hx - .6, hy - 1.6, hx - 4.5, hy - 2.2, 19); break;
+    case 'bandana': s.tri(hx - 5, hy + 4.6, hx + 2.6, hy + 4.6, hx - 1.4, hy + 9.4, 19); s.rect(hx - 5, hy + 4.4, 7.6, 1.2, 20); s.set(hx - 2, hy + 6, 8); s.set(hx, hy + 6, 8); s.set(hx - 1, hy + 7.5, 8); break;
+    case 'scarf': s.rect(hx - 5.6, hy + 4.2, 8.6, 2.4, 19); for (let x = 0; x < 8; x += 3) s.rect(hx - 5.4 + x, hy + 4.2, 1, 2.4, 21); s.rect(hx - 6.6, hy + 5.4, 2.4, 5, 19); s.rect(hx - 6.6, hy + 8, 2.4, 1, 21); break;
+  }
 }
 const BW = 40, BH = 46, BAX = 19, BAY = 44; // sprite size and feet anchor
 function bunSpr(o) {
@@ -170,6 +186,7 @@ function bunSpr(o) {
     s.ell(o.tx, Y(o.ty), 3, 3, C);
     s.ell(o.bx, Y(o.by), o.brx, o.bry, F, o.ba || 0);
     s.ell(o.bx + (o.bellx || 3), Y(o.by + 1), o.brx * 0.52, o.bry * 0.7, C, o.ba || 0);
+    if (o.hat === 'apron') { s.ell(o.bx + (o.bellx || 3), Y(o.by + 1.5), o.brx * 0.62, o.bry * 0.8, [19, 20, 21], o.ba || 0); s.line(o.bx + (o.bellx || 3) - 2, Y(o.by - 6), o.bx + (o.bellx || 3) + 1, Y(o.by - 8), 20); }
     if (o.blur) { // peel-out leg wheel
       s.ell(18, Y(38), 9, 3.6, FD);
       for (let i = 0; i < 6; i++) { const a = o.blur * 1.3 + i * 1.05; s.set(18 + Math.cos(a) * 7, Y(38) + Math.sin(a) * 2.6, 4); }
@@ -189,9 +206,12 @@ function bunSpr(o) {
     if (o.teeth) { s.set(hx + 5, hy + 3.6, 8); s.set(hx + 5, hy + 4.6, 8); }
     if (o.mouth) { s.ell(hx + 4.6, hy + 4, 1.6, 1.4, 9); s.set(hx + 5, hy + 2.8, 8); }
     if (o.beanie) { s.ell(hx - .5, hy - 4, 7, 3.6, 17); s.rect(hx - 7, hy - 3, 14, 2, 17); s.ell(hx - 6, hy - 8, 1.8, 1.8, 18); }
+    if (o.hat && o.hat !== 'apron' && o.hat !== 'bandana' && o.hat !== 'scarf') bunHat(s, o, hx, hy);
     // front ear + inner
     s.ell(o.e1x, Y(o.e1y), 2.7, o.el1 || 7.8, F, o.e1a);
     s.ell(o.e1x + Math.cos(o.e1a) * 0.6, Y(o.e1y) + Math.sin(o.e1a) * 0.6, 1.1, (o.el1 || 7.8) - 2.6, 7, o.e1a);
+    if (o.hat === 'bandana' || o.hat === 'scarf') bunHat(s, o, hx, hy);
+    if (o.stud) { const ex = o.e1x + Math.cos(o.e1a + 1.57) * -1, ey = Y(o.e1y) + 4; s.set(ex, ey, 8); s.set(ex + 1, ey, 13); }
     if (o.ax != null) s.ell(o.ax, Y(o.ay), 1.8, 3.1, [2, 3, 4], o.aa || 0);
     // chain (ice drip), carrot pendant for the hero
     if (o.chain !== false) {
@@ -241,7 +261,7 @@ const POSES = {
 };
 // build every pose for a fur/accessory combo
 function buildBun(fur, extra) {
-  beanieCol = extra && extra.beanie; const pal = bunPal(fur), out = {}; beanieCol = null;
+  beanieCol = extra && extra.beanie; accCol = extra && extra.acc; const pal = bunPal(fur), out = {}; beanieCol = null; accCol = null;
   for (const k in POSES) out[k] = POSES[k].map(o => bunSpr(Object.assign({}, o, extra || {})).canvas(pal));
   return out;
 }

@@ -202,10 +202,26 @@ const BUN_FURS = {
   dexter: ['#e2c48e', '#b8955c', '#f6e2b6'],
   marsh: ['#9a8468', '#6e5a44', '#c2ad8e']
 };
-let beanieCol = null;
+let beanieCol = null, accCol = null;
 function bunPal(fur) {
-  const f = BUN_FURS[fur] || BUN_FURS.hero;
-  return palette(['#2a140c', f[0], f[1], f[2], '#f4e2bd', '#d4b88c', '#ef8e94', '#ffffff', '#1a0e0a', '#d95a72', '#f6c645', '#b8860b', '#fff3b0', '#ff8a1c', '#3fb04a', '#121018', beanieCol || '#c8302a', '#ffffff']);
+  const f = BUN_FURS[fur] || BUN_FURS.hero, a = accCol || ['#c8302a', '#8a1a14', '#ff6a5a'];
+  return palette(['#2a140c', f[0], f[1], f[2], '#f4e2bd', '#d4b88c', '#ef8e94', '#ffffff', '#1a0e0a', '#d95a72', '#f6c645', '#b8860b', '#fff3b0', '#ff8a1c', '#3fb04a', '#121018', beanieCol || '#c8302a', '#ffffff', a[0], a[1], a[2]]);
+}
+// cousin accessories, drawn relative to the head (hx, hy); slots 19-21 are the accessory's colors
+function bunHat(s, o, hx, hy) {
+  const A3 = [19, 20, 21];
+  switch (o.hat) {
+    case 'cap': s.ell(hx - .5, hy - 4.2, 6.4, 3.3, A3); s.rect(hx - 6.6, hy - 3.6, 13, 1.4, 20); s.rect(hx - 11, hy - 3.2, 5, 1.6, 19); s.set(hx - 1, hy - 7.2, 21); break;
+    case 'bucket': s.ell(hx, hy - 4.8, 5.4, 3.2, A3); s.rect(hx - 8, hy - 2.8, 16, 1.6, 20); s.rect(hx - 7, hy - 3.2, 14, 1, 19); break;
+    case 'straw': s.ell(hx, hy - 5.2, 4.4, 2.8, A3); s.rect(hx - 10, hy - 3.2, 20, 1.6, 19); s.rect(hx - 9, hy - 2, 18, 1, 20); s.rect(hx - 4.2, hy - 4, 8.6, 1, 16); break;
+    case 'hard': s.ell(hx - .4, hy - 4.6, 6.6, 3.7, A3); s.rect(hx + 2, hy - 2.6, 7, 1.4, 19); s.rect(hx - 1, hy - 8, 1.2, 4, 21); break;
+    case 'band': s.rect(hx - 6.4, hy - 4.8, 12.6, 2.2, 19); s.rect(hx - 6.4, hy - 4.8, 12.6, 1, 21); break;
+    case 'mask': s.rect(hx - 6.5, hy - 5.4, 13, 1.2, 20); s.ell(hx + 2.2, hy - 5.2, 2.6, 1.7, A3); s.ell(hx - 2.6, hy - 5.2, 2.2, 1.5, A3); break;
+    case 'phones': for (let a = 3.3; a < 6.1; a += .12) s.set(hx - .5 + Math.cos(a) * 7.2, hy - .5 + Math.sin(a) * 7.4, 20); s.ell(hx - 2.2, hy + .4, 2.3, 3, A3); s.set(hx - 2.6, hy - .6, 21); break;
+    case 'specs': for (let a = 0; a < 6.3; a += .35) s.set(hx + 2 + Math.cos(a) * 2.7, hy - 1.5 + Math.sin(a) * 3, 19); s.line(hx - .6, hy - 1.6, hx - 4.5, hy - 2.2, 19); break;
+    case 'bandana': s.tri(hx - 5, hy + 4.6, hx + 2.6, hy + 4.6, hx - 1.4, hy + 9.4, 19); s.rect(hx - 5, hy + 4.4, 7.6, 1.2, 20); s.set(hx - 2, hy + 6, 8); s.set(hx, hy + 6, 8); s.set(hx - 1, hy + 7.5, 8); break;
+    case 'scarf': s.rect(hx - 5.6, hy + 4.2, 8.6, 2.4, 19); for (let x = 0; x < 8; x += 3) s.rect(hx - 5.4 + x, hy + 4.2, 1, 2.4, 21); s.rect(hx - 6.6, hy + 5.4, 2.4, 5, 19); s.rect(hx - 6.6, hy + 8, 2.4, 1, 21); break;
+  }
 }
 const BW = 40, BH = 46, BAX = 19, BAY = 44; // sprite size and feet anchor
 function bunSpr(o) {
@@ -219,6 +235,7 @@ function bunSpr(o) {
     s.ell(o.tx, Y(o.ty), 3, 3, C);
     s.ell(o.bx, Y(o.by), o.brx, o.bry, F, o.ba || 0);
     s.ell(o.bx + (o.bellx || 3), Y(o.by + 1), o.brx * 0.52, o.bry * 0.7, C, o.ba || 0);
+    if (o.hat === 'apron') { s.ell(o.bx + (o.bellx || 3), Y(o.by + 1.5), o.brx * 0.62, o.bry * 0.8, [19, 20, 21], o.ba || 0); s.line(o.bx + (o.bellx || 3) - 2, Y(o.by - 6), o.bx + (o.bellx || 3) + 1, Y(o.by - 8), 20); }
     if (o.blur) { // peel-out leg wheel
       s.ell(18, Y(38), 9, 3.6, FD);
       for (let i = 0; i < 6; i++) { const a = o.blur * 1.3 + i * 1.05; s.set(18 + Math.cos(a) * 7, Y(38) + Math.sin(a) * 2.6, 4); }
@@ -238,9 +255,12 @@ function bunSpr(o) {
     if (o.teeth) { s.set(hx + 5, hy + 3.6, 8); s.set(hx + 5, hy + 4.6, 8); }
     if (o.mouth) { s.ell(hx + 4.6, hy + 4, 1.6, 1.4, 9); s.set(hx + 5, hy + 2.8, 8); }
     if (o.beanie) { s.ell(hx - .5, hy - 4, 7, 3.6, 17); s.rect(hx - 7, hy - 3, 14, 2, 17); s.ell(hx - 6, hy - 8, 1.8, 1.8, 18); }
+    if (o.hat && o.hat !== 'apron' && o.hat !== 'bandana' && o.hat !== 'scarf') bunHat(s, o, hx, hy);
     // front ear + inner
     s.ell(o.e1x, Y(o.e1y), 2.7, o.el1 || 7.8, F, o.e1a);
     s.ell(o.e1x + Math.cos(o.e1a) * 0.6, Y(o.e1y) + Math.sin(o.e1a) * 0.6, 1.1, (o.el1 || 7.8) - 2.6, 7, o.e1a);
+    if (o.hat === 'bandana' || o.hat === 'scarf') bunHat(s, o, hx, hy);
+    if (o.stud) { const ex = o.e1x + Math.cos(o.e1a + 1.57) * -1, ey = Y(o.e1y) + 4; s.set(ex, ey, 8); s.set(ex + 1, ey, 13); }
     if (o.ax != null) s.ell(o.ax, Y(o.ay), 1.8, 3.1, [2, 3, 4], o.aa || 0);
     // chain (ice drip), carrot pendant for the hero
     if (o.chain !== false) {
@@ -290,7 +310,7 @@ const POSES = {
 };
 // build every pose for a fur/accessory combo
 function buildBun(fur, extra) {
-  beanieCol = extra && extra.beanie; const pal = bunPal(fur), out = {}; beanieCol = null;
+  beanieCol = extra && extra.beanie; accCol = extra && extra.acc; const pal = bunPal(fur), out = {}; beanieCol = null; accCol = null;
   for (const k in POSES) out[k] = POSES[k].map(o => bunSpr(Object.assign({}, o, extra || {})).canvas(pal));
   return out;
 }
@@ -1413,7 +1433,7 @@ function buildAssets2() {
   A.bb1 = buildBun('white', { beanie: '#c8302a' }); A.bb2 = buildBun('gray', { beanie: '#2f8a3a' }); A.bb3 = buildBun('honey', { beanie: '#2a6ab8' });
   A.snowbank = [0, 1].map(i => smallSpr(36, 16, ['#5a78a0', '#ffffff', '#dfeaf6', '#b8cce4'], s => { s.sphere(18, 16 - (i ? 3 : 6) + 6, 16, i ? 6 : 9, [4, 3, 2, 2]); }));
 }
-function setDrip(kind) { SAVE.drip = kind; writeSave(); A.hero = buildBun('hero', { pendant: kind }); }
+function setDrip(kind) { SAVE.drip = kind; if (MISSION && SAVE.saga) { const k = { rope: 'rope', carrot: 'pendant', ice: 'iced' }[kind]; if (k) { giveStash(k); MISSION.drip = k; } } writeSave(); A.hero = buildBun('hero', { pendant: kind }); }
 
 /* ================= Georgia Buns — the other days ================= */
 
@@ -1875,14 +1895,14 @@ function initDrive() {
 function stepDrive() {
   const D = S.drv; D.t++;
   if (D.phase === 'shop') { stepShop(D); return; }
-  if (D.phase === 'arrive') { D.sp *= .95; D.z += D.sp; if (D.sp < 8) { D.phase = 'shop'; D.t = 0; say('hero', 'PICK SOME DRIP, CUZ.', 160); } return; }
+  if (D.phase === 'arrive') { D.sp *= .95; D.z += D.sp; if (D.sp < 8 && MISSION && !MISSION.shop) { if (!S.fadeTo) { S.score = D.ice; S.fadeTo = 'cook'; say('hero', 'THAT\'S PEACHTREE.', 120); } return; } if (D.sp < 8) { D.phase = 'shop'; D.t = 0; say('hero', 'PICK SOME DRIP, CUZ.', 160); } return; }
   const seg = D.segs[Math.floor(D.z / DRV.SEG) % D.segs.length], pct = D.sp / D.max;
   const off = Math.abs(D.x) > 1.05;
   D.sp += (off ? (D.sp > D.max * .55 ? -4 : 2) : 3.2); D.sp = clamp(D.sp, 0, D.max);
   if (D.bump > 0) D.bump--;
   D.x += IN.ix * .05 * Math.max(.35, pct); D.x -= .05 * pct * seg.curve * .045;
   if (Math.abs(D.x) > 1.65) { D.x = sgn(D.x) * 1.6; sfx('bonk'); D.sp *= .9; }
-  if (IN.jumpP && D.hop <= 0) { D.hv = 7.5; D.hop = .01; sfx('jump'); }
+  if (IN.jumpP && D.hop <= 0) { D.hv = perk('hydro') ? 9 : 7.5; D.hop = .01; sfx('jump'); }
   if (D.hop > 0) { D.hop += D.hv; D.hv -= .55; if (D.hop <= 0) { D.hop = 0; sfx('land'); } }
   D.z += D.sp; D.bg -= seg.curve * pct * .9;
   for (const c of D.cars) { c.z += c.sp; if (c.z > D.L) c.z -= D.L; const dz = c.z - D.z; if (dz > 0 && dz < 220 && Math.abs(c.x - D.x) < .34 && D.hop < 12 && D.bump === 0) { D.sp *= .74; D.x += sgn(D.x - c.x || 1) * .3; c.z += 300; D.bump = 30; sfx('bonk'); popText(NW / 2, NH * .55, 'BUMP!'); S.shake = 6; } }
@@ -1988,7 +2008,9 @@ function drawBubbleScreen() { for (const b of S.bubbles) { const lines = wrap(b.
 
 const DAYS = ['creek', 'farm', 'icebox', 'marsh', 'paris', 'garden'];
 const DAYLOOK = { creek: ['#5aa8ff', '#5cb83a', 'rock'], farm: ['#ffd890', '#7ccf4a', 'peach'], icebox: ['#2a2058', '#3a3a44', 'gem'], marsh: ['#ffb070', '#f2dca8', 'sand'], paris: ['#8d9ccb', '#9a9488', 'box'], garden: ['#ff9a50', '#5a3a24', 'veg'] };
-function enterHub() {
+function enterHub() { enterSaga(); }
+function enterScrapbook() {
+  if (MISSION) { restoreLV(); MISSION = null; }
   const keep = S && S.day; newGame('hub', 'creek'); S.mode = 'hub'; S.hub = { sel: Math.max(0, DAYS.indexOf(keep || 'creek')), lk: 0 }; auMode('title'); S.musicLock = false;
   if (window.$ && $('again')) $('again').hidden = true;
 }
@@ -2004,6 +2026,7 @@ function stepHub() {
   if (IN.press && IN.tapX != null) for (let i = 0; i < 6; i++) { const [x, y, w, h] = hubCard(i); if (IN.tapX >= x && IN.tapX <= x + w && IN.tapY >= y && IN.tapY <= y + h) pick = i; }
   if (IN.press && IN.tapX != null && Math.hypot(IN.tapX - (NW - 40), IN.tapY - 30) < 26) { sfx('crew'); startDay('boulder'); return; }
   if (IN.jumpP) pick = H.sel;
+  if (IN.press && IN.tapX != null && IN.tapX < 64 && IN.tapY < 24) { sfx('tap'); IN.tapX = null; enterSaga('hub'); return; }
   IN.tapX = null;
   if (pick >= 0) { H.sel = pick; sfx('crew'); startDay(DAYS[pick]); }
 }
@@ -2020,12 +2043,12 @@ function drawHub() {
   g.fillStyle = '#ffffff'; for (let i = 0; i < 14; i++) { const fx = NW - 57 + (i * 11 + (t >> 1)) % 34, fy = 13 + (i * 7 + t) % 20; g.fillRect(fx, fy, 1, 1); }
   R(NW - 41, 11, 2, 38, '#2a140c'); R(NW - 59, 29, 38, 2, '#2a140c');
   // shelf of stickers
-  R(8, 28, NW - 70, 4, '#8a5a3a'); R(8, 32, NW - 70, 2, '#5a3a22');
-  const keys = Object.keys(CAMEOS), slot = Math.min(22, (NW - 80) / keys.length);
-  keys.forEach((k, i) => { const [c, sc] = cameoIcon(k, 20), w = c.width * sc, h = c.height * sc, x = 12 + i * slot + (slot - w) / 2, y = 28 - h;
+  R(76, 28, NW - 138, 4, '#8a5a3a'); R(76, 32, NW - 138, 2, '#5a3a22');
+  const keys = Object.keys(CAMEOS), slot = Math.min(22, (NW - 146) / keys.length);
+  keys.forEach((k, i) => { const [c, sc] = cameoIcon(k, 20), w = c.width * sc, h = c.height * sc, x = 78 + i * slot + (slot - w) / 2, y = 28 - h;
     if (SAVE.stickers[k]) g.drawImage(c, Math.round(x), Math.round(y), Math.round(w), Math.round(h)); else { g.globalAlpha = .28; g.filter = 'brightness(0)'; g.drawImage(c, Math.round(x), Math.round(y), Math.round(w), Math.round(h)); g.filter = 'none'; g.globalAlpha = 1; } });
   const nSt = keys.filter(k => SAVE.stickers[k]).length, nG = DAYS.concat(['boulder']).reduce((n, d) => n + ((SAVE.days[d] || {}).gold || []).filter(Boolean).length, 0);
-  drawTextO(g, 'STICKERS ' + nSt + '/' + keys.length + '   GOLDEN CARROTS ' + nG + '/21', 10, 36, '#f6c645', 1, '#2a140c');
+  drawTextO(g, 'SCRAPBOOK   STICKERS ' + nSt + '/' + keys.length + '   GOLDEN CARROTS ' + nG + '/21', 10, 36, '#f6c645', 1, '#2a140c');
   // postcards
   for (let i = 0; i < 6; i++) {
     const id = DAYS[i], L = LEVELS[id], [x, y, w, h] = hubCard(i), rec = SAVE.days[id] || {}, sel = S.hub.sel === i, look = DAYLOOK[id];
@@ -2043,8 +2066,1518 @@ function drawHub() {
   }
   // pebble phone on the wall
   g.drawImage(A.phone[(t >> 4) & 1], NW - 146, 30);
+  btnArt(8, 6, 'BURROW');
   drawTextO(g, 'PICK A DAY', NW - 120, 40, (t & 32) ? '#ffffff' : '#fff3b0', 1, '#2a140c');
 }
+
+function btnArt(x, y, label) { const w = textW(label) + 22; R_(x - 2, y - 2, w + 4, 18, '#2a140c'); R_(x, y, w, 14, '#4e3220'); R_(x, y, w, 2, '#7a5236'); g.drawImage(arrowIcon(), x + 5, y + 4); tx(label, x + 15, y + 4, '#ffffff', { oc: '#2a140c' }); }
+
+/* ================= Georgia Buns — the saga: data =================
+   The family, their quirks, the places, the stash of coveted things, the
+   cookout spread, errands (and what the cousins actually bring back), the
+   Want List, phone calls, and the save that holds it all.
+
+   The loop: every morning a few cousins wake up wanting something. You get
+   three suns a day. Each run spends one. Idle cousins go on errands and
+   come back at sundown with whatever they think you asked for. Every day
+   ends with a cookout. Every cousin who gets what he wants earns his name. */
+
+/* ---------- the family: 17 cousins ---------- */
+// look: extras passed to buildBun; acc colors go in palette slots 19-21
+const FAM = [
+  { k: 'roof', fur: 'gray', color: 'GRAY', look: { shades: 1 }, tag: 'GRAY, SHADES', role: 'THE ROOF BUN', quirk: 'roof', home: 1 },
+  { k: 'nib', fur: 'tan', color: 'TAN', look: { teeth: 1 }, tag: 'TAN, BUCK TEETH', role: 'THE NIBBIN\' BUN', quirk: 'nibbler' },
+  { k: 'brown', fur: 'hero', color: 'BROWN', look: { pendant: 'carrot' }, tag: 'BROWN, CARROT CHAIN', quirk: 'showoff', want: 'creek' },
+  { k: 'ginger', fur: 'ginger', color: 'GINGER', look: { pendant: 'rope' }, tag: 'GINGER, GOLD ROPE', quirk: 'lost', want: 'paris' },
+  { k: 'white', fur: 'white', color: 'WHITE', look: { hat: 'straw', acc: ['#e8c870', '#b8963c', '#fff0b0'] }, tag: 'WHITE, STRAW HAT', quirk: 'country', want: 'peach' },
+  { k: 'dark', fur: 'dark', color: 'DARK', look: { hat: 'mask', acc: ['#7a5ab8', '#4a3480', '#a88ae0'] }, tag: 'DARK, SLEEP MASK', quirk: 'sleepy', want: 'cat' },
+  { k: 'smoke', fur: 'smoke', color: 'SMOKE', look: { pendant: 'ice', stud: 1 }, tag: 'SMOKE, ICED OUT', quirk: 'fancy', want: 'ice' },
+  { k: 'honey', fur: 'honey', color: 'HONEY', look: { hat: 'bandana', acc: ['#d8302a', '#981a14', '#ff6a5a'] }, tag: 'HONEY, BANDANA', quirk: 'hungry', want: 'harvest' },
+  { k: 'cream', fur: 'cream', color: 'CREAM', look: { beanie: '#ff8a1c' }, tag: 'CREAM, BEANIE', quirk: 'dreamer', want: 'sanitas' },
+  { k: 'silver', fur: 'silver', color: 'SILVER', look: { hat: 'specs', acc: ['#2a2430', '#141018', '#5a5060'] }, tag: 'SILVER, GLASSES', quirk: 'literal', want: 'eyes' },
+  { k: 'cocoa', fur: 'cocoa', color: 'COCOA', look: { hat: 'apron', acc: ['#f4f0e8', '#c8c0b0', '#ffffff'] }, tag: 'COCOA, APRON', quirk: 'haggler', want: 'grill' },
+  { k: 'black', fur: 'black', color: 'BLACK', look: { hat: 'phones', acc: ['#e03a3a', '#8a1a1a', '#ff8a7a'] }, tag: 'BLACK, HEADPHONES', quirk: 'musical', want: 'speaker' },
+  { k: 'rust', fur: 'rust', color: 'RUST', look: { hat: 'cap', acc: ['#2a5ab8', '#183a80', '#5a8ae0'] }, tag: 'RUST, BALL CAP', quirk: 'social', want: 'roundup' },
+  { k: 'lilac', fur: 'lilac', color: 'LILAC', look: { hat: 'bucket', acc: ['#3f8a3a', '#245a20', '#6ab860'] }, tag: 'LILAC, BUCKET HAT', quirk: 'lucky', want: 'collards' },
+  { k: 'ash', fur: 'ash', color: 'ASH', look: { hat: 'band', acc: ['#f6c645', '#b8860b', '#fff3b0'] }, tag: 'ASH, SWEATBAND', quirk: 'speedy', want: 'sundown' },
+  { k: 'fawn', fur: 'fawn', color: 'FAWN', look: { hat: 'hard', acc: ['#ffc020', '#c88a00', '#fff080'] }, tag: 'FAWN, HARD HAT', quirk: 'handy', want: 'stew' },
+  { k: 'chestnut', fur: 'chestnut', color: 'CHESTNUT', look: { hat: 'scarf', acc: ['#2a8a8a', '#185a5a', '#e8e0d0'] }, tag: 'CHESTNUT, SCARF', quirk: 'nervous', want: 'bobcat' }
+];
+Object.assign(BUN_FURS, {
+  cream: ['#e6d4ae', '#bba67c', '#fff2d4'], silver: ['#b0b4be', '#82868f', '#dcdfe8'], cocoa: ['#76462a', '#4e2c18', '#9c6640'],
+  black: ['#3a3236', '#211b1e', '#5c5258'], rust: ['#9e4428', '#6c2a16', '#c66a44'], lilac: ['#a8949e', '#7a6872', '#ccbac2'],
+  ash: ['#7a8394', '#555c6b', '#a3abbb'], fawn: ['#d2a06c', '#a27444', '#f0c896'], chestnut: ['#8c5434', '#5e341e', '#b47a54']
+});
+
+const QUIRKS = {
+  roof: { name: 'NEVER COMES DOWN', tip: 'LIVES ON THE ROOF. DOES NOT RUN ERRANDS. DOES SUPERVISE.' },
+  nibbler: { name: 'NIBBLES', tip: 'BRINGS IT BACK. WITH BITE MARKS.' },
+  showoff: { name: 'SHOW-OFF', tip: 'BRINGS IT BACK AND A CROWD TO WATCH. BETTER VIBES.' },
+  lost: { name: 'GETS LOST', tip: 'ENDS UP SOMEWHERE ELSE ENTIRELY. BRINGS BACK WHATEVER THEY HAVE THERE.' },
+  country: { name: 'COUNTRY', tip: 'DRIVES TO THE FARM NO MATTER WHAT YOU ASKED FOR.' },
+  sleepy: { name: 'SLEEPY', tip: 'NAPS FIRST. SOMETIMES THE NAP IS ALL YOU GET.' },
+  fancy: { name: 'FANCY', tip: 'BUYS THE FANCY VERSION. WITH YOUR CARROTS.' },
+  hungry: { name: 'HUNGRY', tip: 'BRINGS FOOD. EATS SOME OF IT ON THE WAY.' },
+  dreamer: { name: 'DREAMER', tip: 'COMES BACK WANTING SOMETHING BRAND NEW.' },
+  literal: { name: 'LITERAL', tip: 'DOES EXACTLY WHAT YOU SAID. EXACTLY.' },
+  haggler: { name: 'HAGGLER', tip: 'KNOWS A GUY. GETS TWICE AS MUCH.' },
+  musical: { name: 'MUSICAL', tip: 'COMES BACK WITH A RECORD. AND THE THING, IF HE REMEMBERED.' },
+  social: { name: 'SOCIAL', tip: 'MAKES A FRIEND. THE FRIEND COMES TO THE COOKOUT.' },
+  lucky: { name: 'LUCKY', tip: 'TRIPS OVER CARROTS EVERYWHERE HE GOES.' },
+  speedy: { name: 'SPEEDY', tip: 'BACK BEFORE LUNCH. GOES TWICE.' },
+  handy: { name: 'HANDY', tip: 'FIXES SOMETHING ON THE WAY. GETS TIPPED FOR IT.' },
+  nervous: { name: 'NERVOUS', tip: 'MIGHT SEE A BOBCAT AND COME STRAIGHT HOME.' }
+};
+
+/* ---------- places on the map ---------- */
+const PLACES = {
+  forest: { name: 'THE FOREST', sub: 'HOME', runs: ['creek', 'garden'], shops: [], song: 'title' },
+  atl: { name: 'PEACHTREE', sub: 'ATL', runs: ['icebox'], shops: ['icebox', 'customs', 'market'], song: 'icebox' },
+  farm: { name: 'ELLI\'S FARM', sub: 'WASHINGTON, GA', runs: ['farm'], shops: ['stand'], song: 'dexter' },
+  marsh: { name: 'SULLIVAN\'S ISLAND', sub: 'SOUTH CAROLINA', runs: ['marsh'], shops: ['shack'], song: 'marsh' },
+  paris: { name: 'PARIS', sub: 'FRANCE', runs: ['paris'], shops: ['maison'], song: 'french' },
+  boulder: { name: 'BOULDER', sub: 'COLORADO', runs: ['boulder'], shops: ['gear'], song: 'lawn' }
+};
+const LVPLACE = { creek: 'forest', garden: 'forest', icebox: 'atl', farm: 'farm', marsh: 'marsh', paris: 'paris', boulder: 'boulder' };
+const LVNAME = { creek: 'THE CREEK', garden: 'THE GARDEN', icebox: 'PEACHTREE', farm: 'THE FARM', marsh: 'THE MARSH', paris: 'PARIS', boulder: 'SANITAS' };
+const LVEND = { creek: 'THE CREEK', garden: 'THE COOKOUT', farm: 'THE PORCH', marsh: 'THE DUNES', paris: 'THE TAXI', boulder: 'THE SUMMIT', icebox: 'THE ICE BOX' };
+
+/* ---------- the stash: coveted things ---------- */
+// cat: drip bags ride home trophy records.  ic: [icon shape, color, color2]
+const STASH = {
+  // drip (The Ice Box, Peachtree)
+  rope: { cat: 'drip', name: 'GOLD ROPE', ic: ['rope', '#f6c645'], price: 250, shop: 'icebox', perk: 'CARROTS DRIFT TOWARD YOU.', vibes: 2 },
+  pendant: { cat: 'drip', name: 'CARROT PENDANT', ic: ['pend', '#f6c645', '#ff8a1c'], price: 200, shop: 'icebox', perk: 'TEN PERCENT MORE CARROTS IN THE BANK.', vibes: 2 },
+  iced: { cat: 'drip', name: 'ICED OUT CHAIN', ic: ['ice', '#e8f6ff', '#9ae8ff'], price: 400, shop: 'icebox', perk: 'GOLDEN CARROTS SHOW UP ON THE TRIP METER.', vibes: 3 },
+  tennis: { cat: 'drip', name: 'TENNIS CHAIN', ic: ['chain', '#e8f6ff'], price: 300, shop: 'icebox', desc: 'NOBODY IN THE FAMILY PLAYS TENNIS.', vibes: 3 },
+  pinky: { cat: 'drip', name: 'PINKY RING', ic: ['ring', '#f6c645', '#ff4fa0'], price: 150, shop: 'icebox', desc: 'FOR POINTING AT THINGS FANCILY.', vibes: 2 },
+  stud: { cat: 'drip', name: 'EAR STUD', ic: ['stud', '#e8f6ff', '#9ae8ff'], price: 180, shop: 'icebox', desc: 'BUNNIES HAVE A LOT OF EAR TO WORK WITH.', vibes: 2 },
+  sandchain: { cat: 'drip', name: 'SAND DOLLAR CHAIN', ic: ['sandch', '#f6c645', '#f2dca8'], price: 250, shop: 'shack', desc: 'PONTOON MADE IT. HE SAYS IT\'S WORTH ONE DOLLAR.', vibes: 2 },
+  // bags and finery (Maison Carotte, Paris)
+  obox: { cat: 'bags', name: 'ORANGE BOX', ic: ['box', '#ff8a1c', '#5a2a0a'], price: 300, shop: 'maison', desc: 'THE BOX IS THE POINT. THERE IS A BELT IN IT SOMEWHERE.', vibes: 3 },
+  duffel: { cat: 'bags', name: 'MONOGRAM DUFFEL', ic: ['bag', '#8a5a32', '#e8c070'], price: 450, shop: 'maison', perk: 'THE FIRST DROP ON A HAUL DOESN\'T COUNT.', vibes: 3 },
+  trunk: { cat: 'bags', name: 'MONOGRAM TRUNK', ic: ['trunk', '#8a5a32', '#e8c070'], price: 900, shop: 'maison', desc: 'HOLDS EXACTLY ONE CARROT. BEAUTIFULLY.', vibes: 6 },
+  silk: { cat: 'bags', name: 'SILK SCARF', ic: ['scarf', '#ff8a1c', '#fff3b0'], price: 220, shop: 'maison', desc: 'IT HAS LITTLE CARROTS ON IT. OF COURSE IT DOES.', vibes: 2 },
+  beret: { cat: 'bags', name: 'BERET', ic: ['beret', '#2a2430'], price: 120, shop: 'maison', desc: 'NOW HE SAYS "OUI." CONSTANTLY.', vibes: 1 },
+  beanie: { cat: 'bags', name: 'BOULDER BEANIE', ic: ['beanie', '#c8302a'], price: 120, shop: 'gear', desc: 'KNIT BY A BUNNY NAMED, WE THINK, "SAGE."', vibes: 1 },
+  sunhat: { cat: 'bags', name: 'MARSH SUNHAT', ic: ['beret', '#e8c870'], price: 140, shop: 'shack', desc: 'FOR SUNNING. ALL DAY. LIKE A CAT.', vibes: 1 },
+  // the ride (Peachtree Customs)
+  rims: { cat: 'ride', name: 'TWENTY-FOURS', ic: ['rim', '#c8ced8', '#f6c645'], price: 500, shop: 'customs', perk: 'THE ESCALADE GOES FASTER ON PEACHTREE.', vibes: 3 },
+  hydro: { cat: 'ride', name: 'HYDRAULICS', ic: ['coil', '#c8ced8'], price: 400, shop: 'customs', perk: 'BIGGER HOPS OVER TRAFFIC.', vibes: 3 },
+  neon: { cat: 'ride', name: 'NEON UNDERGLOW', ic: ['neon', '#ff4fa0', '#4fe0ff'], price: 300, shop: 'customs', perk: 'THE ESCALADE GLOWS. ALSO AT COOKOUTS.', vibes: 3 },
+  subs: { cat: 'ride', name: 'SUBWOOFERS', ic: ['speaker', '#2a2430', '#8a8a96'], price: 350, shop: 'customs', desc: 'THE NEIGHBORS HAVE OPINIONS.', vibes: 4 },
+  bumper: { cat: 'ride', name: 'NIBBLED BUMPER', ic: ['bumper', '#c8ced8'], desc: 'THE NIBBIN\' BUN GOT TO IT. IT\'S A CONVERSATION PIECE NOW.', vibes: 2 },
+  // home
+  grill: { cat: 'home', name: 'THE BIG GRILL', ic: ['grill', '#2a2430', '#ff6a2a'], desc: 'ONE DENT. SHAPED LIKE A BOBCAT. ADDS FLAVOR.', vibes: 6 },
+  smoker: { cat: 'home', name: 'THE SMOKER', ic: ['smoker', '#3a3a40', '#9a9aa2'], price: 600, shop: 'market', desc: 'RIBS. ALL NIGHT. EVERY NIGHT.', vibes: 6 },
+  lights: { cat: 'home', name: 'STRING LIGHTS', ic: ['lights', '#ffd86a', '#ff9a5a'], price: 150, shop: 'market', desc: 'THE ROOF BUN HUNG THEM. ONLY ON HIS SIDE.', vibes: 4 },
+  speaker: { cat: 'home', name: 'THE BIG SPEAKER', ic: ['speaker', '#1a1420', '#ff4fa0'], desc: 'FORMERLY PROPERTY OF LES ESCARGOTS DISCO.', vibes: 6 },
+  disco: { cat: 'home', name: 'DISCO BALL', ic: ['disco', '#c8ced8', '#ffffff'], price: 350, shop: 'maison', desc: 'HUNG IN SUNNY\'S TREE. SHE HAS NOT ASKED WHY.', vibes: 5 },
+  swing: { cat: 'home', name: 'PORCH SWING', ic: ['swing', '#a07448', '#c8ced8'], price: 400, shop: 'stand', desc: 'DEXTER\'S IDEA. DEXTER\'S NAP SPOT, WHEN HE VISITS.', vibes: 3 },
+  pool: { cat: 'home', name: 'KIDDIE POOL', ic: ['pool', '#5aa8ff', '#ff4fa0'], price: 200, shop: 'shack', desc: 'THE LAKE, BUT WORSE, BUT CLOSER.', vibes: 3 },
+  hammock: { cat: 'home', name: 'THE HAMMOCK', ic: ['hammock', '#e8c870', '#5a3a22'], price: 800, shop: 'gear', perk: 'NAPS MAKE THE DAY LONGER: FOUR SUNS A DAY.', vibes: 3 },
+  skis: { cat: 'home', name: 'TINY SKIS', ic: ['skis', '#c8302a', '#2a6ab8'], price: 300, shop: 'gear', desc: 'THERE IS NO SNOW IN ATLANTA. HE WEARS THEM TO THE MAILBOX.', vibes: 2 },
+  // trophies from Wants
+  stone: { cat: 'trophy', name: 'THE SKIPPING STONE', ic: ['stone', '#8c939a'], desc: 'SEVEN SKIPS. ALLEGEDLY.', vibes: 1 },
+  peachcup: { cat: 'trophy', name: 'SWEETEST PEACH (GOLD)', ic: ['peach', '#f6c645'], desc: 'DEXTER HAD IT DIPPED IN GOLD SO NOBODY WOULD EAT IT. SOMEBODY TRIED.', vibes: 2 },
+  clip: { cat: 'trophy', name: 'THE CLIPBOARD', ic: ['clip', '#a07448'], perk: 'ROUNDUPS: A BUMP ONLY SHAKES LOOSE ONE COUSIN.', vibes: 1 },
+  crown: { cat: 'trophy', name: 'COLLARD CROWN', ic: ['crown', '#3f8a3a', '#6ab860'], desc: 'MADE OF COLLARDS. GETS EATEN EVERY FEW DAYS. REMADE.', vibes: 2 },
+  watch: { cat: 'trophy', name: 'THE STOPWATCH', ic: ['watch', '#c8ced8', '#e03030'], perk: 'SUNDOWN RACES LAST A LITTLE LONGER.', vibes: 1 },
+  ribbon: { cat: 'trophy', name: 'CAT-WALK RIBBON', ic: ['ribbon', '#2a78a8', '#f6c645'], desc: 'BEST IN SHOW. THE SHOW WAS PONTOON.', vibes: 1 },
+  realeyes: { cat: 'trophy', name: 'REAL EYES', ic: ['specs', '#1a1420', '#ffffff'], perk: 'SUNNY CAN\'T TELL WHERE YOU\'RE LOOKING. NO ACORNS.', vibes: 2 },
+  hammer: { cat: 'trophy', name: 'THE GOLDEN HAMMER', ic: ['hammer', '#f6c645', '#5a3a22'], desc: 'FROM THE ROOF BUN, WITH RESPECT. HE HAS NEVER GIVEN ANYBODY ANYTHING.', vibes: 2 },
+  tag: { cat: 'trophy', name: 'BAGGAGE CLAIM TAG', ic: ['tag', '#f4ead0', '#c8302a'], desc: 'ATL TO CDG. THE BAG NEVER CAME. THE BUN DID.', vibes: 1 },
+  hairball: { cat: 'trophy', name: 'THE BOBCAT\'S RESPECT', ic: ['hair', '#b8946a'], desc: 'IT\'S A HAIRBALL. IT MEANS EVERYTHING.', vibes: 2 },
+  photo: { cat: 'trophy', name: 'SNOW BUN PHOTO', ic: ['photo', '#f4ead0', '#9ad0f0'], desc: 'THE SNOW BUN LOOKS LIKE THE BOBCAT. THE BOULDER BUNNIES SAY THAT\'S A SIGN.', vibes: 1 },
+  note: { cat: 'trophy', name: 'SUNNY\'S THANK-YOU NOTE', ic: ['note', '#f4ead0', '#ff8a9a'], desc: 'IT SAYS "HMM." SHE MEANT IT.', vibes: 2 },
+  shoe: { cat: 'trophy', name: 'SEVEN\'S HORSESHOE', ic: ['shoe', '#c8ced8'], desc: 'SEVEN THREW IT AT YOU. LOVINGLY.', vibes: 1 },
+  bigcup: { cat: 'trophy', name: 'BIGGEST COOKOUT IN GEORGIA', ic: ['cup', '#f6c645', '#ff8a1c'], desc: 'THE WHOLE FAMILY. EVERY FRIEND. ONE GARDEN.', vibes: 10 },
+  // the album, on vinyl
+  r_buns: { cat: 'records', name: 'GEORGIA BUNS', ic: ['record', '#f6c645'], song: 'buns', desc: 'THE THEME. ESCALADE MUSIC.', vibes: 1 },
+  r_sunny: { cat: 'records', name: 'SUNNY THE SQUIRREL', ic: ['record', '#ff8a9a'], song: 'sunny', price: 120, shop: 'market', vibes: 1 },
+  r_nib: { cat: 'records', name: 'NIBBIN\' BUN', ic: ['record', '#c79c6c'], song: 'nibbin', price: 120, shop: 'market', vibes: 1 },
+  r_bob: { cat: 'records', name: 'THE BOBCAT', ic: ['record', '#8a6a3a'], song: 'bobcat', vibes: 1 },
+  r_marsh: { cat: 'records', name: 'MARSH BUNS', ic: ['record', '#5aa0c8'], song: 'marsh', price: 120, shop: 'shack', vibes: 1 },
+  r_ice: { cat: 'records', name: 'ICE BOX', ic: ['record', '#9ae8ff'], song: 'icebox', price: 120, shop: 'market', vibes: 1 },
+  r_garden: { cat: 'records', name: 'GARDEN PARTY', ic: ['record', '#7ad050'], song: 'garden', vibes: 1 },
+  r_dexter: { cat: 'records', name: 'DEXTER', ic: ['record', '#e2c48e'], song: 'dexter', price: 120, shop: 'stand', vibes: 1 },
+  r_french: { cat: 'records', name: 'LA FRENCH CONNEXION', ic: ['record', '#ff8a1c'], song: 'french', price: 120, shop: 'maison', vibes: 1 }
+};
+const STASH_CATS = [['drip', 'DRIP'], ['bags', 'FINERY'], ['ride', 'THE RIDE'], ['home', 'HOME'], ['records', 'RECORDS'], ['trophy', 'TROPHIES'], ['pantry', 'PANTRY']];
+
+/* ---------- the spread: cookout food ---------- */
+const FOOD = {
+  juice: { name: 'CARROT JUICE', ic: ['juice', '#ff8a1c'], vibes: 2, price: 10, shop: 'market' },
+  greens: { name: 'COLLARDS', ic: ['greens', '#3f8a3a'], vibes: 3, price: 15, shop: 'market' },
+  ribs: { name: 'RIBS', ic: ['ribs', '#8a3a1a'], vibes: 4, price: 25, shop: 'market' },
+  pud: { name: 'BANANA PUDDING', ic: ['pud', '#f6e08a'], vibes: 5, price: 30, shop: 'market' },
+  peach: { name: 'PEACHES', ic: ['peach', '#ffb347'], vibes: 2, price: 10, shop: 'stand' },
+  cobbler: { name: 'PEACH COBBLER', ic: ['cobbler', '#d8a050'], vibes: 6, price: 40, shop: 'stand' },
+  corn: { name: 'CORNBREAD', ic: ['corn', '#f0c040'], vibes: 2, price: 15, shop: 'stand' },
+  melon: { name: 'WATERMELON', ic: ['melon', '#e03a4a'], vibes: 3, price: 20, shop: 'stand' },
+  eggs: { name: 'DEVILED EGGS', ic: ['eggs', '#fff0c0'], vibes: 3, price: 12, shop: 'stand' },
+  nuts: { name: 'BOILED PEANUTS', ic: ['nuts', '#c8a070'], vibes: 2, price: 12, shop: 'shack' },
+  croiss: { name: 'CROISSANTS', ic: ['croiss', '#e0a050'], vibes: 3, price: 15, shop: 'maison' },
+  mix: { name: 'TRAIL MIX', ic: ['mix', '#a07448'], vibes: 1, price: 15, shop: 'gear' },
+  potato: { name: 'SWEET POTATOES', ic: ['potato', '#c8603a'], vibes: 2 },
+  lettuce: { name: 'LETTUCE', ic: ['lettuce', '#7ad050'], vibes: 1 },
+  stew: { name: 'CARROT STEW', ic: ['stew', '#ff8a1c'], vibes: 8 },
+  ice: { name: 'A BAG OF ICE', ic: ['icebag', '#bfe8ff'], vibes: 1 }
+};
+const GUESTS = {
+  dexter: { name: 'DEXTER', vibes: 5 }, elli: { name: 'MISS ELLI AND SEVEN', vibes: 6 }, pontoon: { name: 'PONTOON', vibes: 5 },
+  snails: { name: 'LES ESCARGOTS DISCO', vibes: 7 }, bobcat: { name: 'THE BOBCAT (ON THE ESCALADE)', vibes: 6 }, sunny: { name: 'SUNNY (FROM HER TREE)', vibes: 5 },
+  boulder: { name: 'THE BOULDER BUNNIES', vibes: 6 }
+};
+
+/* ---------- shops ---------- */
+const SHOPS = {
+  icebox: { name: 'THE ICE BOX', place: 'atl', song: 'icebox', hello: 'WELCOME TO THE ICE BOX. EVERYTHING DRIPS.', col: ['#2a2058', '#9ae8ff'] },
+  customs: { name: 'PEACHTREE CUSTOMS', place: 'atl', song: 'theme', hello: 'BRING THE ESCALADE AROUND BACK.', col: ['#3a3a44', '#f6c645'] },
+  market: { name: 'THE CORNER MARKET', place: 'atl', song: 'cookout', hello: 'GREENS, RIBS, RECORDS IN THE BACK.', col: ['#8a3a22', '#ffe08a'] },
+  stand: { name: 'THE PEACH STAND', place: 'farm', song: 'dexter', hello: 'HONOR SYSTEM. DEXTER IS THE SYSTEM.', col: ['#b8302a', '#ffe08a'] },
+  shack: { name: 'PONTOON\'S SHACK', place: 'marsh', song: 'marsh', hello: 'TAKE YOUR TIME. I AM.', col: ['#2a78a8', '#ffe9b0'] },
+  maison: { name: 'MAISON CAROTTE', place: 'paris', song: 'french', hello: 'BONJOUR. EVERYTHING IS ORANGE.', col: ['#34307a', '#ff8a1c'] },
+  gear: { name: 'BOULDER GEAR', place: 'boulder', song: 'lawn', hello: 'HEY CUZ. EVERYTHING\'S MADE OF HEMP. JUST KIDDING. MOSTLY.', col: ['#6a4a8a', '#bfe8ff'] }
+};
+function shopItems(id) { const out = []; for (const k in STASH) if (STASH[k].shop === id) out.push(['s', k]); for (const k in FOOD) if (FOOD[k].shop === id) out.push(['f', k]); return out; }
+
+/* ---------- errands: ask for one thing, get... something ---------- */
+// ok: what you wanted. fancy: the fancy version (costs carrots). lit: what a literal mind heard.
+const ERRANDS = {
+  ice: { name: 'GET ICE', ask: 'ICE', place: 'atl', ok: { food: { ice: 2 }, say: 'A BAG OF ICE. GOOD AND COLD. MOSTLY.' }, fancy: { stash: 'pinky', cost: 60, say: 'ICE. THE KIND YOU WEAR. IT\'S A PINKY RING.' }, lit: { carrots: 5, say: 'HE HEARD "REAL EYES." CAME BACK WITH A BAG OF GOOGLY EYES. THEY\'RE ON THE FRIDGE NOW.' } },
+  greens: { name: 'PICK UP COLLARDS', ask: 'COLLARDS', place: 'atl', ok: { food: { greens: 2 }, say: 'TWO BUNCHES OF COLLARDS.' }, fancy: { food: { greens: 3 }, cost: 30, say: 'HEIRLOOM COLLARDS. THEY HAVE A BACKSTORY.' }, lit: { carrots: 5, say: 'A COLLARED SHIRT. HE IS WEARING IT. IT IS TOO BIG.' } },
+  ribs: { name: 'GET RIBS', ask: 'RIBS', place: 'atl', ok: { food: { ribs: 2 }, say: 'TWO RACKS OF RIBS.' }, fancy: { food: { ribs: 3 }, cost: 50, say: 'THE GOOD RIBS. THE GUY KNOWS HIM BY NAME. HE DOESN\'T HAVE A NAME.' }, lit: { carrots: 5, say: 'RIBBONS. A WHOLE SPOOL. "YOU SAID RIBS." NOBODY SAID RIBBONS.' } },
+  juice: { name: 'MAKE CARROT JUICE', ask: 'CARROT JUICE', place: 'forest', ok: { food: { juice: 3 }, say: 'THREE JUGS OF CARROT JUICE.' }, fancy: { food: { juice: 4 }, cost: 25, say: 'COLD-PRESSED. HE PRESSED IT WITH A COLD FACE.' }, lit: { food: { juice: 1 }, carrots: 10, say: 'ONE CARROT, AND SEPARATELY, SOME JUICE. "IT\'S CARROT JUICE IF YOU BELIEVE."' } },
+  peaches: { name: 'GET PEACHES', ask: 'PEACHES', place: 'farm', ok: { food: { peach: 3 }, say: 'THREE PEACHES FROM THE STAND.' }, fancy: { food: { cobbler: 1 }, cost: 40, say: 'SKIPPED THE PEACHES. WENT STRAIGHT TO MISS ELLI\'S COBBLER.' }, lit: { carrots: 5, say: 'A DRAWING OF A PEACH. HE DID IT HIMSELF. IT\'S NOT BAD.' } },
+  melon: { name: 'GET A WATERMELON', ask: 'A WATERMELON', place: 'farm', ok: { food: { melon: 1 }, say: 'ONE WATERMELON. THE BIGGEST THEY HAD.' }, fancy: { food: { melon: 2 }, cost: 30, say: 'TWO SEEDLESS. "SEEDS ARE FOR PEASANTS."' }, lit: { food: { ice: 1 }, say: 'WATER. AND A MELON. IN SEPARATE BAGS. THE WATER IS ICE NOW.' } },
+  eggs: { name: 'GET EGGS FROM THE CHICKENS', ask: 'EGGS', place: 'farm', ok: { food: { eggs: 2 }, say: 'DEVILED EGGS. THE CHICKENS WERE COOL ABOUT IT.' }, fancy: { food: { eggs: 3 }, cost: 25, say: 'DEVILED EGGS WITH PAPRIKA IN A LITTLE PATTERN.' }, lit: { carrots: 5, say: 'A CHICKEN. THE CHICKEN IS NOW AT THE COOKOUT. THE CHICKEN SEEMS FINE.' } },
+  nuts: { name: 'GET BOILED PEANUTS', ask: 'BOILED PEANUTS', place: 'marsh', ok: { food: { nuts: 2 }, say: 'A SACK OF BOILED PEANUTS FROM A STAND BY THE BRIDGE.' }, fancy: { food: { nuts: 3 }, cost: 25, say: 'CAJUN BOILED. HIS EARS ARE STILL HOT.' }, lit: { food: { greens: 1 }, say: 'PEAS. AND SEPARATELY, NUTS. HE MADE A SALAD OUT OF IT. IT\'S FINE.' } },
+  croiss: { name: 'GET CROISSANTS', ask: 'CROISSANTS', place: 'paris', ok: { food: { croiss: 2 }, say: 'A BAG OF CROISSANTS, STILL WARM, SOMEHOW.' }, fancy: { stash: 'beret', cost: 60, say: 'CROISSANTS AND A BERET. HE SAYS THEY COME TOGETHER.' }, lit: { carrots: 10, say: 'A ROCK SHAPED LIKE THE MOON. "CRESCENT." HE IS VERY PROUD.' } },
+  record: { name: 'PICK UP A RECORD', ask: 'A RECORD', place: 'atl', ok: { record: 1, say: 'A RECORD FROM THE BIN IN THE BACK.' }, fancy: { record: 1, cost: 40, say: 'A RECORD, SIGNED. BY HIM. IN THE CAR.' }, lit: { carrots: 20, say: 'HE SET A RECORD. FASTEST ROUND TRIP TO NOWHERE.' } },
+  pud: { name: 'GET BANANA PUDDING', ask: 'BANANA PUDDING', place: 'atl', ok: { food: { pud: 1 }, say: 'A PAN OF BANANA PUDDING. VANILLA WAFERS ON TOP.' }, fancy: { food: { pud: 2 }, cost: 40, say: 'TWO PANS. ONE IS FOR THE ROOF BUN, WHO WILL NOT COME DOWN FOR IT.' }, lit: { food: { peach: 1 }, say: 'A BANANA. AND A PUDDING CUP. HE COMBINED THEM. IT WORKED.' } },
+  corn: { name: 'GET CORNBREAD', ask: 'CORNBREAD', place: 'farm', ok: { food: { corn: 2 }, say: 'TWO SKILLETS OF CORNBREAD.' }, fancy: { food: { corn: 3 }, cost: 25, say: 'CORNBREAD WITH HONEY BUTTER. HE WANTS YOU TO KNOW ABOUT THE BUTTER.' }, lit: { food: { lettuce: 1 }, say: 'AN EAR OF CORN AND A SLICE OF WHITE BREAD. NOT EVEN TOUCHING.' } },
+  mix: { name: 'GET TRAIL MIX', ask: 'TRAIL MIX', place: 'boulder', ok: { food: { mix: 2 }, say: 'TWO BAGS OF TRAIL MIX. ALL THE GOOD PARTS ARE STILL IN THERE.' }, fancy: { stash: 'beanie', cost: 60, say: 'TRAIL MIX AND A BEANIE. THE BEANIE WAS THE POINT.' }, lit: { carrots: 10, say: 'HE MIXED UP THE TRAIL. THE BOULDER BUNNIES ARE LOST NOW.' } }
+};
+// where a lost cousin ends up, and what he brings back
+const SOUVENIRS = [
+  ['PARIS', { food: { croiss: 2 } }, 'A BAG OF CROISSANTS'], ['SULLIVAN\'S ISLAND', { food: { nuts: 2 } }, 'BOILED PEANUTS'], ['WASHINGTON, GA', { food: { peach: 2 } }, 'TWO PEACHES'],
+  ['BOULDER', { food: { mix: 2 } }, 'TRAIL MIX'], ['THE AIRPORT', { carrots: 25 }, 'TWENTY-FIVE CARROTS FROM UNDER THE SEATS'], ['A DINER IN MACON', { food: { corn: 1 } }, 'SOMETHING HE CALLS CORNBREAD'],
+  ['STONE MOUNTAIN', { carrots: 15 }, 'FIFTEEN CARROTS AND A SUNBURN'], ['A BOAT', { food: { melon: 1 } }, 'A WATERMELON. FROM THE BOAT.']
+];
+
+/* ---------- the Want List ---------- */
+// steps: { run: level, mode, p } or { drive: 1 } or { drift: {...} }. mode: fetch haul roundup sprint toll hunt free
+const done = id => SG_SAVE() && (SG_SAVE().wants[id] || {}).st === 'done';
+const placeOpen = id => SG_SAVE() && !!SG_SAVE().places[id];
+const WANTS = {
+  creek: { who: 2, text: 'ROCKS. CREEK. TODAY.', sub: 'WOKE UP WITH A BURNING NEED TO THROW ROCKS IN THE CREEK. CAN\'T BE STOPPED. WON\'T BE.',
+    steps: [{ run: 'creek', mode: 'fetch', title: 'ROCKS IN THE CREEK', tip: 'GRAB THREE GOOD ROCKS. SKIP THEM AT THE CREEK.' }],
+    reward: { carrots: 50, stash: ['stone'] }, roles: ['THE CREEK BUN', 'THE SKIPPER', 'THE ROCK BUN'],
+    land: 'HE SKIPPED ONE SEVEN TIMES. NOBODY SAW. HE HAS TOLD EVERYBODY.', gate: () => true },
+  ice: { who: 6, text: 'DRIP DRIP LIKE WATER.', sub: 'WOKE UP NEEDING MORE ICE. NOT THE COLD KIND. HALF THE FAMILY HEARD THE COLD KIND.',
+    steps: [{ drive: 1, run: 'icebox', mode: 'drive', title: 'THE ICE BOX', tip: 'DRIVE PEACHTREE. GRAB ICE, HOP TRAFFIC ON THE HYDRAULICS, PICK YOUR DRIP.' }],
+    reward: { carrots: 40 }, roles: ['THE ICE BUN', 'THE JEWELER', 'DRIP'],
+    land: 'TWELVE WENT TO THE ICE BOX. THREE CAME BACK WITH BAGS OF ACTUAL ICE. TWO ARE STILL OUT LOOKING FOR "REAL EYES."', gate: () => done('creek'), opens: ['atl'] },
+  grill: { who: 10, text: 'WE NEED A BIGGER GRILL.', sub: 'TONIGHT\'S COOKOUT IS DOWN BY THE CREEK. THE NEW GRILL IS AT THE HOUSE. THE HOUSE IS NOT AT THE CREEK.',
+    steps: [{ run: 'creek', mode: 'haul', p: { obj: 'grill' }, title: 'HAUL THE GRILL', tip: 'CARRY IT TO THE CREEK. BUMPS KNOCK IT LOOSE. GO BACK FOR IT.' }],
+    reward: { carrots: 40, stash: ['grill'] }, roles: ['THE GRILL BUN', 'PITMASTER', 'SMOKEY'],
+    land: 'THE GRILL MADE IT. ONE NEW DENT, SHAPED LIKE A BOBCAT. HE SAYS IT ADDS FLAVOR.', gate: () => done('creek') },
+  peach: { who: 4, text: 'NEED THE SWEETEST PEACH IN GEORGIA.', sub: 'DEXTER SAYS CITY PEACHES ARE "A RUMOR." WE\'RE DRIVING TO WASHINGTON TO SETTLE IT.',
+    steps: [{ run: 'farm', mode: 'fetch', title: 'COUNTRY COUSIN', tip: 'THREE PEACHES. RIDE SEVEN IF HE LETS YOU.' }],
+    reward: { carrots: 50, food: { peach: 3, cobbler: 1 }, guest: 'dexter', stash: ['peachcup'] }, roles: ['THE PEACH BUN', 'THE COUNTRY BUN', 'SWEET TOOTH'],
+    land: 'MISS ELLI MADE A COBBLER. DEXTER ATE A THIRD OF IT AND SAID HE WAS "JUST CHECKING IT."', gate: () => placeOpen('farm') },
+  roundup: { who: 12, text: 'EVERYBODY TO THE CREEK. NOW.', sub: 'THE FAMILY IS SCATTERED ALL OVER THE FOREST, ASLEEP. HE HAS A WHISTLE AND A DREAM.',
+    steps: [{ run: 'creek', mode: 'roundup', p: { n: 6 }, title: 'HEADCOUNT', tip: 'WAKE THE COUSINS AND THEY FOLLOW YOU. BUMPS SHAKE A FEW LOOSE. GO BACK FOR THEM.' }],
+    reward: { carrots: 50, stash: ['clip'] }, roles: ['THE HEADCOUNT BUN', 'THE SHEPHERD', 'UNCLE BUN'],
+    land: 'HE COUNTED SEVENTEEN. THEN SIXTEEN. THEN NINETEEN. HE\'S CALLING IT SEVENTEEN.', gate: () => done('grill') },
+  collards: { who: 13, text: 'COLLARDS. A MOUNTAIN OF COLLARDS.', sub: 'MISS ELLI TRADES GREENS FOR CARROTS. HE WANTS ENOUGH GREENS TO BE SEEN FROM SPACE.',
+    steps: [{ run: 'farm', mode: 'toll', p: { n: 75 }, title: 'GREENS MONEY', tip: 'COLLECT 75 CARROTS BEFORE THE PORCH. MISS ELLI TAKES CARROTPAY.' }],
+    reward: { carrots: 20, food: { greens: 5 }, stash: ['crown'] }, roles: ['THE COLLARD BUN', 'THE COLLARD KING', 'GREENS'],
+    land: 'FIVE BUSHELS. THE ESCALADE SMELLS LIKE A SUNDAY AND ALWAYS WILL.', gate: () => done('peach') },
+  sundown: { who: 14, text: 'GONNA BEAT THE SUNDOWN TO THE CREEK.', sub: 'NOBODY CHALLENGED HIM. HE CHALLENGED THE SUN. THE SUN DOES NOT KNOW.',
+    steps: [{ run: 'creek', mode: 'sprint', title: 'RACE THE SUN', tip: 'GET TO THE CREEK BEFORE THE SKY GOES DARK.' }],
+    reward: { carrots: 50, stash: ['watch'] }, roles: ['THE SUNDOWN BUN', 'ZOOM', 'THE FAST ONE'],
+    land: 'HE WON. THE SUN WENT DOWN ANYWAY. HE CONSIDERS THIS A TIE, WHICH HE WON.', gate: () => done('roundup') },
+  cat: { who: 5, text: 'GOTTA LEARN TO WALK LIKE A CAT.', sub: 'PONTOON SITS UP LIKE A CAT AND SUNS ALL DAY. HE HAS NEVER WANTED ANYTHING MORE.',
+    steps: [{ run: 'marsh', mode: 'fetch', title: 'MARSH BUNS', tip: 'THREE SAND DOLLARS. THE PLUFF MUD IS SLICK. PONTOON IS PAST THE DUNES.' }],
+    reward: { carrots: 50, guest: 'pontoon', food: { nuts: 2 }, stash: ['ribbon'] }, roles: ['THE CAT BUN', 'SITS-UP', 'THE SUNNING BUN'],
+    land: 'HE CAN SIT LIKE A CAT NOW. HE DOES IT AT THE DINNER TABLE. NOBODY LIKES IT.', gate: () => placeOpen('marsh') },
+  eyes: { who: 9, text: 'HE SAID REAL ICE. I HEARD REAL EYES.', sub: 'AND NOW HE CAN\'T STOP THINKING ABOUT IT. PONTOON SAYS THERE\'S A PAIR OUT IN THE DUNES.',
+    steps: [{ run: 'marsh', mode: 'hunt', p: { obj: 'realeyes' }, title: 'REAL EYES', tip: 'THE PEBBLE PINGS WHEN YOU\'RE CLOSE. YOU CAN\'T LEAVE WITHOUT THEM.' }],
+    reward: { carrots: 40, stash: ['realeyes'] }, roles: ['THE REAL EYES BUN', 'FOUR EYES', 'SPECS'],
+    land: 'THEY\'RE SUNGLASSES WITH EYES PAINTED ON. HE WEARS THEM TO BED. SUNNY HAS NO IDEA WHERE HE\'S LOOKING.', gate: () => done('ice') && placeOpen('marsh') },
+  stew: { who: 15, text: 'CARROT STEW. TONIGHT. FROM SCRATCH.', sub: 'THE WHOLE GARDEN GOES IN THE POT. HE HAS A RECIPE. HE HAS NOT READ IT.',
+    steps: [{ run: 'garden', mode: 'fetch', title: 'STEW FIXINGS', tip: 'LETTUCE, A SWEET POTATO, AND THE BIG CARROT.' },
+      { drift: { text: 'GOT THE VEGETABLES. FORGOT THE ONIONS. ALSO THE ROOF IS LEAKING, AND THE ROOF BUN IS TAKING IT PERSONALLY.', stick: 'STICK TO THE STEW', go: 'FIX THE ROOF',
+        stickSay: 'NO ONIONS. HE MAKES THE STEW ANYWAY.', goSay: 'STEW CAN WAIT. THE ROOF CANNOT.',
+        goSteps: [{ run: 'creek', mode: 'haul', rev: 1, p: { obj: 'shingles' }, title: 'FIX THE ROOF', tip: 'THE SHINGLES ARE DOWN BY THE CREEK. HAUL THEM BACK UP TO THE HOUSE.' }],
+        goReward: { carrots: 60, stash: ['hammer'] }, goRoles: ['THE HANDY BUN', 'THE ROOFER', 'THE FORGETFUL BUN'],
+        goLand: 'SUN WENT DOWN. ROOF\'S FIXED. NOBODY REMEMBERS THE STEW. THE ROOF BUN HAS NEVER BEEN HAPPIER.' } }],
+    reward: { carrots: 40, food: { stew: 2 } }, roles: ['THE STEW BUN', 'CHEF', 'CARROT STEW'],
+    land: 'NO ONIONS. STILL THE BEST STEW ANYBODY EVER HAD. THE ROOF DRIPPED IN IT A LITTLE. HE CALLS THAT SEASONING.', gate: () => done('collards') },
+  paris: { who: 3, text: 'PARIS. ALL SEVENTEEN OF US. SHOPPING.', sub: 'NOBODY SPEAKS FRENCH. THE UBER TAKES EVERYBODY TO THE BEACH. HE GETS LEFT AT BAGGAGE CLAIM. HE IS FINE WITH IT.',
+    steps: [{ run: 'paris', mode: 'fetch', title: 'THE FRENCH CONNECTION', tip: 'THREE ORANGE BOXES. MAISON CAROTTE IS PAST LE CLUB.' }],
+    reward: { carrots: 60, stash: ['obox', 'tag'], food: { croiss: 2 } }, roles: ['THE BAGGAGE CLAIM BUN', 'THE PARIS BUN', 'MONSIEUR BUN'],
+    land: 'DAYS LATER HE SHOWED UP AT THE BEACH UNANNOUNCED, LOADED DOWN WITH ORANGE BOXES AND EXTREMELY BLINGIN\'.', gate: () => placeOpen('paris') },
+  speaker: { who: 11, text: 'THE COOKOUT NEEDS REAL SPEAKERS.', sub: 'LES ESCARGOTS DISCO ARE SELLING THEIR OLD ONE. IT\'S IN PARIS. THE COOKOUT IS NOT.',
+    steps: [{ run: 'paris', mode: 'haul', p: { obj: 'speaker' }, title: 'HAUL THE SPEAKER', tip: 'CARRY IT ACROSS PARIS TO THE TAXI. DON\'T DROP THE BASS.' }],
+    reward: { carrots: 50, stash: ['speaker'], guest: 'snails' }, roles: ['THE DJ BUN', 'THE AUX CORD', 'BASS'],
+    land: 'TOO BIG FOR THE ESCALADE. IT RODE HOME ON THE ROOF. THE ROOF BUN RODE WITH IT. HE CALLS IT HIS TOUR.', gate: () => done('paris') },
+  bobcat: { who: 16, text: 'GONNA MAKE PEACE WITH THE BOBCAT.', sub: 'THE MOST NERVOUS BUN ALIVE IS DONE BEING NERVOUS. ONE BASKET OF CARROTS. ONE BOBCAT.',
+    steps: [{ run: 'creek', mode: 'haul', p: { obj: 'basket' }, title: 'PEACE OFFERING', tip: 'THE BOBCAT IS UP. GET THE BASKET TO HIS TREE IN ONE PIECE.' }],
+    reward: { carrots: 50, guest: 'bobcat', stash: ['hairball'] }, roles: ['THE BRAVE BUN', 'THE BOBCAT WHISPERER', 'THE NEGOTIATOR'],
+    land: 'THE BOBCAT ATE THE CARROTS, SANG HIS SONG, AND LEFT A HAIRBALL ON THE BASKET. THAT\'S HOW YOU KNOW IT\'S RESPECT.', gate: () => done('sundown') && SG_SAVE().day >= 6 },
+  harvest: { who: 7, text: 'HARVEST DAY. ALL OF IT.', sub: 'LETTUCE, SWEET POTATOES, AND A CARROT HE\'S BEEN WATCHING SINCE SPRING. THEN THE BIGGEST PARTY EVER.',
+    steps: [{ run: 'garden', mode: 'fetch', title: 'GARDEN PARTY', tip: 'HARVEST ALL THREE. THE GROWL IN THE CABBAGE IS PROBABLY FINE.' }],
+    reward: { carrots: 50, food: { lettuce: 2, potato: 3, juice: 3 }, stash: ['lights'] }, roles: ['THE GARDEN BUN', 'GREEN THUMB', 'THE HARVEST BUN'],
+    land: 'THE GROWL IN THE CABBAGE WAS THE NIBBIN\' BUN. THE CABBAGE IS GONE. HE DOES NOT REGRET IT.', gate: () => done('stew') },
+  sanitas: { who: 8, text: 'GONNA CLIMB MOUNT SANITAS.', sub: 'HEARD THERE\'S SNOW AT THE TOP. HE HAS NEVER SEEN SNOW. HE PACKED SUNSCREEN AND A GRILL.',
+    steps: [{ run: 'boulder', mode: 'fetch', title: 'CLIMBING SANITAS', tip: 'RUN AT THE ROCK TO CLIMB. HOLD JUMP TO GO FASTER. THREE SNOWBALLS.' }],
+    reward: { carrots: 60, guest: 'boulder', stash: ['photo'], food: { mix: 2 } }, roles: ['THE SNOW BUN', 'THE CLIMBER', 'MOUNTAIN BUN'],
+    land: 'HE BUILT A SNOW BUN AT THE TOP. IT LOOKED LIKE THE BOBCAT. THE BOULDER BUNNIES SAY THAT\'S A SIGN.', gate: () => placeOpen('boulder') },
+  // side wants: no new names, but friends for the big cookout
+  sunny: { who: 0, runner: 2, side: 1, text: 'IT\'S SUNNY\'S BIRTHDAY. SHE CAN\'T KNOW I KNOW.', sub: 'THE ROOF BUN DOESN\'T COME DOWN, SO YOU\'RE GOING. THERE\'S A GOLDEN ACORN SOMEWHERE IN THE FOREST.',
+    steps: [{ run: 'creek', mode: 'hunt', p: { obj: 'acorn' }, title: 'THE GOLDEN ACORN', tip: 'THE PEBBLE PINGS WHEN YOU\'RE CLOSE. FIND IT BEFORE THE CREEK.' }],
+    reward: { carrots: 40, guest: 'sunny', stash: ['note'] },
+    land: 'SUNNY TOOK THE ACORN, SAID "HMM," AND ONLY DROPPED ONE ACORN ON ANYBODY ALL NIGHT. THAT\'S LOVE.', gate: () => SG_SAVE().day >= 4 },
+  nibcar: { who: 1, side: 1, text: 'THE ESCALADE LOOKS DELICIOUS TODAY.', sub: 'THE NIBBIN\' BUN HAS BEEN STARING AT THE BUMPER SINCE BREAKFAST. GET HIM SEVENTY CARROTS. FAST.',
+    steps: [{ run: 'garden', mode: 'toll', p: { n: 70 }, title: 'FEED THE NIBBIN\' BUN', tip: 'COLLECT 70 CARROTS. OR DON\'T, AND SEE WHAT HAPPENS TO THE ESCALADE.' }],
+    reward: { carrots: 20 }, lowReward: { stash: ['bumper'] },
+    land: 'SEVENTY CARROTS, GONE IN A MINUTE. THE ESCALADE LIVES. THE NIBBIN\' BUN IS ALREADY LOOKING AT THE COUCH.',
+    lowLand: 'NOT ENOUGH CARROTS. HE NIBBED THE BUMPER. HE SAYS IT TASTED LIKE A NEW CAR.', gate: () => SG_SAVE().day >= 3 },
+  seven: { who: 4, side: 1, text: 'SEVEN WANTS TO BE LOOKED AT.', sub: 'DEXTER CALLED. SEVEN HAS BEEN STANDING IN THE PASTURE LOOKING MAJESTIC FOR THREE DAYS AND NOBODY HAS COME.',
+    steps: [{ run: 'farm', mode: 'sprint', title: 'LOOK AT SEVEN', tip: 'RIDE SEVEN ACROSS THE PASTURE AND GET TO THE PORCH BEFORE SUNDOWN.' }],
+    reward: { carrots: 50, guest: 'elli', stash: ['shoe'] },
+    land: 'SEVEN WAS LOOKED AT. MISS ELLI CLAPPED. DEXTER SLEPT THROUGH THE WHOLE THING ON THE PORCH SWING.', gate: () => done('peach') && SG_SAVE().day >= 4 },
+  finale: { who: 2, side: 1, finale: 1, text: 'THE BIGGEST COOKOUT IN GEORGIA.', sub: 'SEVENTEEN COUSINS. EVERY FRIEND THEY\'VE GOT. ONE GARDEN. GET EVERYBODY THERE.',
+    steps: [{ run: 'garden', mode: 'roundup', p: { all: 1 }, title: 'THE BIGGEST COOKOUT', tip: 'ROUND UP THE WHOLE FAMILY. EVERY LAST ONE OF THEM.' }],
+    reward: { carrots: 200, stash: ['bigcup'] },
+    land: 'EVERYBODY CAME. THE BOBCAT SANG. SUNNY STAYED IN HER TREE AND DANCED A LITTLE. NOBODY WROTE IT DOWN, SO HERE IT IS.', gate: () => FAM.every((f, i) => i < 2 || famRole(i)) }
+};
+const STORY_ORDER = ['creek', 'ice', 'grill', 'peach', 'roundup', 'collards', 'sundown', 'cat', 'eyes', 'stew', 'paris', 'speaker', 'bobcat', 'harvest', 'sanitas', 'sunny', 'nibcar', 'seven', 'finale'];
+
+/* ---------- daily wants: small ones, every morning ---------- */
+const DAILY = [
+  { mode: 'haul', obj: 'melon', text: 'HAUL A WATERMELON TO THE COOKOUT.', lv: ['creek', 'farm', 'garden', 'marsh'], food: { melon: 1 } },
+  { mode: 'haul', obj: 'cooler', text: 'THE CARROT JUICE COOLER HAS TO GET THERE COLD.', lv: ['creek', 'farm', 'garden', 'marsh', 'boulder'], food: { juice: 3 } },
+  { mode: 'haul', obj: 'cobbler', text: 'MISS ELLI SENT A COBBLER. DON\'T. DROP. IT.', lv: ['farm'], food: { cobbler: 1 } },
+  { mode: 'haul', obj: 'obox', text: 'CARRY THE ORANGE BOX. CAREFULLY. IT\'S MOSTLY BOX.', lv: ['paris'], food: { croiss: 1 } },
+  { mode: 'toll', n: 60, text: 'NEED 60 CARROTS. DON\'T ASK WHAT FOR.', lv: ['creek', 'farm', 'garden', 'marsh', 'paris', 'boulder'], bonus: 30 },
+  { mode: 'toll', n: 75, text: 'SAVING UP FOR SOMETHING SHINY. 75 CARROTS.', lv: ['creek', 'farm', 'marsh', 'paris'], bonus: 45 },
+  { mode: 'sprint', text: 'BET I CAN BEAT THE SUN TO THE END.', lv: ['creek', 'farm', 'garden', 'marsh', 'paris', 'boulder'] },
+  { mode: 'roundup', n: 4, text: 'THE COUSINS WANDERED OFF AGAIN.', lv: ['creek', 'farm', 'garden', 'marsh', 'paris', 'boulder'] },
+  { mode: 'hunt', obj: 'chain', text: 'LOST MY CHAIN OUT THERE. NOBODY TELL THE ICE BUN.', lv: ['creek', 'farm', 'garden', 'marsh', 'paris', 'boulder'], bonus: 20 },
+  { mode: 'hunt', obj: 'pebble', text: 'DROPPED MY PEBBLE PHONE. IT\'S RINGING SOMEWHERE.', lv: ['creek', 'farm', 'garden', 'marsh', 'boulder'], bonus: 20 },
+  { mode: 'hunt', obj: 'record', text: 'HEARD THERE\'S A RECORD OUT THERE NOBODY\'S CLAIMED.', lv: ['creek', 'farm', 'marsh', 'paris', 'boulder'], record: 1 },
+  { mode: 'drive', text: 'JUST WANNA CRUISE PEACHTREE.', lv: ['icebox'], bonus: 20 },
+  { mode: 'fetch', text: 'THREE OF EVERYTHING. AGAIN. FOR LUCK.', lv: ['farm', 'marsh', 'paris', 'garden', 'boulder'], bonus: 20 }
+];
+
+/* ---------- phone calls ---------- */
+const CALLS = {
+  dexter: { from: 'DEXTER', who: 'dexter', when: s => s.day >= 3 && done('creek'), opens: 'farm',
+    lines: ['CITY COUSINS. DEXTER HERE. FROM THE BARN.', 'Y\'ALL EVER HAD A REAL PEACH? NOT A GROCERY STORE PEACH. A REAL ONE.', 'COME UP TO WASHINGTON. BRING NOTHING. I MEAN THAT. LAST TIME Y\'ALL BROUGHT THE NIBBIN\' BUN.'] },
+  pontoon: { from: 'PONTOON', who: 'pontoon', when: s => s.day >= 4 && done('peach'), opens: 'marsh',
+    lines: ['HEY. IT\'S PONTOON. ON THE ISLAND.', 'Y\'ALL STILL RUN EVERYWHERE? THAT\'S SO MUCH RUNNING.', 'COME DOWN AND SIT A WHILE. LIKE A CAT. I\'LL SHOW YOU.'] },
+  airline: { from: 'THE AIRLINE', who: 'phone', when: s => s.day >= 6 && done('cat'), opens: 'paris',
+    lines: ['BONJOUR. THIS IS THE AIRLINE.', 'YOUR SEVENTEEN TICKETS TO PARIS ARE CONFIRMED.', '...WHO BOOKED THESE? THE NAME SAYS "THE GINGER ONE."'] },
+  boulder: { from: 'THE BOULDER BUNNIES', who: 'bb1', when: s => s.day >= 7 && (done('paris') || done('sundown')), opens: 'boulder',
+    lines: ['HEY CUZ. BOULDER HERE. ALL THREE OF US.', 'IT SNOWED ON SANITAS LAST NIGHT. SNOW. AT THE TOP.', 'COME CLIMB. BRING THE ONE IN THE ORANGE BEANIE. HE KEEPS ASKING ABOUT SNOW.'] },
+  snails: { from: 'LES ESCARGOTS DISCO', who: 'snail', when: s => done('speaker'),
+    lines: ['ALLO. IT IS LES ESCARGOTS.', 'WE HEAR YOU HAVE OUR SPEAKER. WE HEAR IT IS ON A ROOF.', 'WE WILL PLAY YOUR COOKOUTS. WE ARE VERY EXPENSIVE. FOR YOU, FREE.'] },
+  elli: { from: 'MISS ELLI', who: 'elli', when: s => done('peach') && s.day >= 4,
+    lines: ['WELL HEY, Y\'ALL! IT\'S ELLI.', 'DEXTER WANTED ME TO CALL. HE SAYS SEVEN IS FEELING OVERLOOKED.', 'COME UP AND LOOK AT HIM SOMETIME. HE\'D LIKE THAT.'] }
+};
+
+/* ---------- save ---------- */
+function SG_SAVE() { return SAVE.saga; }
+function famRole(i) { const f = FAM[i]; return f.role || (SAVE.saga && SAVE.saga.fam[i] && SAVE.saga.fam[i].role) || null; }
+function famName(i) { return famRole(i) || FAM[i].tag; }
+function famShort(i) { const r = famRole(i); return r ? r.replace(/^THE /, '') : FAM[i].color + ' COUSIN'; }
+function quirkKnown(i) { return i < 2 || (SAVE.saga && SAVE.saga.fam[i] && SAVE.saga.fam[i].qk); }
+function newSaga() {
+  return { v: 1, day: 1, sun: 3, bank: 0, started: false, fam: FAM.map(() => ({ role: null, qk: false, away: null })), wants: {}, open: ['creek'], daily: {}, dn: 0,
+    stash: { r_buns: 1 }, pantry: { juice: 2 }, guests: {}, places: { forest: 1 }, errands: [], calls: {}, call: null, log: { stuck: 0, drift: 0, runs: 0, stars: 0, vibes: 0, best: 0, days: 0 },
+    today: { stars: 0, place: 'forest', news: [] }, reports: [], finale: false, seen: {} };
+}
+function fixSaga() {
+  if (!SAVE.saga || typeof SAVE.saga !== 'object') {
+    SAVE.saga = newSaga();
+    // returning players: their golden carrots turn into a head start, and their drip comes with them
+    const nG = Object.values(SAVE.days || {}).reduce((n, d) => n + ((d && d.gold) || []).filter(Boolean).length, 0);
+    if (nG) SAVE.saga.bank += nG * 20, SAVE.saga.welcome = nG * 20;
+    if (SAVE.drip === 'rope') SAVE.saga.stash.rope = 1; else if (SAVE.drip === 'ice') SAVE.saga.stash.iced = 1; else if (SAVE.drip === 'carrot') SAVE.saga.stash.pendant = 1;
+  }
+  const s = SAVE.saga, d = newSaga();
+  for (const k in d) if (s[k] == null) s[k] = d[k];
+  for (let i = 0; i < FAM.length; i++) if (!s.fam[i]) s.fam[i] = { role: null, qk: false, away: null };
+  for (const k in d.log) if (s.log[k] == null) s.log[k] = d.log[k];
+  s.open = s.open.filter(id => WANTS[id] || s.daily[id]);
+}
+function bankAdd(n) { const s = SAVE.saga; s.bank = Math.max(0, s.bank + Math.round(n)); }
+function has(k) { return !!(SAVE.saga && SAVE.saga.stash[k]); }
+function giveStash(k) { const s = SAVE.saga; if (!STASH[k]) return false; const first = !s.stash[k]; s.stash[k] = 1; return first; }
+function giveFood(k, n) { const s = SAVE.saga; if (!FOOD[k]) return; s.pantry[k] = (s.pantry[k] || 0) + n; }
+function unownedRecord() { const r = Object.keys(STASH).filter(k => STASH[k].cat === 'records' && !SAVE.saga.stash[k]); return r.length ? r[(Math.random() * r.length) | 0] : null; }
+function sunsPerDay() { return 3 + (has('hammock') ? 1 : 0); }
+
+/* ================= Georgia Buns — canvas menus =================
+   Every saga screen draws itself and registers tappable spots with hot().
+   Taps hit the topmost spot; arrow keys move a focus between spots and
+   Enter/Space/Jump presses it. Text is rendered once and cached. */
+
+/* ---------- cached text ---------- */
+const TXC = new Map();
+function txCanvas(s, col, oc, sc) {
+  const key = s + '|' + col + '|' + (oc || '') + '|' + sc; let c = TXC.get(key); if (c) return c;
+  if (TXC.size > 900) TXC.clear();
+  const o = oc ? Math.min(sc, 2) : 0; c = mkC(Math.max(1, textW(s, sc) + o * 2 + sc), 7 * sc + o * 2 + sc); const x = c.getContext('2d');
+  if (oc) drawTextO(x, s, o, o, col, sc, oc); else drawText(x, s, 0, 0, col, sc);
+  c.o = o; TXC.set(key, c); return c;
+}
+// tx(text, x, y, color, {oc: outline, sc: scale, al: 'c'|'r'})
+function tx(s, x, y, col, o) {
+  o = o || {}; s = String(s).toUpperCase(); const sc = o.sc || 1, c = txCanvas(s, col || '#ffffff', o.oc, sc), w = textW(s, sc);
+  const X = o.al === 'c' ? x - w / 2 : o.al === 'r' ? x - w : x;
+  g.drawImage(c, Math.round(X - c.o), Math.round(y - c.o)); return w;
+}
+function txWrap(s, n) { return wrap(String(s).toUpperCase(), n); }
+function txBlock(s, x, y, w, col, o) { o = o || {}; const lines = txWrap(s, Math.max(4, Math.floor(w / 6))), lh = o.lh || 9; lines.forEach((l, i) => tx(l, o.al === 'c' ? x + w / 2 : x, y + i * lh, col, o)); return lines.length * lh; }
+const R_ = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+
+/* ---------- hot spots, focus and keys ---------- */
+const UIH = { list: [], prev: [], focus: -1, kb: false, lk: 0, toast: null, scr: '' };
+function hot(x, y, w, h, fn, o) { if (UIH.mute) return false; UIH.list.push({ x, y, w, h, fn, o: o || {} }); return UIH.kb && UIH.focus === UIH.list.length - 1; }
+function uiFlush() { UIH.prev = UIH.list; UIH.list = []; if (UIH.focus >= UIH.prev.length) UIH.focus = UIH.prev.length - 1; }
+function uiReset() { UIH.focus = UIH.kb ? 0 : -1; UIH.prev = []; }
+function uiAct(h) {
+  if (!h) return;
+  if (h.o.off) { sfx('bonk'); if (h.o.why) toast(h.o.why); return; }
+  sfx(h.o.snd || 'tap'); h.fn();
+}
+function toast(s) { UIH.toast = { s, t: 0 }; }
+function uiInput() {
+  const L = UIH.prev;
+  if (IN.press && IN.tapX != null) {
+    for (let i = L.length - 1; i >= 0; i--) { const h = L[i]; if (IN.tapX >= h.x && IN.tapX <= h.x + h.w && IN.tapY >= h.y && IN.tapY <= h.y + h.h) { UIH.kb = false; UIH.focus = i; uiAct(h); break; } }
+    IN.press = false; IN.tapX = null; IN.jumpP = false; return;
+  }
+  // arrows: move to the nearest spot in that direction
+  const dx = Math.abs(IN.ix) > .5 ? sgn(IN.ix) : 0, dy = Math.abs(IN.iy) > .5 ? sgn(IN.iy) : 0;
+  if ((dx || dy) && !UIH.lk && L.length) {
+    UIH.lk = 1; UIH.kb = true;
+    if (UIH.focus < 0) UIH.focus = 0;
+    else {
+      const a = L[UIH.focus], ax = a.x + a.w / 2, ay = a.y + a.h / 2; let best = -1, bd = 1e9;
+      L.forEach((h, i) => { if (i === UIH.focus || h.o.nokb) return; const hx = h.x + h.w / 2, hy = h.y + h.h / 2, vx = hx - ax, vy = hy - ay;
+        const along = dx ? vx * dx : vy * dy, across = dx ? Math.abs(vy) : Math.abs(vx); if (along <= 2) return; const d = along + across * 2.2; if (d < bd) { bd = d; best = i; } });
+      if (best >= 0) { UIH.focus = best; sfx('tap'); }
+    }
+  } else if (!dx && !dy) UIH.lk = 0;
+  if (IN.jumpP || IN.press) { IN.jumpP = IN.press = false; if (UIH.focus >= 0 && L[UIH.focus]) uiAct(L[UIH.focus]); else { UIH.kb = true; const p = L.findIndex(h => h.o.gold && !h.o.off); UIH.focus = Math.max(0, p); if (p >= 0) uiAct(L[p]); } }
+}
+function drawToast() {
+  const T = UIH.toast; if (!T) return; T.t++; if (T.t > 170) { UIH.toast = null; return; }
+  const lines = txWrap(T.s, 40), w = Math.max(...lines.map(l => textW(l))) + 14, h = lines.length * 9 + 8, x = Math.round(NW / 2 - w / 2), y = Math.round(NH - h - 10 + Math.max(0, 8 - T.t) * 2);
+  R_(x - 1, y - 1, w + 2, h + 2, '#2a140c'); R_(x, y, w, h, '#fff3b0'); lines.forEach((l, i) => tx(l, NW / 2, y + 5 + i * 9, '#2a140c', { al: 'c' }));
+}
+
+/* ---------- boxes and buttons ---------- */
+function ubox(x, y, w, h, fill, hi, lo) { R_(x - 2, y - 2, w + 4, h + 4, '#2a140c'); R_(x, y, w, h, fill); if (hi) R_(x, y, w, 2, hi); if (lo) R_(x, y + h - 2, w, 2, lo); }
+function woodPanel(x, y, w, h) { ubox(x, y, w, h, '#7a5236', '#a07450', '#4e3220'); }
+function paper(x, y, w, h) { ubox(x, y, w, h, '#f4ead0', '#fffaf0', '#d8c8a0'); }
+// btn(x, y, w, h, label, fn, {gold, off, why, sc, icon, small})
+function btn(x, y, w, h, label, fn, o) {
+  o = o || {}; o.label = label; x = Math.round(x); y = Math.round(y);
+  const f = hot(x - 2, y - 2, w + 4, h + 4, fn, o), gold = o.gold && !o.off, pulse = gold && o.pulse && (S.t & 32);
+  R_(x - 2, y - 2, w + 4, h + 4, f ? '#ffffff' : '#2a140c');
+  R_(x, y, w, h, o.off ? '#5a4a3e' : gold ? (pulse ? '#ffd860' : '#f6c645') : o.col || '#4e3220');
+  R_(x, y, w, 2, o.off ? '#6e5a4c' : gold ? '#fff3b0' : '#7a5236'); R_(x, y + h - 2, w, 2, o.off ? '#4a3c32' : gold ? '#b8860b' : '#3a2416');
+  let lx = x + w / 2; const sc = o.sc || 1;
+  if (o.icon) { const ic = o.icon, iw = ic.width; const tw = label ? textW(String(label).toUpperCase(), sc) : 0; const tot = iw + (label ? 4 + tw : 0); g.drawImage(ic, Math.round(x + w / 2 - tot / 2), Math.round(y + h / 2 - ic.height / 2)); lx = x + w / 2 - tot / 2 + iw + 4 + tw / 2; }
+  if (label) tx(label, Math.round(lx), Math.round(y + h / 2 - 3.5 * sc), o.off ? '#a89888' : gold ? '#2a140c' : '#ffffff', { al: 'c', sc, oc: gold || o.off ? null : '#2a140c' });
+  return f;
+}
+// a small round "X" / back button in a corner
+function backBtn(fn, label) { label = label || 'BACK'; return btn(8, 4, textW(label) + 24, 13, label, fn, { icon: arrowIcon() }); }
+let ARROW = null;
+function arrowIcon() { if (ARROW) return ARROW; const c = mkC(7, 7), x = c.getContext('2d'); x.fillStyle = '#ffffff'; for (let i = 0; i < 4; i++) x.fillRect(i, 3 - i, 1, i * 2 + 1); x.fillRect(3, 2, 4, 3); return (ARROW = c); }
+function sunIcon(on) { const k = on ? 'sunOn' : 'sunOff'; if (ICC[k]) return ICC[k]; const s = new Spr(11, 11); for (let a = 0; a < 8; a++) { const c = Math.cos(a * .785), d = Math.sin(a * .785); s.set(5 + c * 4.6, 5 + d * 4.6, 3); } s.ell(5.5, 5.5, 3.3, 3.3, [2, 3, 4]); return (ICC[k] = s.outline(1).canvas(palette(on ? ['#2a140c', '#ffc020', '#e08a10', '#fff3b0'] : ['#2a140c', '#6a5a4a', '#4a3e34', '#7a6a5a']))); }
+function stars(x, y, n, of) { for (let i = 0; i < (of || 3); i++) g.drawImage(starIcon(i < n), Math.round(x + i * 13), Math.round(y)); }
+function starIcon(on) { const k = on ? 'starOn' : 'starOff'; if (ICC[k]) return ICC[k]; const s = new Spr(12, 12); const P = []; for (let i = 0; i < 10; i++) { const r = i % 2 ? 2.4 : 5.6, a = -Math.PI / 2 + i * Math.PI / 5; P.push([6 + Math.cos(a) * r, 6.5 + Math.sin(a) * r]); } for (let i = 0; i < 10; i++) s.tri(6, 6.5, P[i][0], P[i][1], P[(i + 1) % 10][0], P[(i + 1) % 10][1], i < 5 ? 2 : 3); return (ICC[k] = s.outline(1).canvas(palette(on ? ['#2a140c', '#ffd040', '#f6a020'] : ['#2a140c', '#6a5a4a', '#5a4a3e']))); }
+function carrotIcon() { return A.carrot[0]; }
+// a number with a carrot in front
+function carrots(n, x, y, o) { o = o || {}; const c = A.carrot[0]; g.drawImage(c, 0, 0, c.width, c.height, Math.round(x), Math.round(y - 3), 11, Math.round(c.height * 11 / c.width)); return 13 + tx(String(n), x + 13, y, o.col || '#ffffff', { oc: o.oc === undefined ? '#2a140c' : o.oc }); }
+
+/* ---------- faces: a head-and-shoulders crop of a cousin ---------- */
+const FAMSET = {};
+function famSet(i) { if (i === 0) return A.roof; if (i === 1) return A.nib; if (i === 2 && SAVE.drip) return A.hero; return FAMSET[i] || (FAMSET[i] = buildBun(FAM[i].fur, FAM[i].look)); }
+function face(i, x, y, o) { o = o || {}; const set = famSet(i), c = set.idle[o.blink ? 1 : 0]; g.drawImage(c, 6, 0, 30, 30, Math.round(x), Math.round(y), 30, 30); }
+function guestSet(k) { return k === 'dexter' ? A.dexter : k === 'pontoon' ? A.pontoon : k === 'boulder' ? A.bb1 : null; }
+
+/* ---------- item icons: 16x16, drawn once ---------- */
+const ICC = {};
+function shade(h, k) { const c = rgb(h); return css(k < 0 ? mixRGB(c, [0, 0, 0], -k) : mixRGB(c, [255, 255, 255], k)).replace(/rgb\((\d+),(\d+),(\d+)\)/, (m, r, g2, b) => '#' + [r, g2, b].map(v => (+v).toString(16).padStart(2, '0')).join('')); }
+function icon(def) {
+  if (!def) return null; const key = def.join('|'); if (ICC[key]) return ICC[key];
+  const [shape, c1 = '#ff8a1c', c2 = '#f6c645'] = def, s = new Spr(16, 16), A3 = [2, 3, 4], B3 = [5, 6, 7];
+  const pal = palette(['#2a140c', c1, shade(c1, -.35), shade(c1, .4), c2, shade(c2, -.35), shade(c2, .4), '#ffffff', '#1a1420', '#f6c645', '#b8860b', '#8a5a32', '#5a3a22', '#3fb04a', '#237a2e', '#e03030', '#9aa3ad', '#5a5f66', '#ff8a1c']);
+  const ring = (cx, cy, rx, ry, a, b, st) => { for (let t = 0; t < 6.3; t += st || .22) s.set(cx + Math.cos(t) * rx, cy + Math.sin(t) * ry, (Math.round(t / (st || .22)) & 1) ? a : b); };
+  const P = ICON_SHAPES[shape]; if (P) P(s, A3, B3, ring); else s.ell(8, 8, 5, 5, A3);
+  return (ICC[key] = s.outline(1).canvas(pal));
+}
+const ICON_SHAPES = {
+  chain: (s, A3, B3, ring) => { ring(8, 6.5, 6, 4.5, 2, 4); ring(8, 6.5, 5, 3.6, 3, 2); s.ell(8, 12, 1.6, 1.6, A3); },
+  rope: (s, A3, B3, ring) => { for (let t = 0; t < 6.3; t += .36) s.ell(8 + Math.cos(t) * 5.6, 6.5 + Math.sin(t) * 4.2, 1.3, 1.1, A3); s.ell(8, 12.5, 2, 2, [10, 11, 2]); },
+  pend: (s, A3, B3, ring) => { ring(8, 5.5, 5.6, 4, 2, 4); s.tri(6, 10, 10, 10, 8, 15, 5); s.tri(7, 10, 9, 10, 8, 13, 7); s.rect(7, 8, 2, 2, 14); },
+  ice: (s, A3, B3, ring) => { ring(8, 5.5, 5.6, 4, 2, 4); s.tri(5, 10, 11, 10, 8, 15, 5); s.tri(6, 10, 8, 10, 8, 13, 8); s.rect(5, 9, 6, 1, 7); },
+  ring: s => { for (let t = 0; t < 6.3; t += .2) { s.set(8 + Math.cos(t) * 4.5, 10 + Math.sin(t) * 3.5, 2); s.set(8 + Math.cos(t) * 3.6, 10 + Math.sin(t) * 2.6, 3); } s.ell(8, 5, 2.4, 2.2, [5, 6, 7]); s.set(7, 4, 8); },
+  stud: s => { s.tri(8, 2, 3, 8, 13, 8, 4); s.tri(3, 8, 13, 8, 8, 14, 3); s.tri(8, 4, 5, 8, 8, 8, 8); s.rect(6, 8, 4, 1, 5); },
+  sandch: (s, A3, B3, ring) => { ring(8, 5, 5.6, 3.8, 2, 4); s.ell(8, 11.5, 3.6, 3.4, [5, 6, 7]); s.set(8, 10, 6); s.set(7, 11, 6); s.set(9, 11, 6); s.set(8, 12, 6); },
+  box: s => { s.rect(2, 5, 12, 9, 2); s.rect(2, 5, 12, 3, 4); s.rect(2, 8, 12, 1, 3); s.rect(7, 5, 2, 9, 5); s.line(4, 4, 7, 2, 5); s.line(12, 4, 9, 2, 5); s.set(8, 4, 5); },
+  bag: s => { s.ell(8, 10, 7, 4.2, [2, 3, 4]); for (let t = 3.3; t < 6.2; t += .2) s.set(8 + Math.cos(t) * 4, 7 + Math.sin(t) * 4, 13); for (let i = 0; i < 6; i++) s.set(3 + i * 2, 9 + (i & 1) * 2, 5); s.rect(4, 13, 8, 1, 3); },
+  trunk: s => { s.rect(2, 4, 12, 10, 2); s.rect(2, 4, 12, 2, 4); s.rect(2, 8, 12, 1, 3); s.rect(4, 4, 2, 10, 13); s.rect(10, 4, 2, 10, 13); s.rect(7, 7, 2, 3, 10); for (let i = 0; i < 4; i++) s.set(3 + i * 3, 11 + (i & 1), 5); },
+  scarf: s => { for (let x = 1; x < 15; x++) { const y = 6 + Math.round(Math.sin(x * .7) * 2); s.rect(x, y, 1, 4, x % 3 ? 2 : 5); } s.rect(11, 9, 3, 6, 2); s.rect(11, 13, 3, 1, 5); },
+  beret: s => { s.ell(8, 9, 7, 3.4, [2, 3, 4]); s.rect(7, 4, 2, 2, 3); s.rect(3, 11, 10, 1, 3); },
+  beanie: s => { s.ell(8, 9, 6, 5, [2, 3, 4]); s.rect(2, 11, 12, 3, 3); for (let x = 3; x < 14; x += 2) s.set(x, 12, 4); s.ell(8, 3, 2, 2, 8); },
+  rim: s => { s.ell(8, 8, 7, 7, 9); s.ell(8, 8, 5.4, 5.4, [2, 3, 4]); for (let a = 0; a < 5; a++) s.line(8, 8, 8 + Math.cos(a * 1.257) * 5, 8 + Math.sin(a * 1.257) * 5, 3); s.ell(8, 8, 1.6, 1.6, 5); },
+  coil: s => { for (let i = 0; i < 6; i++) s.line(3, 3 + i * 2, 13, 4 + i * 2, i & 1 ? 3 : 2); s.rect(2, 1, 12, 2, 18); s.rect(2, 14, 12, 2, 18); },
+  neon: s => { s.rect(1, 7, 14, 4, 2); s.rect(1, 7, 14, 1, 4); s.rect(1, 11, 14, 2, 5); s.rect(1, 13, 14, 1, 7); s.rect(3, 4, 10, 3, 9); s.ell(4, 6, 1.5, 1.5, 9); s.ell(12, 6, 1.5, 1.5, 9); },
+  speaker: s => { s.rect(3, 1, 10, 14, 2); s.rect(3, 1, 10, 1, 4); s.ell(8, 10, 3.6, 3.6, 9); s.ell(8, 10, 2, 2, 5); s.ell(8, 4.5, 1.8, 1.8, 9); s.set(8, 4, 5); },
+  grill: s => { s.ell(8, 7, 6.5, 4, [2, 3, 4]); s.rect(1, 7, 14, 1, 17); s.line(4, 10, 2, 15, 9); s.line(12, 10, 14, 15, 9); s.line(8, 10, 8, 15, 9); for (let x = 3; x < 13; x += 3) s.rect(x, 5, 1, 2, 5); s.set(8, 2, 17); },
+  smoker: s => { s.ell(7, 9, 6, 3.6, [2, 3, 4]); s.rect(11, 2, 3, 5, 18); s.rect(1, 9, 12, 1, 9); s.ell(3, 14, 1.5, 1.5, 9); s.ell(11, 14, 1.5, 1.5, 9); s.set(12, 1, 17); },
+  lights: s => { for (let x = 0; x < 16; x++) s.set(x, 3 + Math.round(Math.sin(x / 15 * Math.PI) * 4), 9); for (let i = 0; i < 5; i++) { const x = 1 + i * 3.4, y = 4 + Math.round(Math.sin(x / 15 * Math.PI) * 4); s.ell(x + 1, y + 3, 1.3, 2, i & 1 ? [5, 6, 7] : [2, 3, 4]); } },
+  hammock: s => { s.rect(1, 2, 2, 13, 12); s.rect(13, 2, 2, 13, 12); for (let x = 3; x < 13; x++) { const y = 5 + Math.round(Math.sin((x - 3) / 10 * Math.PI) * 5); s.rect(x, y, 1, 2, x & 1 ? 2 : 3); } },
+  disco: s => { s.sphere(8, 9, 6, 6, [3, 2, 4, 8]); for (let x = 3; x < 14; x += 3) for (let y = 4; y < 15; y += 3) if (s.get(x, y)) s.set(x, y, 9); s.rect(8, 0, 1, 3, 9); },
+  swing: s => { s.line(3, 0, 3, 8, 5); s.line(13, 0, 13, 8, 5); s.rect(1, 8, 14, 3, 2); s.rect(1, 8, 14, 1, 4); s.rect(1, 4, 14, 2, 3); s.rect(2, 11, 1, 3, 3); s.rect(13, 11, 1, 3, 3); },
+  pool: s => { s.ell(8, 10, 7.5, 4.5, [5, 6, 7]); s.ell(8, 10, 5.5, 3, [2, 3, 4]); s.set(6, 9, 8); s.set(10, 11, 8); },
+  bumper: s => { s.rect(1, 6, 14, 5, 17); s.rect(1, 6, 14, 1, 8); s.rect(1, 10, 14, 1, 18); s.ell(10, 6, 2.2, 2, 0); s.ell(13, 6.5, 1.6, 1.6, 0); s.rect(3, 8, 4, 2, 9); },
+  record: s => { s.ell(8, 8, 7, 7, 9); for (let r = 3; r < 7; r += 2) for (let t = 0; t < 6.3; t += .25) s.set(8 + Math.cos(t) * r, 8 + Math.sin(t) * r, 18); s.ell(8, 8, 2.6, 2.6, [2, 3, 4]); s.set(8, 8, 9); s.set(5, 4, 17); },
+  cup: s => { s.ell(8, 5, 5.5, 4, [2, 3, 4]); s.rect(2, 2, 12, 3, 2); s.rect(2, 2, 12, 1, 4); s.rect(7, 8, 2, 4, 3); s.rect(4, 12, 8, 3, 3); s.rect(4, 12, 8, 1, 4); for (const x of [1, 14]) s.ell(x, 5, 1.2, 2, 3); s.set(6, 4, 8); },
+  stone: s => { s.ell(8, 10, 7, 3.6, [2, 3, 4]); s.ell(6, 9, 2, 1, 8); },
+  peach: s => { s.ell(8, 9, 5.6, 5.2, [2, 3, 4]); s.line(8, 5, 8, 13, 3); s.ell(11, 3.5, 2.6, 1.2, 14, -.5); s.set(8, 3, 12); },
+  clip: s => { s.rect(3, 2, 10, 13, 12); s.rect(4, 4, 8, 10, 8); for (let y = 6; y < 13; y += 2) s.rect(5, y, 6, 1, 17); s.rect(6, 1, 4, 3, 17); s.set(5, 6, 15); s.set(5, 10, 14); },
+  crown: s => { s.rect(2, 8, 12, 5, 2); for (const x of [2, 6, 10]) s.tri(x, 9, x + 4, 9, x + 2, 2, 4); s.rect(2, 11, 12, 1, 3); s.ell(8, 10, 1.4, 1.4, 5); },
+  watch: s => { s.ell(8, 9, 6, 6, [17, 18, 8]); s.ell(8, 9, 4.6, 4.6, 8); s.rect(7, 1, 2, 2, 17); s.line(8, 9, 8, 5.5, 9); s.line(8, 9, 10.5, 10, 5); },
+  ribbon: s => { s.line(6, 9, 4, 15, 2); s.line(10, 9, 12, 15, 2); s.line(7, 9, 5, 15, 3); s.line(9, 9, 11, 15, 3); s.ell(8, 7, 5.5, 5.5, [2, 3, 4]); s.ell(8, 7, 2.6, 2.6, [5, 6, 7]); },
+  specs: s => { s.ell(4.5, 8, 3.6, 3.6, 2); s.ell(11.5, 8, 3.6, 3.6, 2); s.ell(4.5, 8, 2.5, 2.5, 5); s.ell(11.5, 8, 2.5, 2.5, 5); s.set(5, 8, 9); s.set(12, 8, 9); s.set(5, 9, 9); s.set(12, 9, 9); s.rect(7, 7, 2, 1, 2); },
+  hammer: s => { s.line(4, 14, 10, 6, 5); s.line(5, 14, 11, 6, 6); s.rect(6, 2, 9, 4, 2); s.rect(6, 2, 9, 1, 4); s.rect(12, 6, 3, 1, 3); },
+  tag: s => { s.rect(4, 4, 10, 10, 2); s.rect(4, 4, 10, 2, 5); s.ell(9, 8, 1, 1, 0); s.line(9, 8, 2, 1, 5); for (let y = 10; y < 13; y += 2) s.rect(6, y, 6, 1, 3); },
+  hair: s => { srand(5); for (let i = 0; i < 40; i++) { const a = rnd() * 6.3, r = rnd() * 5.6; s.set(8 + Math.cos(a) * r, 9 + Math.sin(a) * r * .8, i % 3 ? 2 : 3); } for (let i = 0; i < 6; i++) s.line(8, 9, 8 + Math.cos(i) * 7, 9 + Math.sin(i) * 6, 4); },
+  photo: s => { s.rect(2, 2, 12, 13, 8); s.rect(3, 3, 10, 8, 5); s.ell(8, 9, 2.4, 2, 8); s.ell(8, 6, 1.6, 1.6, 8); s.set(7, 4, 8); s.set(9, 4, 8); s.rect(3, 11, 10, 1, 7); },
+  note: s => { s.rect(2, 4, 12, 9, 2); s.line(2, 4, 8, 9, 3); s.line(14, 4, 8, 9, 3); s.ell(8, 10.5, 1.6, 1.4, 5); s.set(7, 9, 5); s.set(9, 9, 5); },
+  shoe: s => { for (let t = 0; t < 3.3; t += .12) { s.set(8 + Math.cos(t + 3.14) * 5.5, 8 - Math.sin(t + 3.14) * 6, 2); s.set(8 + Math.cos(t + 3.14) * 4.2, 8 - Math.sin(t + 3.14) * 4.8, 3); } s.rect(2, 8, 3, 6, 2); s.rect(11, 8, 3, 6, 2); s.set(3, 10, 9); s.set(12, 10, 9); },
+  // food
+  juice: s => { s.rect(4, 4, 8, 11, 8); s.rect(5, 6, 6, 8, 2); s.rect(5, 6, 6, 1, 4); s.line(10, 1, 8, 7, 15); s.rect(4, 4, 8, 1, 17); },
+  greens: s => { s.ell(6, 9, 4.6, 5.6, [2, 3, 4], -.4); s.ell(10, 8, 4.4, 5.6, [2, 3, 4], .4); s.line(6, 13, 6, 5, 3); s.line(10, 13, 10, 4, 3); s.rect(7, 13, 3, 3, 14); },
+  ribs: s => { s.ell(8, 9, 7, 4.5, [2, 3, 4]); for (let x = 3; x < 14; x += 3) { s.rect(x, 3, 1, 3, 8); s.set(x, 14, 8); } s.line(2, 9, 14, 9, 3); },
+  pud: s => { s.rect(2, 8, 12, 6, 8); s.rect(3, 6, 10, 4, 2); s.rect(3, 6, 10, 1, 4); for (let x = 3; x < 13; x += 3) s.ell(x + 1, 6, 1.4, 1, 10); s.rect(2, 14, 12, 1, 17); },
+  cobbler: s => { s.ell(8, 10, 7, 4, [17, 18, 8]); s.ell(8, 9, 6, 3, [2, 3, 4]); for (let x = 3; x < 14; x += 3) s.line(x, 7, x + 1, 11, 3); s.ell(7, 8, 1, .8, 16); s.ell(11, 9, 1, .8, 16); },
+  corn: s => { s.rect(2, 5, 12, 9, 2); s.rect(2, 5, 12, 2, 4); s.rect(2, 12, 12, 2, 3); s.set(5, 8, 3); s.set(10, 9, 3); s.set(7, 10, 3); s.rect(9, 3, 4, 2, 10); },
+  melon: s => { for (let t = 3.14; t < 6.3; t += .05) for (let r = 0; r < 7; r++) s.set(8 + Math.cos(t) * r, 12 + Math.sin(t) * r, r > 5.5 ? 14 : r > 4.6 ? 8 : 2); for (const [x, y] of [[6, 9], [9, 8], [11, 10], [7, 11]]) s.set(x, y, 9); },
+  eggs: s => { s.ell(5, 10, 3.6, 3, 8); s.ell(11, 9, 3.6, 3, 8); s.ell(5, 9.5, 1.8, 1.4, [2, 3, 4]); s.ell(11, 8.5, 1.8, 1.4, [2, 3, 4]); s.set(5, 9, 16); s.set(11, 8, 16); },
+  nuts: s => { s.ell(5, 7, 3, 2.4, [2, 3, 4]); s.ell(7.5, 9, 2.4, 2, [2, 3, 4]); s.ell(10, 11, 3, 2.4, [2, 3, 4], .6); s.ell(12, 6, 2.6, 2, [2, 3, 4], -.4); },
+  croiss: s => { for (let t = 3.4; t < 6.0; t += .05) { const r = 3 + Math.sin((t - 3.4) / 2.6 * Math.PI) * 2.8; for (let k = -r; k <= r; k++) s.set(8 + Math.cos(t) * 5.4, 12 + Math.sin(t) * 7 + k * .55, k < -r / 2 ? 4 : k > r / 2 ? 3 : 2); } },
+  mix: s => { s.rect(3, 3, 10, 12, 12); s.rect(3, 3, 10, 2, 13); s.rect(4, 7, 8, 6, 8); s.set(6, 9, 15); s.set(9, 10, 2); s.set(7, 11, 10); s.set(10, 8, 3); },
+  potato: s => { s.ell(8, 9, 7, 3.6, [2, 3, 4], -.3); s.set(5, 8, 3); s.set(10, 10, 3); s.rect(1, 7, 2, 1, 14); },
+  lettuce: s => { s.ell(8, 9, 6.4, 5.4, [2, 3, 4]); for (let t = 0; t < 6.3; t += .8) s.line(8, 9, 8 + Math.cos(t) * 5, 9 + Math.sin(t) * 4, 3); },
+  stew: s => { s.ell(8, 10, 6.6, 4.2, [17, 18, 8]); s.rect(2, 7, 12, 4, 18); s.ell(8, 7, 6, 1.8, [2, 3, 4]); s.rect(0, 8, 2, 2, 18); s.rect(14, 8, 2, 2, 18); s.set(6, 7, 14); s.set(10, 6, 14); },
+  icebag: s => { s.rect(3, 4, 10, 11, 4); s.rect(3, 4, 10, 1, 8); s.rect(6, 2, 4, 2, 2); for (const [x, y] of [[5, 7], [9, 8], [6, 11], [10, 12]]) s.rect(x, y, 2, 2, 8); s.rect(4, 9, 8, 2, 2); },
+  // haul and hunt things
+  shingles: s => { for (let i = 0; i < 4; i++) { s.rect(1 + (i & 1), 12 - i * 3, 14, 3, i & 1 ? 3 : 2); s.rect(1 + (i & 1), 12 - i * 3, 14, 1, 4); } },
+  basket: s => { s.ell(8, 11, 7, 4, [12, 13, 12]); for (let x = 2; x < 15; x += 2) s.line(x, 8, x, 14, 13); for (let t = 3.2; t < 6.2; t += .15) s.set(8 + Math.cos(t) * 6, 9 + Math.sin(t) * 7, 13); s.tri(5, 8, 7, 8, 6, 3, 18); s.tri(9, 8, 11, 8, 10, 2, 18); s.set(6, 2, 14); s.set(10, 1, 14); },
+  cooler: s => { s.rect(1, 5, 14, 10, 2); s.rect(1, 5, 14, 3, 8); s.rect(1, 8, 14, 1, 3); s.rect(5, 3, 6, 2, 17); s.rect(3, 10, 10, 3, 4); },
+  wmelon: s => { s.ell(8, 9, 7.4, 5.4, [14, 15, 14]); for (let x = 2; x < 15; x += 3) for (let y = 5; y < 14; y++) if (s.get(x, y)) s.set(x, y, 15); s.ell(5, 7, 2, 1, 7); },
+  acorn: s => { s.ell(8, 10, 4.6, 5, [10, 11, 8]); s.ell(8, 5.5, 5.5, 2.6, [12, 13, 12]); s.rect(8, 1, 1, 3, 13); s.set(6, 9, 8); },
+  pebble: s => { s.ell(8, 9, 6, 5, [17, 18, 8]); s.ell(8, 9, 3.6, 2.6, 9); s.set(7, 8, 4); s.rect(12, 2, 1, 4, 18); s.set(12, 1, 15); }
+};
+
+/* ================= Georgia Buns — the saga: rules and screens =================
+   Rules first (wants, errands, the cookout, a new day), then one draw
+   function per screen. Screens are plain canvas; buttons register with hot(). */
+
+const SG = { scr: 'hub', t: 0, d: {}, modal: null };
+
+/* ===================== rules ===================== */
+function wantDef(id) { return WANTS[id] || (SAVE.saga.daily || {})[id] || null; }
+function wantState(id) { const s = SAVE.saga; return s.wants[id] || (s.wants[id] = { st: 'open', step: 0 }); }
+function wantSteps(id) { const W = wantDef(id), st = wantState(id), out = []; for (const sp of W.steps) { out.push(sp); if (sp.drift && st.drift === 'go') out.push(...sp.drift.goSteps); } return out; }
+function wantStep(id) { return wantSteps(id)[wantState(id).step] || null; }
+function wantRunner(id) { const W = wantDef(id); return W.runner != null ? W.runner : W.who; }
+function wantPlace(id) { const sp = wantStep(id); return sp && sp.run ? LVPLACE[sp.run] : null; }
+function wantGivesName(id) { const W = wantDef(id); return !W.side && !W.daily && (W.roles || (W.steps.some(s => s.drift))) && !famRole(W.who); }
+function isAway(i) { return SAVE.saga.errands.some(e => e.who.includes(i)); }
+function openWants() { const s = SAVE.saga; return s.open.filter(id => wantDef(id) && (s.wants[id] || {}).st !== 'done'); }
+function knownCount() { let n = 0; for (let i = 0; i < FAM.length; i++) if (famRole(i)) n++; return n; }
+
+// story wants whose time has come join the list
+function refreshWants() {
+  const s = SAVE.saga, news = [];
+  for (const id of STORY_ORDER) { if ((s.wants[id] || {}).st === 'done' || s.open.includes(id)) continue; let ok = false; try { ok = WANTS[id].gate(); } catch (e) {} if (ok) { s.open.push(id); news.push(id); } }
+  return news;
+}
+let DN = 0;
+function addDaily(who, force) {
+  const s = SAVE.saga, places = Object.keys(s.places).filter(k => s.places[k]);
+  const pool = DAILY.filter(d => d.lv.some(l => places.includes(LVPLACE[l])));
+  if (!pool.length) return null;
+  const T = pool[(Math.random() * pool.length) | 0], lvs = T.lv.filter(l => places.includes(LVPLACE[l])), lv = lvs[(Math.random() * lvs.length) | 0];
+  s.dn = (s.dn || 0) + 1; const id = 'd' + s.day + '_' + s.dn;
+  const step = { run: lv, mode: T.mode, p: { obj: T.obj, n: T.n }, title: T.mode === 'drive' ? 'CRUISE PEACHTREE' : ({ haul: 'HAUL', toll: 'CARROT RUN', sprint: 'BEAT THE SUN', roundup: 'ROUNDUP', hunt: 'LOST AND FOUND', fetch: 'THREE OF EVERYTHING' })[T.mode] + ': ' + LVNAME[lv],
+    tip: ({ haul: 'CARRY IT TO ' + LVEND[lv] + '. BUMPS KNOCK IT LOOSE.', toll: 'COLLECT ' + T.n + ' CARROTS BEFORE ' + LVEND[lv] + '.', sprint: 'GET TO ' + LVEND[lv] + ' BEFORE THE SKY GOES DARK.', roundup: 'WAKE THE COUSINS. THEY FOLLOW YOU.', hunt: 'THE PEBBLE PINGS WHEN YOU\'RE CLOSE.', fetch: 'ALL THREE, THEN ' + LVEND[lv] + '.', drive: 'GRAB ICE. HOP TRAFFIC.' })[T.mode] };
+  if (T.mode === 'drive') { step.drive = 1; step.run = 'icebox'; }
+  s.daily[id] = { daily: 1, who, text: T.text, sub: 'A SMALL ONE. HE JUST WOKE UP WANTING IT.', steps: [step], reward: { carrots: 25 + (T.bonus || 0), food: T.food, record: T.record } };
+  s.open.push(id); return id;
+}
+function addDailies() {
+  const s = SAVE.saga, open = openWants(); let n = open.filter(id => s.daily[id]).length;
+  const busy = new Set(open.map(id => wantDef(id).who));
+  const cands = []; for (let i = 1; i < FAM.length; i++) if (!busy.has(i) && (famRole(i) || i === 1 || s.day > 4)) cands.push(i);
+  const news = [];
+  for (const i of (s.dream || [])) if (!busy.has(i)) { const id = addDaily(i); if (id) { news.push(id); busy.add(i); n++; } }
+  s.dream = [];
+  while (n < 2 && cands.length && s.day >= 2) { const k = (Math.random() * cands.length) | 0, i = cands.splice(k, 1)[0]; if (busy.has(i)) continue; const id = addDaily(i); if (!id) break; news.push(id); busy.add(i); n++; }
+  // old dailies fade after three days
+  s.open = s.open.filter(id => { if (!s.daily[id]) return true; const d = +id.slice(1).split('_')[0]; if (s.day - d > 3) { delete s.daily[id]; return false; } return true; });
+  return news;
+}
+function postErrands() {
+  const s = SAVE.saga, ids = Object.keys(ERRANDS).filter(k => s.places[ERRANDS[k].place]); const out = [];
+  if (s.day === 2) out.push('ice');
+  while (out.length < 3 && ids.length) { const k = ids.splice((Math.random() * ids.length) | 0, 1)[0]; if (!out.includes(k)) out.push(k); }
+  s.errands = out.map(id => ({ id, who: [] }));
+}
+function newDay() {
+  const s = SAVE.saga; s.day++; s.sun = sunsPerDay(); s.today = { stars: 0, place: 'forest', news: [] }; s.errands = [];
+  const news = refreshWants().concat(addDailies());
+  if (s.day >= 2) postErrands();
+  if (!s.call) for (const k in CALLS) if (!s.calls[k]) { let ok = false; try { ok = CALLS[k].when(s); } catch (e) {} if (ok) { s.call = k; break; } }
+  s.today.news = news; writeSave(); return news;
+}
+function rewardList(R, who) {
+  const out = []; if (!R) return out;
+  if (R.carrots) out.push({ ic: A.carrot[0], label: '+' + R.carrots });
+  for (const k of R.stash || []) out.push({ ic: icon(STASH[k].ic), label: STASH[k].name });
+  for (const k in R.food || {}) if (R.food[k]) out.push({ ic: icon(FOOD[k].ic), label: R.food[k] + ' ' + FOOD[k].name });
+  if (R.guest) out.push({ ic: null, label: GUESTS[R.guest].name + ' COMES TO COOKOUTS' });
+  if (R.record) out.push({ ic: icon(['record', '#ff4fa0']), label: 'A RECORD' });
+  return out;
+}
+function applyReward(R, gains) {
+  const s = SAVE.saga; if (!R) return;
+  if (R.carrots) bankAdd(R.carrots);
+  for (const k of R.stash || []) { if (giveStash(k)) gains.push({ ic: icon(STASH[k].ic), label: 'NEW: ' + STASH[k].name }); }
+  for (const k in R.food || {}) if (R.food[k]) { giveFood(k, R.food[k]); gains.push({ ic: icon(FOOD[k].ic), label: '+' + R.food[k] + ' ' + FOOD[k].name }); }
+  if (R.guest && !s.guests[R.guest]) { s.guests[R.guest] = 1; gains.push({ ic: null, label: GUESTS[R.guest].name + ' WILL COME TO COOKOUTS' }); }
+  if (R.record) { const r = unownedRecord(); if (r) { giveStash(r); gains.push({ ic: icon(STASH[r].ic), label: 'RECORD: ' + STASH[r].name }); } else { bankAdd(40); gains.push({ ic: A.carrot[0], label: '+40 (SOLD A DUPLICATE RECORD)' }); } }
+  for (const p of R.opens || []) s.places[p] = 1;
+}
+function completeWant(id, stars, out) {
+  const s = SAVE.saga, W = wantDef(id), st = wantState(id), go = st.drift === 'go', dr = W.steps.find(x => x.drift);
+  st.st = 'done'; st.stars = Math.max(st.stars || 0, stars); s.open = s.open.filter(x => x !== id);
+  let R = go ? dr.drift.goReward : W.reward, land = go ? dr.drift.goLand : W.land;
+  if (W.lowReward && stars < 3) { R = W.lowReward; land = W.lowLand; }
+  out.gains = out.gains || []; applyReward(Object.assign({}, R, { carrots: (R.carrots || 0) + stars * 10 }), out.gains);
+  if (W.opens) for (const p of W.opens) if (!s.places[p]) { s.places[p] = 1; out.gains.push({ ic: null, label: 'NEW ON THE MAP: ' + PLACES[p].name }); }
+  if (W.who > 1) { s.fam[W.who].qk = true; }
+  const roles = go ? dr.drift.goRoles : W.roles;
+  if (roles && !famRole(W.who) && !W.side && !W.daily) out.role = { fam: W.who, opts: roles };
+  out.land = land; out.title = W.finale ? 'THE BIGGEST COOKOUT' : 'WANT DONE!'; out.want = id; out.done = true;
+  if (W.daily) { delete s.daily[id]; }
+  if (W.finale) { s.finale = true; out.finale = true; }
+  const news = refreshWants(); out.news = news;
+}
+// a run came back
+function sagaRunDone(M, res) {
+  const s = SAVE.saga; s.log.runs++; s.today.stars += res.stars; s.log.stars += res.stars;
+  bankAdd(res.carrots);
+  const out = { M, res, gains: [], title: M.want ? 'STEP DONE' : 'RUN DONE' };
+  if (M.drip) out.gains.push({ ic: icon(STASH[M.drip].ic), label: 'NEW: ' + STASH[M.drip].name });
+  if (M.want && wantDef(M.want)) {
+    const st = wantState(M.want); st.step = M.stepIdx + 1; st.last = res.stars; st.stars = Math.max(st.stars || 0, res.stars);
+    if (st.step >= wantSteps(M.want).length) completeWant(M.want, res.stars, out);
+    else { out.next = true; out.want = M.want; }
+  }
+  writeSave(); enterSaga('result', out);
+}
+
+/* ---------- errands: what actually comes back ---------- */
+function runErrand(eid, i) {
+  const E = ERRANDS[eid], q = FAM[i].quirk, s = SAVE.saga, base = E.ok, lit = E.lit, fan = E.fancy;
+  const plus = (o, extra) => Object.assign({}, o, extra);
+  const scale = (o, k, say) => { const f = {}; for (const x in o.food || {}) f[x] = Math.max(1, Math.round(o.food[x] * k)); return plus(o, { food: o.food ? f : undefined, record: o.record ? Math.max(1, Math.round(o.record * k)) : undefined, say }); };
+  let r;
+  switch (q) {
+    case 'fancy': if (s.bank >= (fan.cost || 0)) { r = plus(fan, { say: fan.say + ' (-' + (fan.cost || 0) + ' CARROTS)' }); bankAdd(-(fan.cost || 0)); } else r = plus(base, { say: base.say + ' WANTED THE FANCY ONE. COULDN\'T AFFORD IT.' }); break;
+    case 'literal': r = lit; break;
+    case 'lost': { const sv = SOUVENIRS[(Math.random() * SOUVENIRS.length) | 0]; r = plus(sv[1], { say: 'ENDED UP IN ' + sv[0] + '. NOBODY KNOWS HOW. BROUGHT BACK ' + sv[2] + '.' }); break; }
+    case 'country': r = { food: { peach: 1, corn: 1 }, say: 'DROVE TO THE FARM INSTEAD. CAME BACK WITH A PEACH, SOME CORNBREAD, AND A LONG STORY ABOUT SEVEN.' }; break;
+    case 'sleepy': r = Math.random() < .5 ? { say: 'NAPPED UNDER A PINE TREE ALL DAY. SAYS IT WAS A VERY PRODUCTIVE NAP.' } : plus(base, { say: base.say + ' TOOK A NAP FIRST.' }); break;
+    case 'hungry': r = base.food ? scale(base, .5, base.say + ' ATE HALF OF IT IN THE ESCALADE.') : { food: { ribs: 1 }, say: 'FORGOT WHAT YOU ASKED FOR. GOT RIBS INSTEAD. ATE ONE.' }; break;
+    case 'haggler': r = scale(base, 2, base.say + ' HE KNOWS A GUY. GOT DOUBLE.'); break;
+    case 'speedy': r = scale(base, 2, base.say + ' WENT TWICE BEFORE LUNCH.'); break;
+    case 'musical': r = plus(base, { record: (base.record || 0) + 1, say: base.say + ' ALSO A RECORD. "IT WAS CALLING TO ME."' }); break;
+    case 'social': r = plus(base, { vibes: 6, say: base.say + ' AND HE BROUGHT A FRIEND HE MET IN LINE. THE FRIEND IS STAYING FOR DINNER.' }); break;
+    case 'lucky': r = plus(base, { carrots: (base.carrots || 0) + 40, say: base.say + ' ALSO FOUND FORTY CARROTS IN THE PARKING LOT.' }); break;
+    case 'handy': r = plus(base, { carrots: (base.carrots || 0) + 25, say: base.say + ' FIXED THE CASHIER\'S STOOL ON THE WAY OUT. GOT TIPPED.' }); break;
+    case 'nervous': r = Math.random() < .4 ? { say: 'SAW SOMETHING THAT MIGHT HAVE BEEN A BOBCAT. CAME STRAIGHT HOME. IT WAS A REGULAR CAT.' } : plus(base, { say: base.say + ' DIDN\'T SEE ONE BOBCAT. CHECKED THE WHOLE TIME.' }); break;
+    case 'showoff': r = plus(base, { vibes: 4, say: base.say + ' CARRIED IT HOME OVER HIS HEAD SO EVERYBODY COULD SEE.' }); break;
+    case 'dreamer': r = plus(base, { dream: 1, say: base.say + ' ALSO HE WANTS SOMETHING BRAND NEW NOW. YOU\'LL HEAR ABOUT IT IN THE MORNING.' }); break;
+    case 'nibbler': r = base.food ? scale(base, .5, base.say + ' WITH BITE MARKS. ABOUT HALF A BITE MARK\'S WORTH.') : plus(base, { say: base.say + ' NIBBLED A LITTLE. STILL WORKS.' }); break;
+    default: r = base;
+  }
+  const gains = [];
+  for (const k in r.food || {}) if (r.food[k]) { giveFood(k, r.food[k]); gains.push({ ic: icon(FOOD[k].ic), label: r.food[k] + ' ' + FOOD[k].name }); }
+  if (r.stash) { if (giveStash(r.stash)) gains.push({ ic: icon(STASH[r.stash].ic), label: STASH[r.stash].name }); else { bankAdd(30); gains.push({ ic: A.carrot[0], label: 'ALREADY HAD ONE. SOLD IT: +30' }); } }
+  for (let k = 0; k < (r.record || 0); k++) { const rec = unownedRecord(); if (rec) { giveStash(rec); gains.push({ ic: icon(STASH[rec].ic), label: STASH[rec].name }); } else { bankAdd(20); gains.push({ ic: A.carrot[0], label: '+20' }); } }
+  if (r.carrots) { bankAdd(r.carrots); gains.push({ ic: A.carrot[0], label: '+' + r.carrots }); }
+  if (r.dream) (s.dream = s.dream || []).push(i);
+  const first = !s.fam[i].qk; s.fam[i].qk = true;
+  return { who: i, eid, line: r.say, gains, vibes: r.vibes || 0, reveal: first ? QUIRKS[q].name : null };
+}
+
+/* ---------- the cookout ---------- */
+const TIERS = [[0, 'QUIET NIGHT'], [25, 'DECENT'], [50, 'THAT\'S A COOKOUT'], [80, 'TALK OF THE FOREST'], [120, 'LEGENDARY'], [160, 'BIGGEST IN GEORGIA']];
+function startSagaCook() {
+  const s = SAVE.saga, reports = [];
+  for (const e of s.errands) for (const i of e.who) reports.push(runErrand(e.id, i));
+  // the spread: up to six dishes, best first
+  const ks = Object.keys(s.pantry).filter(k => s.pantry[k] > 0 && FOOD[k]).sort((a, b) => FOOD[b].vibes - FOOD[a].vibes).slice(0, 6), spread = [];
+  for (const k of ks) { s.pantry[k]--; spread.push(k); }
+  const food = spread.reduce((n, k) => n + FOOD[k].vibes, 0) + spread.length * 2;
+  const family = FAM.length + knownCount() + reports.reduce((n, r) => n + r.vibes, 0);
+  const friends = Object.keys(s.guests).reduce((n, k) => n + (GUESTS[k] ? GUESTS[k].vibes : 0), 0);
+  const stuff = Math.min(40, Object.keys(s.stash).reduce((n, k) => n + (STASH[k] ? STASH[k].vibes || 0 : 0), 0));
+  const today = s.today.stars * 2;
+  const total = food + family + friends + stuff + today, tier = TIERS.filter(t => total >= t[0]).pop()[1], tip = Math.round(total / 2);
+  bankAdd(tip); s.log.best = Math.max(s.log.best, total); s.log.vibes += total; s.log.days++;
+  s.errands.forEach(e => e.who = []);
+  const scene = { forest: 'home', atl: 'icebox', farm: 'farm', marsh: 'marsh', paris: 'riviera', boulder: 'snow' }[s.today.place] || 'home';
+  const roster = []; for (let i = 1; i < FAM.length; i++) roster.push(i);
+  if (s.guests.dexter) roster.splice(4, 0, 'dexter'); if (s.guests.pontoon) roster.splice(9, 0, 'pontoon'); if (s.guests.boulder) roster.push('bb1', 'bb2', 'bb3');
+  writeSave();
+  sagaGo('cook', { phase: reports.length ? 'reports' : 'spread', ri: 0, reports, spread, rows: [['FOOD', food], ['FAMILY', family], ['FRIENDS', friends], ['STUFF', stuff], ['TODAY', today]], total, tier, tip,
+    C: { t: 0, scene, roster, wide: 360, extra: cookGuests }, finale: !!SG.d.finale });
+}
+function cookGuests(t, gy) {
+  const s = SAVE.saga;
+  if (s.guests.snails) { R_(150, gy - 16, 40, 4, '#2a2430'); R_(154, gy - 12, 3, 12, '#2a2430'); R_(183, gy - 12, 3, 12, '#2a2430'); g.drawImage(A.snail[(t >> 3) & 1], 146, gy - 46); g.drawImage(A.snail[((t >> 3) + 1) & 1], 168, gy - 46); }
+  if (s.guests.elli) { g.drawImage(A.elli[(t >> 4) & 1], 330, gy - 46); }
+  if (s.guests.elli && SG.d.C && SG.d.C.scene !== 'farm') drawSpr(A.seven.stand[0], 392, gy + 2, 0, -1, 34, 52);
+}
+function finishCook() {
+  const news = newDay();
+  sagaGo('morning', { news });
+}
+
+/* ===================== screens ===================== */
+function enterSaga(scr, d) {
+  fixSaga(); if (MISSION) { restoreLV(); MISSION = null; }
+  const s = SAVE.saga;
+  S = { mode: 'saga', t: 0, parts: [], bubbles: [], sayQ: [], card: null, fade: 0, fadeTo: null, pl: { x: 0, y: 0, face: 1 }, day: 'creek', scat: [], hist: [], rocks: [], golds: 0, found: [] };
+  if (!scr) scr = s.started ? 'hub' : 'intro';
+  sagaGo(scr, d); $('again').hidden = true;
+}
+function sagaGo(scr, d) {
+  SG.scr = scr; SG.t = 0; SG.d = d || {}; SG.modal = null; uiReset(); if (S) S.parts = [];
+  const song = { cook: 'cookout', morning: 'lawn', intro: 'lawn', shop: SG.d.id && SHOPS[SG.d.id] ? SHOPS[SG.d.id].song : 'title', name: 'crew', result: 'crew' }[scr] || 'title';
+  auMode(song);
+}
+function confirmBox(text, yes, fnYes, no) { SG.modal = { text, yes, fnYes, no: no || 'NOT YET' }; uiReset(); }
+function stepSaga() {
+  SG.t++;
+  uiInput();
+  const s = SAVE.saga;
+  if (SG.scr === 'cook') { const C = SG.d.C; C.t++; if (C.t % 6 === 0) part({ type: 'smoke', x: 296 + Math.random() * 4, y: NH - 86, vx: .2 + Math.random() * .2, vy: -.5, life: 90 }); if (SG.d.phase === 'credits') SG.d.ct = (SG.d.ct || 0) + 1; }
+  if (SG.scr === 'hub' && s.call && SG.t % 90 === 1) sfx('tap');
+  // build the family's sprites a few at a time so a big roundup doesn't stall
+  for (let i = 2; i < FAM.length; i++) if (!FAMSET[i] && !(i === 2 && SAVE.drip)) { famSet(i); break; }
+}
+function drawSaga() {
+  g.imageSmoothingEnabled = false;
+  UIH.mute = !!SG.modal;
+  const fn = SCREENS[SG.scr] || SCREENS.hub; fn();
+  UIH.mute = false;
+  if (SG.modal) drawModal();
+  { const h = UIH.list[UIH.focus]; if (UIH.kb && h && !h.o.label && (S.t & 16)) { g.strokeStyle = '#ffffff'; g.lineWidth = 1; g.strokeRect(Math.round(h.x) + .5, Math.round(h.y) + .5, Math.round(h.w) - 1, Math.round(h.h) - 1); } }
+  drawToast();
+  uiFlush();
+}
+function drawModal() {
+  const M = SG.modal; g.globalAlpha = .6; R_(0, 0, NW, NH, '#140a06'); g.globalAlpha = 1;
+  const w = 260, lines = txWrap(M.text, 38), h = lines.length * 10 + 46, x = Math.round(NW / 2 - w / 2), y = Math.round(NH / 2 - h / 2);
+  woodPanel(x, y, w, h); lines.forEach((l, i) => tx(l, NW / 2, y + 10 + i * 10, '#fff3b0', { al: 'c', oc: '#2a140c' }));
+  btn(x + 14, y + h - 24, 110, 16, M.yes, () => { const f = M.fnYes; SG.modal = null; uiReset(); f(); }, { gold: 1 });
+  btn(x + w - 124, y + h - 24, 110, 16, M.no, () => { SG.modal = null; uiReset(); });
+}
+function topBar(title, back) {
+  g.globalAlpha = .85; R_(0, 0, NW, 21, '#1a0e0a'); g.globalAlpha = 1; R_(0, 21, NW, 1, '#4e3220');
+  if (back) backBtn(back);
+  if (title) tx(title, NW / 2, 7, '#f6c645', { al: 'c', oc: '#2a140c' });
+  bankSuns(NW - (UI.pauseV || 24) - 2, 7);
+}
+function bankSuns(xr, y) {
+  const s = SAVE.saga, str = String(s.bank), w = textW(str) + 13; carrots(s.bank, xr - w, y);
+  const n = sunsPerDay(); for (let i = 0; i < n; i++) g.drawImage(sunIcon(i < s.sun), xr - w - 8 - (n - i) * 12, y - 2);
+}
+function plaque(x, y, label, o) {
+  o = o || {}; const w = textW(label) + 8; x = Math.round(x - w / 2); y = Math.round(y);
+  R_(x - 1, y - 1, w + 2, 12, '#2a140c'); R_(x, y, w, 10, o.hot ? ((S.t & 32) ? '#ffd860' : '#f6c645') : '#a07448'); R_(x, y, w, 1, o.hot ? '#fff3b0' : '#c89a6a');
+  tx(label, x + 4, y + 2, o.hot ? '#2a140c' : '#fff3e0');
+}
+function fillEll(cx, cy, rx, ry, col) { g.fillStyle = col; for (let y = -ry; y <= ry; y++) { const w = Math.floor(rx * Math.sqrt(1 - (y * y) / (ry * ry))); g.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2, 1); } }
+function silhouette(c) { if (c.sil) return c.sil; const o = mkC(c.width, c.height), x = o.getContext('2d'); x.drawImage(c, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#2a140c'; x.fillRect(0, 0, c.width, c.height); c.sil = o; return o; }
+function bounceArrow(x, y) { const b = Math.round(Math.sin(S.t * .15) * 3); g.fillStyle = '#2a140c'; for (let i = 0; i < 7; i++) g.fillRect(x - i - 1, y + b - i - 1, i * 2 + 3, 1); g.fillStyle = '#f6c645'; for (let i = 0; i < 6; i++) g.fillRect(x - i, y + b - i - 1, i * 2 + 1, 1); }
+function bubbleIcon(x, y, ic, pulse) {
+  x = Math.round(x); y = Math.round(y) + (pulse ? Math.round(Math.sin(S.t * .12) * 1.5) : 0);
+  R_(x - 11, y - 10, 22, 19, '#2a140c'); R_(x - 10, y - 11, 20, 21, '#2a140c'); R_(x - 10, y - 9, 20, 17, '#ffffff'); R_(x - 9, y - 10, 18, 19, '#ffffff');
+  R_(x - 2, y + 9, 4, 2, '#2a140c'); R_(x - 1, y + 9, 2, 1, '#ffffff'); R_(x - 1, y + 11, 2, 2, '#2a140c');
+  if (ic) g.drawImage(ic, x - 8, y - 8);
+}
+function stepIcon(sp) {
+  if (!sp) return null; if (sp.drift) return icon(['note', '#f4ead0', '#ff8a9a']);
+  if (sp.mode === 'haul') return icon(HAUL[(sp.p || {}).obj || 'melon'].ic); if (sp.mode === 'hunt') return icon(HUNT[(sp.p || {}).obj || 'chain'].ic);
+  if (sp.mode === 'roundup') return icon(['clip', '#a07448']); if (sp.mode === 'sprint') return sunIcon(true); if (sp.mode === 'toll') return A.carrot[0];
+  if (sp.mode === 'drive') return icon(['ice', '#e8f6ff', '#9ae8ff']);
+  const it = A.items[LEVELS[sp.run] && LEVELS[sp.run].item]; return it ? it[0] : null;
+}
+const MODEWORD = { fetch: 'FIND THREE', haul: 'HAUL IT', roundup: 'ROUND THEM UP', sprint: 'BEAT THE SUN', toll: 'CARROT RUN', hunt: 'LOST AND FOUND', drive: 'DRIVE', free: 'FREE RUN' };
+
+/* ---------- the burrow ---------- */
+function burrowLayout() {
+  const H = NH, gy = Math.round(H * .56), houseH = clamp(Math.round(H * .27), 52, 84), wallTop = gy - houseH, roofH = clamp(Math.round(H * .08), 14, 24);
+  return { H, gy, wallTop, roofTop: wallTop - roofH, cy: Math.round(gy + (H - gy) * .56), ry: Math.round((H - gy) * .36) };
+}
+function drawBurrowScene(L, featured) {
+  const s = SAVE.saga, t = S.t, { H, gy, wallTop, roofTop, cy, ry } = L;
+  const spent = clamp(1 - s.sun / sunsPerDay(), 0, 1), [top, bot] = skyAt(.08 + spent * .9);
+  for (let i = 0; i < 20; i++) R_(0, Math.floor(gy * i / 20), NW, Math.ceil(gy / 20) + 1, css(mixRGB(top, bot, i / 19)));
+  const sx = 40 + spent * 300, sy = gy - 24 - Math.sin((.1 + spent * .8) * Math.PI) * (gy * .5); const sc = mixRGB(rgb('#fff6c8'), rgb('#ff8a3a'), spent);
+  g.globalAlpha = .25; pixCircle(sx, sy, 15, css(sc)); g.globalAlpha = 1; pixCircle(sx, sy, 10, css(sc));
+  { const city = forestBase().find(l => l.city).c; g.globalAlpha = .85; g.drawImage(city, -60, gy - city.height + 8); g.globalAlpha = 1; }
+  for (let x = -6; x < NW + 10; x += 13) { const r = 9 + ((x * 7) % 6); pixCircle(x, gy - 6 - ((x * 3) % 5), r, (x / 13) & 1 ? '#2c5a24' : '#33692a'); }
+  // ground and clay
+  for (let y = gy; y < H; y += 3) R_(0, y, NW, 3, css(CLAY[(Math.floor((y - gy) / 9) + 5) % 5]));
+  for (let i = 0; i < 60; i++) R_((i * 67) % NW, gy + 6 + (i * 37) % (H - gy - 6), 2, 1, i % 3 ? '#7a2a14' : '#d07850');
+  R_(0, gy - 2, NW, 5, '#4ea232'); R_(0, gy - 3, NW, 1, '#8ad860'); for (let x = 0; x < NW; x += 3) if (hash(x, 3) < .5) R_(x, gy - 4, 1, 2, '#62b83a');
+  // underground: the stash vault and the pine straw dorm
+  const tun = (x0, y0, x1, y1) => { for (let k = 0; k <= 1; k += .02) fillEll(lerp(x0, x1, k), lerp(y0, y1, k), 7, 6, '#3b1d10'); };
+  tun(240, gy + 2, 212, cy - 6);
+  fillEll(104, cy, 94, ry, '#3b1d10'); fillEll(318, cy, 96, ry, '#3b1d10');
+  g.globalAlpha = .16; pixCircle(104, cy - ry * .3, 40, '#ffd68a'); pixCircle(318, cy - ry * .3, 40, '#ffd68a'); g.globalAlpha = 1;
+  R_(100, cy - ry + 2, 1, 6, '#2a140c'); R_(97, cy - ry + 8, 7, 4, '#ffe9a0'); R_(314, cy - ry + 2, 1, 6, '#2a140c'); R_(311, cy - ry + 8, 7, 4, '#ffe9a0');
+  // shelves
+  const owned = Object.keys(s.stash).filter(k => STASH[k]), rows = 3, per = 9, sh = Math.max(14, Math.floor((ry * 2 - 14) / rows));
+  for (let r = 0; r < rows; r++) { const y = cy - ry + 12 + (r + 1) * sh; R_(28, y, 152, 3, '#8a5a3a'); R_(28, y + 3, 152, 1, '#5a3a22'); }
+  owned.slice(-rows * per).forEach((k, i) => { const r = Math.floor(i / per), c = i % per, y = cy - ry + 12 + (r + 1) * sh; g.drawImage(icon(STASH[k].ic), 30 + c * 16, y - 16); });
+  // beds
+  const sleepers = [];
+  for (let i = 2; i < FAM.length && sleepers.length < 4; i++) if (!featured.includes(i) && !isAway(i)) sleepers.push(i);
+  for (let b = 0; b < 8; b++) { const bx = 236 + b * 20, by = cy + ry - 8; R_(bx - 8, by - 2, 18, 4, '#c8913a'); R_(bx - 7, by - 4, 16, 2, '#e8b85e'); for (let k = 0; k < 5; k++) R_(bx - 8 + k * 4, by - 5 + (k & 1), 3, 1, '#d8a04a'); }
+  sleepers.forEach((i, k) => { const bx = 236 + (k * 2 + 1) * 20 - 10, by = cy + ry - 8; drawSpr(famSet(i).sleep[0], bx, by, 0, k & 1 ? 1 : -1, BAX, BAY); if ((t + k * 25) % 100 === 0) part({ type: 'z', x: bx + 6, y: by - 16, vx: .2, vy: -.4, life: 60 }); });
+  // the house, cut away
+  const x0 = 4, x1 = 252;
+  for (let y = roofTop; y < wallTop; y++) { const k = (y - roofTop) / (wallTop - roofTop), a = lerp(x0 + 34, x0 - 6, k), b = lerp(x1 - 34, x1 + 6, k); R_(a, y, b - a, 1, (Math.floor((y - roofTop) / 4) & 1) ? '#4a3648' : '#574258'); }
+  R_(x0 + 34, roofTop - 1, x1 - x0 - 68, 2, '#2a140c'); R_(196, roofTop - 12, 10, 12, '#7a3a2a'); R_(194, roofTop - 14, 14, 3, '#5a2a1e');
+  R_(x0, wallTop, x1 - x0, gy - wallTop, '#e2b77a'); R_(x0, wallTop, 118, gy - wallTop, '#6a5a52');
+  for (let y = wallTop + 4; y < gy - 14; y += 6) R_(126, y, x1 - 126, 1, '#d6a86c');
+  R_(126, gy - 14, x1 - 126, 10, '#c08a50'); R_(126, gy - 14, x1 - 126, 1, '#e8c890');
+  R_(x0, gy - 4, x1 - x0, 4, '#8a5a32'); for (let x = x0; x < x1; x += 12) R_(x, gy - 4, 1, 4, '#6a4224');
+  R_(x0 - 2, wallTop, 3, gy - wallTop, '#a07448'); R_(120, wallTop, 6, gy - wallTop, '#a07448'); R_(x1 - 2, wallTop, 4, gy - wallTop, '#a07448'); R_(x0 - 2, wallTop - 2, x1 - x0 + 4, 3, '#7a5236');
+  R_(x0 + 2, wallTop + 2, 116, 4, '#4a3e38'); for (let y = wallTop + 6; y < wallTop + 18; y += 3) R_(x0 + 2, y, 116, 1, '#5a4e48');
+  // Escalade in the garage
+  if (has('neon')) { g.globalAlpha = .45 + .15 * Math.sin(t * .1); R_(10, gy - 7, 104, 4, '#ff4fa0'); g.globalAlpha = 1; }
+  g.drawImage(A.escL, 6, gy - 52);
+  // living room: postcards, couch, record player, phone, fridge
+  const ph = Math.min(26, gy - wallTop - 34);
+  for (let i = 0; i < 4; i++) { const px = 132 + i * 12, py = wallTop + 8 + (i & 1) * 3; R_(px, py, 10, 8, '#2a140c'); R_(px + 1, py + 1, 8, 6, ['#5aa8ff', '#ffd890', '#ffb070', '#8d9ccb'][i]); R_(px + 1, py + 5, 8, 2, ['#5cb83a', '#7ccf4a', '#f2dca8', '#9a9488'][i]); }
+  R_(130, gy - 22, 46, 10, '#7a3a5a'); R_(130, gy - 22, 46, 2, '#9a4a72'); R_(127, gy - 26, 6, 22, '#6a2e4c'); R_(173, gy - 26, 6, 22, '#6a2e4c'); R_(132, gy - 12, 42, 8, '#9a4a72'); R_(132, gy - 12, 42, 1, '#b8628c');
+  R_(176, gy - 24, 2, 2, '#3b1d10'); R_(175, gy - 21, 2, 2, '#3b1d10');
+  R_(188, gy - 18, 20, 14, '#5a3a22'); R_(188, gy - 18, 20, 2, '#7a5236'); R_(190, gy - 24, 16, 6, '#2a2430'); g.fillStyle = '#1a1420'; pixCircle(198, gy - 22, 3, '#1a1420'); R_(197, gy - 23, 2, 1, ['#f6c645', '#ff4fa0', '#7ad050'][(t >> 4) % 3]);
+  const ring = s.call && (t & 8); g.drawImage(A.phone[(t >> 4) & 1], 168 + (ring ? ((t >> 1) & 1) * 2 - 1 : 0), roofTop - 22);
+  if (s.call && t % 40 < 20) { tx('!', 176, roofTop - 34, '#fff3b0', { oc: '#2a140c' }); }
+  R_(226, wallTop + 6, 22, gy - wallTop - 10, '#2a140c'); R_(227, wallTop + 7, 20, gy - wallTop - 12, '#e8ece8'); R_(227, wallTop + 7 + Math.round((gy - wallTop) * .35), 20, 1, '#9aa3ad'); R_(244, wallTop + 12, 1, 8, '#9aa3ad');
+  R_(230, wallTop + 11, 13, 16, '#fff8e0'); for (let k = 0; k < 4; k++) R_(232, wallTop + 14 + k * 3, 9, 1, '#7a5236');
+  // lawn: mailbox, garden, grill, Sunny's oak
+  R_(260, gy - 24, 2, 22, '#6a4224'); R_(255, gy - 30, 12, 8, '#3a5aa8'); R_(255, gy - 30, 12, 1, '#6a8ad8'); if (s.errands.length && s.errands.some(e => !e.who.length) && (t & 32)) R_(266, gy - 34, 2, 6, '#e03030');
+  for (let r = 0; r < 3; r++) for (let x = 296; x < 344; x += 6) { R_(x, gy - 3 - r * 2, 4, 1, '#5a3a24'); if (hash(x, r) < .7) R_(x + 1, gy - 6 - r * 2, 1, 3, '#3fb04a'); }
+  const gx = 366; R_(gx, gy - 22, 26, 12, '#1a1a1e'); R_(gx, gy - 22, 26, 3, '#34343a'); R_(gx + 3, gy - 10, 2, 9, '#2a2a30'); R_(gx + 21, gy - 10, 2, 9, '#2a2a30'); R_(gx + 11, gy - 32, 4, 10, '#2a2a30');
+  if (s.sun === 0 || (t & 8)) R_(gx + 4, gy - 24, 18, 2, '#ff6a2a');
+  if (t % 9 === 0) part({ type: 'smoke', x: gx + 13, y: gy - 30, vx: .15, vy: -.45, life: 70 });
+  R_(402, wallTop - 30, 16, gy - wallTop + 30, '#4a2e1e'); R_(402, wallTop - 30, 4, gy - wallTop + 30, '#5e3c28');
+  for (let i = 0; i < 12; i++) pixCircle(396 + (i % 4) * 9, 24 + Math.floor(i / 4) * 9 + (i & 1) * 3, 13, i % 3 ? '#2c5a24' : '#3f7a2a');
+  for (let i = 0; i < 6; i++) pixCircle(392 + (i % 3) * 13, 30 + Math.floor(i / 3) * 12, 6, '#4f8f34');
+  g.drawImage(A.sq[(t % 90 < 10) ? 1 : 0], 398, Math.max(46, wallTop - 32));
+  // the Roof Bun up top, the Nibbin' Bun on the couch
+  drawSpr(A.roof.wave[(t >> 4) & 1], 150, roofTop + 1, 0, 1, BAX, BAY);
+  drawSpr(A.nib.chomp[(t % 90 < 50) ? (t >> 2) & 1 : 0], 158, gy - 11, 0, 1, BAX, BAY);
+  for (const q of S.parts) drawPart(q);
+}
+const SCREENS = {};
+SCREENS.hub = function () {
+  const s = SAVE.saga, L = burrowLayout(), { gy, wallTop, roofTop, cy, ry } = L, t = S.t;
+  const open = openWants(), featured = [], fw = {};
+  for (const id of open) { const w = wantDef(id).who; if (w > 1 && !featured.includes(w) && featured.length < 4) { featured.push(w); fw[w] = id; } else if (w <= 1 && !fw[w]) fw[w] = id; }
+  drawBurrowScene(L, featured);
+  const slots = [204, 288, 328, 350].slice(0, featured.length); if (featured.length === 4) slots.splice(0, 4, 204, 282, 318, 352);
+  // hot spots for the house
+  hot(4, wallTop, 116, gy - wallTop, () => sagaGo('map'));
+  hot(126, wallTop + 4, 52, 14, () => enterScrapbook());
+  hot(164, roofTop - 26, 34, 26, () => s.call ? sagaGo('phone', { id: s.call, i: 0 }) : toast('THE PEBBLE PHONE. IT ONLY GETS SIGNAL ON THE ROOF. NOBODY\'S CALLING.'));
+  hot(186, gy - 26, 24, 22, () => toast(Object.keys(s.stash).filter(k => STASH[k] && STASH[k].cat === 'records').length + ' RECORDS. PICK ANY SONG FROM THE PAUSE MENU.'));
+  hot(224, wallTop + 4, 26, gy - wallTop - 6, () => sagaGo('wants'));
+  hot(252, gy - 34, 18, 32, () => s.day >= 2 ? sagaGo('wants', { tab: 'errands' }) : toast('NO ERRANDS UNTIL TOMORROW. THE COUSINS ARE STILL WAKING UP.'));
+  hot(360, gy - 40, 38, 40, () => s.sun > 0 ? confirmBox('CALL IT A DAY? YOU STILL HAVE ' + s.sun + (s.sun > 1 ? ' SUNS' : ' SUN') + ' LEFT.', 'COOKOUT', startSagaCook) : startSagaCook(), { snd: 'crew' });
+  hot(10, cy - ry, 188, ry * 2, () => sagaGo('stash'));
+  hot(222, cy - ry, 192, ry * 2, () => sagaGo('family'));
+  hot(132, roofTop - 44, 32, 44, () => s.call ? sagaGo('phone', { id: s.call, i: 0 }) : toast(fw[0] ? 'THE ROOF BUN WANTS SOMETHING. CHECK THE WANT LIST.' : ['NICE DAY FOR IT. FROM UP HERE.', 'I CAN SEE THE CREEK. AND THE BOBCAT. HE CAN SEE ME.', 'NOT COMING DOWN. DON\'T ASK.'][Math.floor(t / 300) % 3]));
+  hot(140, gy - 54, 36, 44, () => fw[1] ? sagaGo('brief', { id: fw[1] }) : toast(['THE COUCH TASTES LIKE TUESDAY.', 'I\'M NOT EATING IT. I\'M TESTING IT.', 'HAVE Y\'ALL TRIED THE MAILBOX?'][Math.floor(t / 300) % 3]));
+  hot(392, 20, 32, wallTop, () => toast(['SUNNY: HMM.', 'SUNNY: I SEE YOU, BOYS.', 'SUNNY: SLOW DOWN.'][Math.floor(t / 300) % 3]));
+  // cousins who want something
+  featured.forEach((i, k) => { const x = slots[k], y = gy - 3, id = fw[i], sp = wantStep(id);
+    drawSpr(famSet(i).idle[((t >> 3) + k * 7) % 40 === 0 ? 1 : 0], x, y, 0, x > 300 ? -1 : 1, BAX, BAY);
+    bubbleIcon(x, y - 60, stepIcon(sp), true);
+    hot(x - 18, y - 72, 36, 72, () => sagaGo('brief', { id }), { snd: 'wake' }); });
+  if (fw[0]) bubbleIcon(150, roofTop - 58, stepIcon(wantStep(fw[0])), true), hot(136, roofTop - 70, 30, 24, () => sagaGo('brief', { id: fw[0] }));
+  if (fw[1]) bubbleIcon(158, gy - 70, stepIcon(wantStep(fw[1])), true);
+  // signs
+  plaque(62, wallTop + 8, 'MAP');
+  plaque(240, wallTop + 2, 'WANTS ' + open.length, { hot: open.length && s.sun > 0 && s.log.runs < 3 });
+  plaque(104, cy - ry - 5, 'STASH ' + Object.keys(s.stash).filter(k => STASH[k]).length);
+  plaque(318, cy - ry - 5, 'FAMILY ' + knownCount() + '/17');
+  if (s.day >= 2) plaque(270, gy - 36, 'ERRANDS', { hot: s.errands.some(e => !e.who.length) && s.log.days < 3 });
+  plaque(379, gy - 46, 'COOKOUT', { hot: s.sun === 0 });
+  if (s.call) { plaque(206, roofTop - 30, 'PHONE!', { hot: 1 }); }
+  // top bar
+  tx('DAY ' + s.day, 8, 6, '#f6c645', { oc: '#2a140c' }); for (let i = 0; i < sunsPerDay(); i++) g.drawImage(sunIcon(i < s.sun), 50 + i * 12, 4);
+  carrots(s.bank, NW - (UI.pauseV || 24) - 6 - textW(String(s.bank)) - 13, 6);
+  // a nudge for new players
+  const hint = s2 => { R_(0, NH - 15, NW, 15, 'rgba(20,10,6,.75)'); tx(s2, NW / 2, NH - 11, '#fff3b0', { al: 'c' }); };
+  if (s.log.runs === 0 && featured.length) { bounceArrow(slots[0], gy - 74); hint('TAP THE COUSIN WITH THE BUBBLE. HE WANTS SOMETHING.'); }
+  else if (s.sun === 0) { bounceArrow(379, gy - 52); hint('OUT OF SUN. TAP THE GRILL: COOKOUT TIME.'); }
+  else if (s.day === 2 && s.errands.some(e => !e.who.length) && !s.seen.errands) { bounceArrow(261, gy - 50); hint('NEW: ERRANDS. TAP THE MAILBOX AND SEND SOMEBODY FOR ICE.'); }
+  else if (s.call) { bounceArrow(181, roofTop - 30); hint('THE PEBBLE PHONE IS RINGING ON THE ROOF. TAP IT.'); }
+};
+
+/* ---------- the want list and errands ---------- */
+SCREENS.wants = function () {
+  const s = SAVE.saga, tab = SG.d.tab || 'wants', H = NH;
+  R_(0, 0, NW, H, '#3b1d10'); for (let i = 0; i < 40; i++) R_((i * 61) % NW, (i * 37) % H, 2, 1, '#5a2c18');
+  topBar(null, () => sagaGo('hub'));
+  btn(NW / 2 - 104, 4, 96, 13, 'WANT LIST', () => { SG.d.tab = 'wants'; SG.d.page = 0; }, { gold: tab === 'wants' });
+  btn(NW / 2 + 8, 4, 96, 13, 'ERRANDS', () => { SG.d.tab = 'errands'; }, { gold: tab === 'errands' });
+  const px = 14, pw = NW - 28, py = 30, ph = H - 38; paper(px, py, pw, ph);
+  if (tab === 'errands') { s.seen.errands = 1; return drawErrands(px, py, pw, ph); }
+  const list = openWants().sort((a, b) => (wantDef(a).daily ? 2 : wantDef(a).side ? 1 : 0) - (wantDef(b).daily ? 2 : wantDef(b).side ? 1 : 0));
+  const rh = 34, per = Math.max(1, Math.floor((ph - 24) / rh)), pages = Math.max(1, Math.ceil(list.length / per)), page = Math.min(SG.d.page || 0, pages - 1);
+  if (!list.length) txBlock('NOBODY WANTS ANYTHING RIGHT NOW. THAT\'S NEVER TRUE FOR LONG. TRY A FREE RUN FROM THE MAP, OR CALL IT A DAY.', px + 20, py + 30, pw - 40, '#5a3a22', { al: 'c' });
+  list.slice(page * per, page * per + per).forEach((id, k) => {
+    const W = wantDef(id), y = py + 6 + k * rh, sp = wantStep(id), pl = wantPlace(id), x = px + 6, w = pw - 12;
+    const f = hot(x, y, w, rh - 3, () => sagaGo('brief', { id }), { snd: 'wake' });
+    R_(x, y, w, rh - 3, f ? '#fff3b0' : (k & 1 ? '#efe2c2' : '#f4ead0')); R_(x, y + rh - 4, w, 1, '#d8c8a0');
+    face(W.who, x + 2, y);
+    const name = (famRole(W.who) || FAM[W.who].color + ' COUSIN') + (W.daily ? '' : W.side ? '  (SIDE)' : '');
+    tx(name, x + 38, y + 3, '#a07448');
+    tx(W.text.length > 46 ? W.text.slice(0, 44) + '...' : W.text, x + 38, y + 13, '#2a140c');
+    let rx = x + 38; tx((pl ? PLACES[pl].name : '') + (sp && sp.drift ? 'A DECISION' : ''), rx, y + 22, '#5a3a22');
+    const ic = stepIcon(sp); if (ic) g.drawImage(ic, x + w - 20, y + 7);
+    if (wantGivesName(id)) tx('EARNS A NAME', x + w - 26, y + 22, '#3f8a3a', { al: 'r' });
+    else if (W.reward && W.reward.guest) tx('NEW FRIEND', x + w - 26, y + 22, '#3f8a3a', { al: 'r' });
+  });
+  if (pages > 1) { btn(px + 6, py + ph - 20, 30, 14, '<', () => SG.d.page = Math.max(0, page - 1), { off: page === 0 }); btn(px + pw - 36, py + ph - 20, 30, 14, '>', () => SG.d.page = Math.min(pages - 1, page + 1), { off: page >= pages - 1 }); tx((page + 1) + '/' + pages, NW / 2, py + ph - 16, '#5a3a22', { al: 'c' }); }
+};
+function drawErrands(px, py, pw, ph) {
+  const s = SAVE.saga;
+  if (!s.errands.length) { txBlock(s.day < 2 ? 'NO ERRANDS UNTIL TOMORROW. THE COUSINS ARE STILL WAKING UP.' : 'NO ERRANDS TODAY.', px + 20, py + 30, pw - 40, '#5a3a22', { al: 'c' }); return; }
+  txBlock('SEND COUSINS OUT. THEY\'RE BACK AT SUNDOWN WITH WHATEVER THEY THINK YOU ASKED FOR.', px + 10, py + 6, pw - 20, '#7a4a2a', { al: 'c' });
+  const rh = Math.min(36, Math.floor((ph - 30) / s.errands.length));
+  s.errands.forEach((e, k) => {
+    const E = ERRANDS[e.id], y = py + 26 + k * rh, x = px + 6, w = pw - 12;
+    R_(x, y, w, rh - 3, k & 1 ? '#efe2c2' : '#f4ead0');
+    const ok = E.ok, ic = ok.food ? icon(FOOD[Object.keys(ok.food)[0]].ic) : ok.record ? icon(['record', '#ff4fa0']) : A.carrot[0];
+    g.drawImage(ic, x + 4, y + (rh - 3) / 2 - 8);
+    tx(E.name, x + 26, y + 5, '#2a140c'); tx('AT ' + PLACES[E.place].name, x + 26, y + 15, '#a07448');
+    e.who.forEach((i, j) => face(i, x + 168 + j * 32, y + (rh - 33) / 2));
+    if (!e.who.length) tx('NOBODY YET', x + 170, y + (rh - 3) / 2 - 3, '#b8a080');
+    btn(x + w - 62, y + (rh - 3) / 2 - 7, 56, 14, e.who.length ? 'CHANGE' : 'SEND', () => sagaGo('pick', { i: k, sel: e.who.slice() }), { gold: !e.who.length });
+  });
+}
+SCREENS.pick = function () {
+  const s = SAVE.saga, e = s.errands[SG.d.i], E = ERRANDS[e.id], sel = SG.d.sel, H = NH;
+  R_(0, 0, NW, H, '#3b1d10');
+  topBar('WHO\'S GOING FOR ' + E.ask + '?', () => sagaGo('wants', { tab: 'errands' }));
+  const taken = new Set(); s.errands.forEach((o, k) => { if (k !== SG.d.i) o.who.forEach(i => taken.add(i)); });
+  const wantsOf = new Set(openWants().map(id => wantRunner(id)));
+  const cw = 50, ch = Math.min(60, Math.floor((H - 72) / 2)), x0 = Math.round(NW / 2 - cw * 4);
+  for (let i = 1; i < FAM.length; i++) {
+    const k = i - 1, x = x0 + (k % 8) * cw, y = 30 + Math.floor(k / 8) * ch, on = sel.includes(i), off = taken.has(i);
+    const f = hot(x + 2, y, cw - 4, ch - 4, () => { if (off) { toast('ALREADY OUT ON ANOTHER ERRAND.'); return; } const j = sel.indexOf(i); if (j >= 0) sel.splice(j, 1); else { sel.push(i); if (sel.length > 2) sel.shift(); } });
+    R_(x + 2, y, cw - 4, ch - 4, on ? '#f6c645' : f ? '#7a5236' : '#4e3220'); if (off) g.globalAlpha = .35;
+    face(i, x + 10, y + 2); g.globalAlpha = 1;
+    tx(quirkKnown(i) ? QUIRKS[FAM[i].quirk].name : '???', x + cw / 2, y + 34, on ? '#2a140c' : '#f4e2bd', { al: 'c' });
+    if (ch > 52) tx(FAM[i].color, x + cw / 2, y + 44, on ? '#5a3a22' : '#a07448', { al: 'c' });
+    if (wantsOf.has(i)) tx('!', x + cw - 10, y + 2, '#ff8a5a', { oc: '#2a140c' });
+  }
+  const sy = 30 + ch * 2 + 4, info = sel.length ? sel.map(i => quirkKnown(i) ? QUIRKS[FAM[i].quirk].tip : 'NOBODY KNOWS WHAT HE\'LL DO YET.').join(' ') : 'PICK ONE OR TWO. EVERY COUSIN HEARS IT A LITTLE DIFFERENT.';
+  txBlock(info, 20, sy, NW - 170, '#f4e2bd', { lh: 9 });
+  if (sel.some(i => wantsOf.has(i))) tx('! HAS A WANT TODAY. HE CAN\'T RUN IT WHILE HE\'S OUT.', 20, H - 12, '#ff8a5a');
+  btn(NW - 140, sy, 122, 16, sel.length ? 'SEND THEM' : 'NOBODY GOES', () => { e.who = sel.slice(); writeSave(); sagaGo('wants', { tab: 'errands' }); if (sel.length) toast('BACK AT SUNDOWN. PROBABLY WITH ' + E.ask + '.'); }, { gold: sel.length > 0 });
+};
+
+/* ---------- the brief: one want up close ---------- */
+SCREENS.brief = function () {
+  const s = SAVE.saga, id = SG.d.id, W = wantDef(id), H = NH; if (!W) { sagaGo('hub'); return; }
+  const st = wantState(id), sp = wantStep(id), steps = wantSteps(id), runner = wantRunner(id), big = H >= 250;
+  R_(0, 0, NW, H, '#2a1810'); for (let i = 0; i < 30; i++) R_((i * 71) % NW, (i * 43) % H, 2, 1, '#4a2818');
+  topBar(null, () => sagaGo(SG.d.from || 'wants'));
+  // the cousin
+  const lx = 64, ly = big ? 132 : 92; R_(lx - 44, ly - 2, 88, 6, '#4e3220'); fillEll(lx, ly + 1, 40, 4, '#5a3a22');
+  const set = famSet(W.who), fr = set.idle[(S.t % 160 > 150) ? 1 : 0];
+  if (big) g.drawImage(fr, 0, 0, BW, BH, lx - BAX * 2, ly - BAY * 2, BW * 2, BH * 2); else drawSpr(fr, lx, ly, 0, 1, BAX, BAY);
+  let ny = ly + 10; ny += txBlock(famName(W.who), 10, ny, 110, '#f6c645', { al: 'c', oc: '#2a140c' });
+  if (quirkKnown(W.who) && W.who > 1) tx(QUIRKS[FAM[W.who].quirk].name, lx, ny + 1, '#a07448', { al: 'c' });
+  if (runner !== W.who) { tx('RUNNING IT:', lx, H - 34, '#a07448', { al: 'c' }); face(runner, lx - 15, H - 26); }
+  // the want
+  const x = 132, w = NW - x - 12; let y = 28;
+  const ql = txWrap('"' + W.text + '"', Math.floor((w - 12) / 6)), qh = ql.length * 9 + 8;
+  R_(x - 1, y - 1, w + 2, qh + 2, '#2a140c'); R_(x, y, w, qh, '#ffffff'); R_(x - 6, y + 6, 6, 4, '#ffffff'); R_(x - 7, y + 5, 1, 6, '#2a140c');
+  ql.forEach((l, i) => tx(l, x + 6, y + 5 + i * 9, '#2a140c')); y += qh + 6;
+  y += txBlock(W.sub, x, y, w, '#e8d8b8', { lh: 9 }) + 4;
+  // steps
+  steps.forEach((p, k) => { if (y > H - 60) return; const cur = k === st.step, did = k < st.step, ic = stepIcon(p);
+    if (ic) { if (!cur && !did) g.globalAlpha = .5; g.drawImage(ic, x, y - 4); g.globalAlpha = 1; }
+    const label = p.drift ? 'A DECISION' : (p.title || MODEWORD[p.mode]) + (p.run ? '  ' + PLACES[LVPLACE[p.run]].name : '');
+    tx((did ? 'DONE: ' : '') + label, x + 20, y, did ? '#7ad050' : cur ? '#ffffff' : '#a08060', { oc: cur ? '#2a140c' : null });
+    if (cur && p.tip) { y += 10; y += txBlock(p.tip, x + 20, y, w - 20, '#c8b088', { lh: 9 }) - 9; }
+    y += 13; });
+  // reward
+  const R = W.reward, rw = rewardList(R); let rx = x;
+  if (wantGivesName(id)) { tx('HE EARNS A NAME.', rx, y, '#7ad050', { oc: '#2a140c' }); y += 12; }
+  rw.slice(0, 4).forEach(r => { if (rx > NW - 80) return; if (r.ic) { g.drawImage(r.ic, 0, 0, r.ic.width, r.ic.height, rx, y - 4, 14, Math.round(r.ic.height * 14 / r.ic.width)); rx += 16; } rx += tx(r.label.length > 18 ? r.label.slice(0, 17) + '.' : r.label, rx, y, '#f4e2bd') + 10; });
+  // go
+  const away = isAway(runner), canRun = sp && (sp.run || sp.drive);
+  if (sp && sp.drift) btn(NW - 150, H - 26, 134, 18, 'DECIDE', () => sagaGo('drift', { id }), { gold: 1, pulse: 1 });
+  else if (canRun) {
+    const off = s.sun <= 0 || away, why = away ? 'HE\'S OUT ON AN ERRAND TILL SUNDOWN. CHANGE IT ON THE ERRANDS LIST.' : 'NO SUN LEFT TODAY. TIME FOR THE COOKOUT.';
+    btn(NW - 150, H - 26, 134, 18, 'GO', () => goWant(id), { gold: 1, off, why, icon: sunIcon(true), pulse: 1, snd: 'crew' });
+  }
+  btn(x, H - 26, 90, 18, 'NOT TODAY', () => sagaGo(SG.d.from || 'wants'));
+};
+function goWant(id) {
+  const W = wantDef(id), st = wantState(id), sp = wantStep(id);
+  startRun({ want: id, stepIdx: st.step, run: sp.run, mode: sp.mode, p: sp.p, rev: sp.rev, title: sp.title, tip: sp.tip, say: W.text, runner: wantRunner(id), shop: id === 'ice' });
+}
+SCREENS.drift = function () {
+  const id = SG.d.id, W = wantDef(id), sp = wantStep(id), D = sp.drift, H = NH;
+  R_(0, 0, NW, H, '#2a1810');
+  tx('LOSING THE PLOT', NW / 2, 12, '#f6c645', { al: 'c', sc: 2, oc: '#2a140c' });
+  face(W.who, 20, 40); face(0, NW - 50, 40);
+  let y = 40; y += txBlock(D.text, 60, y, NW - 120, '#fff3e0', { al: 'c', lh: 10 }) + 10;
+  const bw = 180, by = Math.max(y, H - 70);
+  const pick = (go) => { const st = wantState(id), s = SAVE.saga; st.drift = go ? 'go' : 'stick'; st.step++; if (go) s.log.drift++; else s.log.stuck++; writeSave();
+    if (!go) { const out = { title: 'WANT DONE!', gains: [], res: { stars: st.last || 2, note: 'STUCK TO IT', carrots: 0 } }; completeWant(id, st.last || 2, out); writeSave(); sagaGo('result', out); }
+    else { toast(D.goSay); sagaGo('brief', { id }); } };
+  btn(NW / 2 - bw - 6, by, bw, 20, D.stick, () => pick(false), { gold: 1 });
+  btn(NW / 2 + 6, by, bw, 20, D.go, () => pick(true), { col: '#8a3a22' });
+  tx('FINISH WHAT HE STARTED', NW / 2 - bw / 2 - 6, by + 26, '#c8b088', { al: 'c' });
+  tx('NEW PLAN. SEE WHERE IT GOES.', NW / 2 + bw / 2 + 6, by + 26, '#c8b088', { al: 'c' });
+};
+
+/* ---------- the map ---------- */
+const MAPPOS = { boulder: [.11, .3], atl: [.4, .36], forest: [.4, .62], farm: [.57, .42], marsh: [.71, .78], paris: [.88, .2] };
+function mapXY(id) { const p = MAPPOS[id], top = 26, h = NH - top - 8; return [Math.round(p[0] * NW), Math.round(top + p[1] * h)]; }
+function coastX(y) { return NW * .76 - (y - 22) * .12 + Math.sin(y * .07) * 6 + Math.sin(y * .19) * 3; }
+let MAPC = null, MAPK = '';
+function mapArt() {
+  const key = NW + 'x' + NH; if (MAPC && MAPK === key) return MAPC; MAPK = key; MAPC = mkC(NW, NH); const x = MAPC.getContext('2d'), gg = g; g = x;
+  R_(0, 0, NW, NH, '#3a7ab8'); for (let i = 0; i < 90; i++) { const wx = (i * 97) % NW, wy = (i * 53) % NH; R_(wx, wy, 5, 1, '#5a9ad0'); }
+  for (let y = 22; y < NH; y++) { const cx = coastX(y); R_(0, y, cx, 1, '#8cc860'); R_(cx - 3, y, 3, 1, '#e8d8a0'); R_(cx, y, 2, 1, '#bfe8ff'); }
+  for (let y = 22; y < 26; y++) R_(0, y, NW, 1, '#3a7ab8');
+  for (let i = 0; i < 160; i++) { const tx2 = (i * 53) % NW, ty = 26 + (i * 71) % (NH - 30); if (tx2 < coastX(ty) - 6) { pixCircle(tx2, ty, 2 + (i % 3), i % 4 ? '#5aa040' : '#4a8a34'); } }
+  for (let i = 0; i < 6; i++) { const mx = 8 + i * 16, my = mapXY('boulder')[1] + 10 - (i % 2) * 6; for (let k = 0; k < 18; k++) R_(mx + 9 - k / 2, my - 18 + k, k, 1, k < 6 ? '#ffffff' : '#8a8a96'); }
+  // roads and flights
+  const road = (a, b, col) => { const [ax, ay] = mapXY(a), [bx, by] = mapXY(b), n = Math.hypot(bx - ax, by - ay) / 4; for (let i = 0; i < n; i++) if (i % 2 === 0) R_(lerp(ax, bx, i / n), lerp(ay, by, i / n), 2, 2, col); };
+  road('forest', 'atl', '#c4573a'); road('atl', 'farm', '#c4573a'); road('farm', 'marsh', '#c4573a'); road('forest', 'marsh', '#c4573a');
+  const fly = (a, b) => { const [ax, ay] = mapXY(a), [bx, by] = mapXY(b); for (let i = 0; i < 40; i++) if (i % 2 === 0) { const k = i / 40; R_(lerp(ax, bx, k), lerp(ay, by, k) - Math.sin(k * Math.PI) * 26, 2, 1, '#ffffff'); } };
+  fly('atl', 'boulder'); fly('atl', 'paris');
+  // France across the water
+  const [px, py] = mapXY('paris'); R_(px - 40, py - 24, 80, 56, '#2a140c'); R_(px - 39, py - 23, 78, 54, '#a8c87a'); R_(px - 39, py + 20, 78, 10, '#3a7ab8'); for (let x2 = px - 39; x2 < px + 39; x2++) R_(x2, py + 18 + Math.round(Math.sin(x2 * .3)), 1, 2, '#e8d8a0');
+  g = gg; return MAPC;
+}
+function mapIcon(id, x, y, lock) {
+  const R = R_;
+  if (lock) { R(x - 7, y - 8, 14, 14, '#4a3e34'); tx('?', x - 2, y - 4, '#c8b088'); return; }
+  if (id === 'forest') { R(x - 9, y - 4, 14, 9, '#e2b77a'); for (let k = 0; k < 6; k++) R(x - 10 + k, y - 5 - k, 16 - k * 2, 1, '#4a3648'); R(x - 4, y, 4, 5, '#2a6a3a'); pixCircle(x + 9, y - 2, 6, '#2c5a24'); }
+  if (id === 'atl') { for (const [bx, bh] of [[-9, 10], [-4, 16], [1, 12], [6, 18]]) { R(x + bx, y + 6 - bh, 5, bh, '#5a5a78'); for (let k = 2; k < bh; k += 3) R(x + bx + 1, y + 6 - bh + k, 3, 1, '#ffd86a'); } }
+  if (id === 'farm') { R(x - 8, y - 4, 16, 10, '#b8302a'); for (let k = 0; k < 6; k++) R(x - 9 + k, y - 5 - k, 18 - k * 2, 1, '#8a1a14'); R(x - 3, y, 6, 6, '#e8dcc0'); }
+  if (id === 'marsh') { R(x - 1, y - 10, 2, 16, '#8a6a3a'); for (let k = 0; k < 5; k++) { const a = -2.6 + k * .5; for (let r = 0; r < 8; r++) R(x + Math.cos(a) * r, y - 10 + Math.sin(a) * r * .6 + r * r * .05, 1, 1, '#3f8a32'); } R(x - 10, y + 4, 20, 3, '#f2dca8'); }
+  if (id === 'paris') { for (let k = 0; k < 20; k++) { const hw = 1 + Math.pow(k / 20, 2) * 7; R(x - hw, y - 12 + k, 1, 1, '#5a5a6a'); R(x + hw, y - 12 + k, 1, 1, '#5a5a6a'); } R(x - 4, y + 1, 9, 1, '#5a5a6a'); R(x, y - 15, 1, 4, '#5a5a6a'); }
+  if (id === 'boulder') { for (let k = 0; k < 10; k++) R(x - k, y - 8 + k, k * 2 + 1, 1, k < 3 ? '#ffffff' : '#c47a56'); }
+}
+SCREENS.map = function () {
+  const s = SAVE.saga, sel = SG.d.sel, t = S.t;
+  g.drawImage(mapArt(), 0, 0);
+  topBar('THE MAP', () => sagaGo('hub'));
+  const open = openWants();
+  for (const id in PLACES) {
+    const [x, y] = mapXY(id), lock = !s.places[id], here = open.filter(w => wantPlace(w) === id).length;
+    if (here && !lock) { g.globalAlpha = .35 + .25 * Math.sin(t * .12); pixCircle(x, y, 14, '#fff3b0'); g.globalAlpha = 1; }
+    const f = hot(x - 16, y - 16, 32, 34, () => { SG.d.sel = id; uiReset(); }, { snd: 'tap' });
+    if (sel === id || f) pixCircle(x, y, 13, '#ffffff');
+    mapIcon(id, x, y, lock);
+    tx(lock ? '???' : PLACES[id].name, x, y + 10, lock ? '#c8b088' : '#ffffff', { al: 'c', oc: '#2a140c' });
+    if (here && !lock) { R_(x + 8, y - 16, 9, 10, '#2a140c'); R_(x + 9, y - 15, 7, 8, '#e03030'); tx(String(here), x + 10, y - 14, '#ffffff'); }
+  }
+  // the Escalade where you are
+  { const [x, y] = mapXY(s.today.place || 'forest'); if (s.today.place !== 'paris' && s.today.place !== 'boulder') g.drawImage(A.escL, 0, 0, 112, 50, x - 30, y + 18, 28, 13); }
+  if (!sel) { tx('TAP A PLACE', 10, NH - 14, '#fff3b0', { oc: '#2a140c' }); return; }
+  // place panel
+  const P = PLACES[sel], pw = 168, px = NW - pw - 6, py = 26, ph = NH - py - 6; woodPanel(px, py, pw, ph);
+  btn(px + pw - 18, py + 3, 13, 12, 'X', () => { SG.d.sel = null; uiReset(); });
+  tx(P.name, px + 8, py + 5, '#f6c645', { oc: '#2a140c' }); tx(P.sub, px + 8, py + 15, '#d8b080');
+  let y = py + 28;
+  if (!s.places[sel]) { txBlock('NOBODY\'S INVITED YOU YET. KEEP AN EAR ON THE PEBBLE PHONE.', px + 8, y, pw - 16, '#f4e2bd'); return; }
+  for (const id of open.filter(w => wantPlace(w) === sel).slice(0, NH > 240 ? 3 : 2)) {
+    const W = wantDef(id); if (y > py + ph - 40) break;
+    btn(px + 6, y, pw - 12, 22, '', () => sagaGo('brief', { id, from: 'map' }), { col: '#5a3a22' }); face(W.who, px + 6, y - 6);
+    tx(W.text.length > 20 ? W.text.slice(0, 19) + '.' : W.text, px + 36, y + 4, '#ffffff', { oc: '#2a140c' }); tx(wantGivesName(id) ? 'EARNS A NAME' : 'WANT', px + 36, y + 13, '#d8b080');
+    y += 26;
+  }
+  const runner = s.runner != null && !isAway(s.runner) ? s.runner : 2;
+  for (const lv of P.runs) { if (y > py + ph - 20) break; btn(px + 6, y, pw - 12, 16, 'FREE RUN: ' + LVNAME[lv], () => startRun({ run: lv, mode: lv === 'icebox' ? 'drive' : 'fetch', free: 1, runner, title: LVNAME[lv], say: ['JUST RUNNING. FOR CARROTS.', 'NOBODY ASKED. I\'M GOING ANYWAY.', 'FEELS LIKE A GOOD DAY TO BE FAST.'][s.day % 3] }), { off: s.sun <= 0, why: 'NO SUN LEFT TODAY.', icon: sunIcon(true), sc: 1 }); y += 20; }
+  for (const sh of P.shops) { if (y > py + ph - 20) break; btn(px + 6, y, pw - 12, 16, SHOPS[sh].name, () => sagaGo('shop', { id: sh, sel: 0, back: sel }), { col: '#34307a' }); y += 20; }
+  if (y < py + ph - 34) { tx('FREE RUNS:', px + 8, y + 4, '#d8b080'); face(runner, px + 70, y - 6); btn(px + 104, y, 22, 14, '<', () => cycleRunner(-1)); btn(px + 132, y, 22, 14, '>', () => cycleRunner(1)); }
+};
+function cycleRunner(d) { const s = SAVE.saga; let r = s.runner != null ? s.runner : 2; for (let k = 0; k < FAM.length; k++) { r = (r + d + FAM.length) % FAM.length; if (r !== 0 && !isAway(r)) break; } s.runner = r; writeSave(); }
+
+/* ---------- shops ---------- */
+SCREENS.shop = function () {
+  const s = SAVE.saga, id = SG.d.id, SH = SHOPS[id], items = shopItems(id), H = NH;
+  R_(0, 0, NW, H, SH.col[0]); for (let y = 24; y < H; y += 8) R_(0, y, NW, 1, shade(SH.col[0], -.15));
+  topBar(SH.name, () => sagaGo('map', { sel: SG.d.back }));
+  tx(SH.hello, NW / 2, 27, SH.col[1], { al: 'c', oc: '#2a140c' });
+  const cw = 76, ch = Math.min(60, Math.floor((H - 100) / 2)), cols = 5, x0 = Math.round(NW / 2 - cw * cols / 2), y0 = 40;
+  const per = cols * 2, pages = Math.ceil(items.length / per), page = Math.min(SG.d.page || 0, pages - 1);
+  items.slice(page * per, page * per + per).forEach(([kind, k], j) => {
+    const i = page * per + j, D = kind === 's' ? STASH[k] : FOOD[k], x = x0 + (j % cols) * cw, y = y0 + Math.floor(j / cols) * ch, owned = kind === 's' && s.stash[k], sel = SG.d.sel === i;
+    const f = hot(x + 2, y, cw - 4, ch - 4, () => { SG.d.sel = i; });
+    R_(x + 2, y, cw - 4, ch - 4, sel ? '#fff3b0' : f ? '#f4ead0' : '#e8dcc0'); R_(x + 2, y + ch - 6, cw - 4, 2, '#b8a080');
+    const ic = icon(D.ic), isz = ch >= 56 ? 32 : 16; g.drawImage(ic, 0, 0, 16, 16, x + cw / 2 - isz / 2, y + 3 + (32 - isz) / 4, isz, isz);
+    const nm = D.name.length > 12 ? D.name.slice(0, 11) + '.' : D.name; tx(nm, x + cw / 2, y + ch - 25, '#2a140c', { al: 'c' });
+    if (owned) tx('GOT IT', x + cw / 2, y + ch - 15, '#3f8a3a', { al: 'c' }); else carrots(D.price, x + cw / 2 - (textW(String(D.price)) + 13) / 2, y + ch - 15, { col: s.bank >= D.price ? '#2a140c' : '#b8302a', oc: null });
+    if (kind === 'f' && s.pantry[k]) tx('x' + s.pantry[k], x + cw - 8, y + 3, '#7a4a2a', { al: 'r' });
+  });
+  if (pages > 1) { btn(8, y0 + ch - 12, 18, 18, '<', () => SG.d.page = Math.max(0, page - 1), { off: page === 0 }); btn(NW - 26, y0 + ch - 12, 18, 18, '>', () => SG.d.page = Math.min(pages - 1, page + 1), { off: page >= pages - 1 }); }
+  // the selected thing
+  const it = items[SG.d.sel || 0]; if (!it) return; const [kind, k] = it, D = kind === 's' ? STASH[k] : FOOD[k], by = y0 + ch * 2 + 4, bh = H - by - 6;
+  woodPanel(10, by, NW - 20, bh);
+  tx(D.name, 18, by + 5, '#f6c645', { oc: '#2a140c' });
+  const info = kind === 'f' ? 'FOR THE COOKOUT. +' + D.vibes + ' VIBES WHEN IT\'S SERVED. YOU HAVE ' + (s.pantry[k] || 0) + '.' : (D.perk ? 'PERK: ' + D.perk : D.desc || '');
+  txBlock(info, 18, by + 16, NW - 170, '#f4e2bd');
+  const owned = kind === 's' && s.stash[k], poor = s.bank < D.price;
+  btn(NW - 132, by + Math.max(4, bh / 2 - 9), 110, 18, owned ? 'GOT IT' : 'BUY', () => {
+    bankAdd(-D.price); if (kind === 's') { giveStash(k); toast('NEW IN THE STASH: ' + D.name + (D.perk ? '. ' + D.perk : '')); } else { giveFood(k, 1); toast('+1 ' + D.name + ' FOR THE COOKOUT.'); }
+    sfx('pay'); writeSave(); }, { gold: 1, off: owned || poor, why: owned ? 'YOU\'VE ALREADY GOT ONE.' : 'NOT ENOUGH CARROTS. RUNS AND ERRANDS PAY.', icon: owned ? null : A.carrot[0], snd: 'carrot' });
+};
+
+/* ---------- the family ---------- */
+SCREENS.family = function () {
+  const s = SAVE.saga, H = NH, sel = SG.d.sel != null ? SG.d.sel : 2;
+  R_(0, 0, NW, H, '#3b1d10'); for (let i = 0; i < 40; i++) R_((i * 61) % NW, (i * 37) % H, 2, 1, '#5a2c18');
+  topBar('THE FAMILY  ' + knownCount() + ' OF 17 KNOWN', () => sagaGo('hub'));
+  const cw = 34, chh = 38, x0 = 10, y0 = 28, wantsOf = new Set(openWants().map(id => wantDef(id).who));
+  for (let i = 0; i < FAM.length; i++) {
+    const x = x0 + (i % 6) * cw, y = y0 + Math.floor(i / 6) * chh, f = hot(x, y, cw - 2, chh - 2, () => { SG.d.sel = i; });
+    R_(x, y, cw - 2, chh - 2, sel === i ? '#f6c645' : f ? '#7a5236' : '#4e3220');
+    if (isAway(i)) g.globalAlpha = .4; face(i, x + 1, y + 2); g.globalAlpha = 1;
+    if (famRole(i)) g.drawImage(starIcon(true), x + cw - 13, y + chh - 13);
+    if (wantsOf.has(i)) tx('!', x + 2, y + 2, '#ff8a5a', { oc: '#2a140c' });
+    if (isAway(i)) tx('OUT', x + 2, y + chh - 11, '#fff3b0', { oc: '#2a140c' });
+  }
+  const sy = y0 + chh * 3 + 4;
+  if (sy < H - 20) { tx('STUCK TO IT: ' + s.log.stuck, x0, sy, '#d8b080'); tx('LOST THE PLOT: ' + s.log.drift, x0, sy + 10, '#d8b080'); if (sy < H - 30) tx('BEST COOKOUT: ' + s.log.best + ' VIBES', x0, sy + 20, '#d8b080'); }
+  // detail
+  const px = 222, pw = NW - px - 8, py = 28, ph = H - py - 8; woodPanel(px, py, pw, ph);
+  const set = famSet(sel), big = H >= 270;
+  if (big) g.drawImage(set.idle[(S.t % 160 > 150) ? 1 : 0], 0, 0, BW, BH, px + 4, py + 4, BW * 2, BH * 2); else drawSpr(set.idle[0], px + 26, py + 50, 0, 1, BAX, BAY);
+  const tx0 = big ? px + 88 : px + 50; let y = py + 8;
+  y += txBlock(famName(sel), tx0, y, px + pw - tx0 - 6, '#f6c645', { oc: '#2a140c', lh: 10 });
+  if (famRole(sel)) { tx(FAM[sel].tag, tx0, y, '#d8b080'); y += 10; }
+  y = Math.max(y + 4, big ? py + 100 : py + 56);
+  const q = QUIRKS[FAM[sel].quirk];
+  tx(quirkKnown(sel) ? q.name : 'QUIRK: ???', px + 8, y, '#ffffff', { oc: '#2a140c' }); y += 11;
+  y += txBlock(quirkKnown(sel) ? q.tip : 'SEND HIM ON AN ERRAND AND FIND OUT WHAT HE\'S LIKE.', px + 8, y, pw - 16, '#f4e2bd') + 4;
+  const own = FAM[sel].want, ow = own && wantDef(own), ost = own && (s.wants[own] || {}).st;
+  let status = sel === 0 ? 'ON THE ROOF. ALWAYS.' : isAway(sel) ? 'OUT ON AN ERRAND. BACK AT SUNDOWN.' : wantsOf.has(sel) ? 'WANTS SOMETHING TODAY.' : 'HOME.';
+  if (own && !famRole(sel)) status += ost === 'done' ? '' : ' HAS A BIG WANT COMING. HE\'LL EARN HIS NAME WHEN HE GETS IT.';
+  if (y < py + ph - 10) txBlock(status, px + 8, y, pw - 16, '#c8b088');
+};
+
+/* ---------- the stash ---------- */
+SCREENS.stash = function () {
+  const s = SAVE.saga, H = NH, cat = SG.d.cat || 'drip';
+  R_(0, 0, NW, H, '#2a1810'); for (let i = 0; i < 30; i++) R_((i * 71) % NW, (i * 43) % H, 2, 1, '#4a2818');
+  const nOwn = Object.keys(s.stash).filter(k => STASH[k]).length; topBar('THE STASH  ' + nOwn + ' OF ' + Object.keys(STASH).length, () => sagaGo('hub'));
+  let tx0 = 8; STASH_CATS.forEach(([k, label]) => { const w = textW(label) + 10; btn(tx0, 26, w, 13, label, () => { SG.d.cat = k; SG.d.sel = 0; }, { gold: cat === k }); tx0 += w + 6; });
+  const list = cat === 'pantry' ? Object.keys(FOOD) : Object.keys(STASH).filter(k => STASH[k].cat === cat);
+  const cs = 40, cols = 10, x0 = Math.round(NW / 2 - cs * cols / 2), y0 = 46, rows = Math.max(1, Math.floor((H - y0 - 46) / cs));
+  list.slice(0, cols * rows).forEach((k, j) => {
+    const D = cat === 'pantry' ? FOOD[k] : STASH[k], x = x0 + (j % cols) * cs, y = y0 + Math.floor(j / cols) * cs, own = cat === 'pantry' ? s.pantry[k] > 0 : s.stash[k], sel = (SG.d.sel || 0) === j;
+    const f = hot(x + 2, y + 2, cs - 4, cs - 4, () => { SG.d.sel = j; });
+    R_(x + 2, y + 2, cs - 4, cs - 4, sel ? '#f6c645' : f ? '#7a5236' : '#4e3220');
+    const ic = icon(D.ic); g.drawImage(own ? ic : silhouette(ic), 0, 0, 16, 16, x + 4, y + 4, 32, 32);
+    if (cat === 'pantry' && s.pantry[k]) tx('x' + s.pantry[k], x + cs - 4, y + cs - 11, '#ffffff', { oc: '#2a140c', al: 'r' });
+  });
+  const k = list[SG.d.sel || 0]; if (!k) return; const D = cat === 'pantry' ? FOOD[k] : STASH[k], own = cat === 'pantry' ? s.pantry[k] > 0 : s.stash[k], by = H - 42;
+  woodPanel(10, by, NW - 20, 36);
+  tx(own || cat === 'pantry' ? D.name : '???', 18, by + 5, '#f6c645', { oc: '#2a140c' });
+  let info;
+  if (cat === 'pantry') info = (s.pantry[k] || 0) + ' IN THE PANTRY. +' + D.vibes + ' VIBES AT THE COOKOUT.' + (D.shop ? ' SOLD AT ' + SHOPS[D.shop].name + '.' : ' FROM WANTS AND ERRANDS.');
+  else if (own) info = (D.perk ? 'PERK: ' + D.perk : D.desc || '') + (D.song ? ' PLAYS ' + SONG[D.song].name + '.' : '');
+  else info = D.shop ? 'SOLD AT ' + SHOPS[D.shop].name + ' FOR ' + D.price + ' CARROTS.' + (D.perk ? ' PERK: ' + D.perk : '') : D.cat === 'records' ? 'TURNS UP ON ERRANDS AND LOST-AND-FOUND RUNS.' : 'COMES FROM A WANT. SOMEBODY HAS TO WANT IT FIRST.';
+  txBlock(info, 18, by + 16, NW - 36, '#f4e2bd');
+};
+
+/* ---------- the pebble phone ---------- */
+SCREENS.phone = function () {
+  const s = SAVE.saga, C = CALLS[SG.d.id], H = NH, i = SG.d.i || 0;
+  R_(0, 0, NW, H, '#3b1d10'); g.globalAlpha = .14; pixCircle(NW / 2, H * .3, 140, '#ffd68a'); g.globalAlpha = 1;
+  tx('THE PEBBLE PHONE', NW / 2, 10, '#f6c645', { al: 'c', oc: '#2a140c' });
+  const ph = A.phone[(S.t >> 3) & 1]; g.drawImage(ph, 0, 0, ph.width, ph.height, 40, 40, ph.width * 3, ph.height * 3);
+  const cx = NW - 90, cy = Math.round(H * .58);
+  if (C.who === 'dexter' || C.who === 'pontoon' || C.who === 'bb1') g.drawImage((C.who === 'bb1' ? A.bb1 : A[C.who]).idle[0], 0, 0, BW, BH, cx - BAX * 2, cy - BAY * 2, BW * 2, BH * 2);
+  else if (C.who === 'elli') g.drawImage(A.elli[(S.t >> 4) & 1], 0, 0, 28, 46, cx - 28, cy - 92, 56, 92);
+  else if (C.who === 'snail') g.drawImage(A.snail[(S.t >> 3) & 1], cx - 30, cy - 50);
+  else { const pi = icon(['pebble', '#9aa3ad']); g.drawImage(pi, 0, 0, 16, 16, cx - 24, cy - 60, 48, 48); }
+  tx(C.from, cx, cy + 6, '#f6c645', { al: 'c', oc: '#2a140c' });
+  const by = H - 60; paper(16, by, NW - 32, 50);
+  const line = C.lines[i], shown = Math.floor(SG.t * 1.2); txBlock(line.slice(0, shown), 24, by + 6, NW - 48, '#2a140c', { lh: 10 });
+  const last = i >= C.lines.length - 1;
+  btn(NW - 110, by + 30, 84, 16, last ? 'BYE' : 'NEXT', () => {
+    if (!last) { SG.d.i = i + 1; SG.t = 0; return; }
+    s.calls[SG.d.id] = 1; s.call = null; const news = refreshWants();
+    if (C.opens && !s.places[C.opens]) { s.places[C.opens] = 1; refreshWants().forEach(x => news.push(x)); }
+    writeSave(); sagaGo('hub'); if (C.opens) toast('NEW ON THE MAP: ' + PLACES[C.opens].name + '.'); else if (news.length) toast('SOMEBODY JUST STARTED WANTING SOMETHING.');
+  }, { gold: 1 });
+};
+
+/* ---------- after a run ---------- */
+SCREENS.result = function () {
+  const s = SAVE.saga, O = SG.d, H = NH, t = SG.t, r = O.res || { stars: 0 };
+  const big = H >= 240;
+  R_(0, 0, NW, H, '#2a1810');
+  if (t % 4 === 0 && t < 200) part({ type: 'chip', x: Math.random() * NW, y: -4, vx: (Math.random() - .5), vy: 1 + Math.random(), g: .02, life: 260, col: ['#f6c645', '#ff8a1c', '#7ad050', '#ff4fa0'][(t >> 2) & 3] }); for (let i = 0; i < 30; i++) R_((i * 71) % NW, (i * 43) % H, 2, 1, '#4a2818');
+  const w = Math.min(NW - 20, 360), x = Math.round(NW / 2 - w / 2), y = 6, h = H - 12; woodPanel(x, y, w, h);
+  tx(O.title, NW / 2, y + 7, '#f6c645', { al: 'c', sc: 2, oc: '#2a140c' });
+  let yy = y + 28;
+  if (r.stars) { const n = Math.min(r.stars, Math.floor(t / 14)); stars(NW / 2 - 19, yy, n); if (t === 14 || t === 28 || t === 42) { if (Math.floor(t / 14) <= r.stars) sfx('ding'); } yy += 16; }
+  if (r.note) { tx(r.note, NW / 2, yy, '#ffffff', { al: 'c', oc: '#2a140c' }); yy += 11; }
+  if (r.carrots) { const str = '+' + r.carrots + ' CARROTS IN THE BANK  (' + s.bank + ')'; tx(str, NW / 2, yy, '#7ad050', { al: 'c', oc: '#2a140c' }); yy += 11; }
+  const gs = O.gains || []; let gx = x + 12; const col = Math.floor((w - 24) / 2);
+  gs.slice(0, big ? 6 : 4).forEach((G, k) => { const cx = x + 12 + (k % 2) * col, cy = yy + Math.floor(k / 2) * 15; if (G.ic) g.drawImage(G.ic, 0, 0, G.ic.width, G.ic.height, cx, cy - 4, 14, Math.round(G.ic.height * 14 / G.ic.width)); tx(G.label.length > 26 ? G.label.slice(0, 25) + '.' : G.label, cx + (G.ic ? 17 : 0), cy, '#fff3b0'); });
+  yy += Math.ceil(Math.min(gs.length, big ? 6 : 4) / 2) * 15 + 2;
+  if (O.land) { const lines = txWrap(O.land, Math.floor((w - 28) / 6)), lh = lines.length * 9 + 8; paper(x + 10, yy, w - 20, lh); let left = Math.floor(t * 1.4); lines.forEach((l, i) => { if (left > 0) tx(l.slice(0, left), x + 16, yy + 5 + i * 9, '#2a140c'); left -= l.length + 1; }); yy += lh + 6; }
+  if (O.next && !O.land && wantStep(O.want)) { tx('NEXT: ' + (wantStep(O.want).drift ? 'A DECISION' : (wantStep(O.want).title || '')), NW / 2, yy, '#d8b080', { al: 'c' }); }
+  if (big && yy < y + h - 100) { const who = O.role ? O.role.fam : O.M && O.M.runner != null ? O.M.runner : O.want ? wantDef(O.want) && wantDef(O.want).who : 2, set = famSet(who || 2), fy = y + h - 30; fillEll(x + 60, fy + 1, 34, 4, '#5a3a22'); g.drawImage(set.cheer[(t >> 3) & 1], 0, 0, BW, BH, x + 60 - BAX * 2, fy - BAY * 2, BW * 2, BH * 2); }
+  for (const q of S.parts) drawPart(q);
+  const by = y + h - 24;
+  if (O.role && !O.named) btn(NW / 2 - 70, by, 140, 18, 'NAME HIM', () => sagaGo('name', { O }), { gold: 1, pulse: 1, snd: 'crew' });
+  else btn(NW / 2 - 70, by, 140, 18, O.finale ? 'TO THE COOKOUT' : 'CONTINUE', () => resultNext(O), { gold: 1 });
+};
+function resultNext(O) {
+  const s = SAVE.saga;
+  if (O.finale) { sagaGo('hub'); startSagaCook(); SG.d.finale = true; SG.d.phase = SG.d.reports.length ? 'reports' : 'spread'; return; }
+  if (O.next) { const sp = wantStep(O.want); if (sp && sp.drift) { sagaGo('drift', { id: O.want }); return; } sagaGo('brief', { id: O.want }); return; }
+  sagaGo('hub');
+  if (O.news && O.news.length) { const W = wantDef(O.news[0]); toast((famRole(W.who) || 'THE ' + FAM[W.who].color + ' COUSIN') + ' JUST STARTED WANTING SOMETHING. CHECK THE WANT LIST.'); }
+}
+SCREENS.name = function () {
+  const s = SAVE.saga, O = SG.d.O, i = O.role.fam, H = NH;
+  R_(0, 0, NW, H, '#2a1810'); g.globalAlpha = .16; pixCircle(NW / 2, H * .35, 110, '#ffd68a'); g.globalAlpha = 1;
+  tx('HE EARNED A NAME.', NW / 2, 10, '#f6c645', { al: 'c', sc: 2, oc: '#2a140c' });
+  const set = famSet(i), sy = Math.round(H * .5), sc2 = H >= 260 ? 2 : 1; g.drawImage(set.cheer[(S.t >> 3) & 1], 0, 0, BW, BH, NW / 2 - BAX * sc2, sy - BAY * sc2, BW * sc2, BH * sc2);
+  tx('WHAT DO WE CALL HIM NOW?', NW / 2, sy + 6, '#ffffff', { al: 'c', oc: '#2a140c' });
+  const bw = 128, by = Math.min(H - 26, sy + 22);
+  O.role.opts.forEach((n, k) => btn(NW / 2 - bw * 1.5 - 8 + k * (bw + 8), by, bw, 18, n, () => {
+    s.fam[i].role = n; s.fam[i].qk = true; s.fam[i].named = s.day; O.named = true; writeSave(); sfx('crew'); sfx('rock');
+    sagaGo('result', O); toast('FROM NOW ON, HE\'S ' + n + '.');
+  }, { gold: k === 0 }));
+};
+
+/* ---------- sundown ---------- */
+SCREENS.cook = function () {
+  const D = SG.d, C = D.C, H = NH, t = C.t;
+  drawCookScene(C);
+  if (D.phase === 'credits') return drawSagaCredits(D);
+  const w = Math.min(NW - 40, 320), x = Math.round(NW / 2 - w / 2), y = 8; let h;
+  if (D.phase === 'reports') {
+    const r = D.reports[D.ri]; h = Math.min(H - 60, 84 + txWrap(r.line, Math.floor((w - 20) / 6)).length * 9 + (r.reveal ? 12 : 0)); woodPanel(x, y, w, h);
+    tx('ERRAND REPORT ' + (D.ri + 1) + ' OF ' + D.reports.length, NW / 2, y + 5, '#f6c645', { al: 'c', oc: '#2a140c' });
+    face(r.who, x + 8, y + 16); tx(famName(r.who).length > 30 ? FAM[r.who].color + ' COUSIN' : famName(r.who), x + 42, y + 20, '#ffffff', { oc: '#2a140c' }); tx('ASKED FOR ' + ERRANDS[r.eid].ask + '.', x + 42, y + 31, '#d8b080');
+    let yy = y + 50; yy += txBlock(r.line, x + 10, yy, w - 20, '#fff3e0', { lh: 9 }) + 4;
+    let gx = x + 10; r.gains.forEach(G => { if (G.ic) { g.drawImage(G.ic, gx, yy - 4); gx += 18; } gx += tx(G.label, gx, yy, '#7ad050', { oc: '#2a140c' }) + 10; });
+    if (r.reveal) tx('TURNS OUT HE\'S ' + r.reveal + '.', NW / 2, y + h - 34, '#f6c645', { al: 'c', oc: '#2a140c' });
+    btn(x + w - 92, y + h - 22, 84, 16, 'NEXT', () => { if (++D.ri >= D.reports.length) D.phase = 'spread'; }, { gold: 1 });
+  } else if (D.phase === 'spread') {
+    h = Math.min(H - 60, 50 + Math.max(2, Math.ceil(D.spread.length / 2)) * 18); woodPanel(x, y, w, h); tx('THE SPREAD', NW / 2, y + 5, '#f6c645', { al: 'c', oc: '#2a140c' });
+    if (!D.spread.length) txBlock('NOTHING IN THE PANTRY. SOMEBODY GRILLED CARROTS. EVERYBODY ACTED LIKE IT WAS ENOUGH.', x + 12, y + 22, w - 24, '#fff3e0', { al: 'c' });
+    D.spread.forEach((k, j) => { const cx = x + 12 + (j % 2) * (w / 2 - 6), cy = y + 22 + Math.floor(j / 2) * 18; g.drawImage(icon(FOOD[k].ic), cx, cy - 5); tx(FOOD[k].name, cx + 20, cy, '#fff3e0'); tx('+' + FOOD[k].vibes, cx + w / 2 - 34, cy, '#7ad050', { al: 'r' }); });
+    btn(x + w - 92, y + h - 22, 84, 16, 'NEXT', () => { D.phase = 'vibes'; D.vt = t; }, { gold: 1 });
+  } else if (D.phase === 'vibes') {
+    h = Math.min(H - 56, 20 + D.rows.length * 11 + 4 + 34 + 24); woodPanel(x, y, w, h); tx('THE VIBES', NW / 2, y + 5, '#f6c645', { al: 'c', oc: '#2a140c' });
+    const k = Math.min(1, (t - D.vt) / 90); let sum = 0;
+    D.rows.forEach(([lab, v], j) => { const yy = y + 20 + j * 11; const show = Math.round(v * clamp(k * 5 - j, 0, 1)); sum += show; tx(lab, x + 16, yy, '#f4e2bd'); tx(String(show), x + w - 16, yy, '#ffffff', { al: 'r' }); });
+    if ((t - D.vt) % 8 === 0 && k < 1) sfx('tick');
+    const ty = y + 20 + D.rows.length * 11 + 4; R_(x + 12, ty, w - 24, 1, '#a07450');
+    tx('TOTAL ' + sum, x + 16, ty + 5, '#ffffff', { oc: '#2a140c' });
+    if (k >= 1) { tx(D.tier, x + w - 16, ty + 5, '#f6c645', { al: 'r', oc: '#2a140c' }); if (ty + 18 < y + h - 18) tx('TIP JAR: +' + D.tip + ' CARROTS', NW / 2, ty + 18, '#7ad050', { al: 'c', oc: '#2a140c' }); if (!D.dinged) { D.dinged = 1; sfx('ding'); } }
+    btn(x + w - 120, y + h - 22, 112, 16, D.finale ? 'ROLL CREDITS' : 'GOOD NIGHT', () => { if (D.finale) { D.phase = 'credits'; D.ct = 0; } else finishCook(); }, { gold: 1, off: k < 1 });
+  }
+};
+function drawSagaCredits(D) {
+  const list = ['GEORGIA BUNS', '', 'THE BIGGEST COOKOUT', 'IN GEORGIA', '', 'THE FAMILY'];
+  for (let i = 0; i < FAM.length; i++) list.push(famName(i));
+  list.push('', 'FRIENDS'); for (const k in SAVE.saga.guests) list.push(GUESTS[k].name);
+  list.push('', 'AND THE BOBCAT', 'WHO SANG', '', 'MUSIC', 'THE GEORGIA BUNS ALBUM', 'IN 16-BIT', '', 'MADE IN GEORGIA', 'IN SPIRIT', '', 'THE WANTS NEVER STOP.', 'NEITHER DO THE COOKOUTS.');
+  const y0 = NH - D.ct * .4; g.globalAlpha = .7; R_(NW / 2 - 110, 0, 220, NH, '#0a0612'); g.globalAlpha = 1;
+  list.forEach((l, i) => { const y = Math.round(y0 + i * 13); if (y < -10 || y > NH) return; tx(l, NW / 2, y, i === 0 ? '#f6c645' : (list[i - 1] === '' ? '#7ad050' : '#ffffff'), { al: 'c', oc: '#2a140c' }); });
+  if (y0 + list.length * 13 < NH * .4 || D.ct > 60) btn(NW - 110, NH - 24, 96, 16, D.ct > 60 && y0 + list.length * 13 > NH * .4 ? 'SKIP' : 'GOOD NIGHT', () => finishCook(), { gold: 1 });
+}
+
+/* ---------- mornings and the very first one ---------- */
+SCREENS.morning = function () {
+  const s = SAVE.saga, H = NH, t = SG.t, news = (SG.d.news || []).filter(id => wantDef(id)).slice(0, 3), gy = Math.round(H * .78), big = H >= 270;
+  const [top, bot] = skyAt(.02); for (let i = 0; i < 20; i++) R_(0, Math.floor(gy * i / 20), NW, Math.ceil(gy / 20) + 1, css(mixRGB(top, bot, i / 19)));
+  const sy = gy - 6 - Math.min(34, t * .4); g.globalAlpha = .3; pixCircle(NW * .78, sy, 24, '#fff6c8'); g.globalAlpha = 1; pixCircle(NW * .78, sy, 16, '#fff6c8');
+  { const city = forestBase().find(l => l.city).c; g.globalAlpha = .7; g.drawImage(city, -30, gy - city.height + 10); g.globalAlpha = 1; }
+  for (let x = -6; x < NW + 10; x += 13) pixCircle(x, gy - 5 - ((x * 3) % 5), 8 + ((x * 7) % 5), (x / 13) & 1 ? '#2c5a24' : '#33692a');
+  R_(0, gy, NW, H - gy, '#4ea232'); R_(0, gy, NW, 2, '#8ad860'); for (let x = 0; x < NW; x += 3) if (hash(x, 9) < .5) R_(x, gy - 2, 1, 2, '#62b83a');
+  tx('DAY ' + s.day, NW / 2, 10, '#ffffff', { al: 'c', sc: 3, oc: '#2a140c' });
+  let y = 38;
+  if (s.welcome) { y += txBlock('WELCOME BACK. YOUR GOLDEN CARROTS ARE WORTH ' + s.welcome + ' CARROTS IN THE BANK NOW. THE OLD DAYS ARE IN THE SCRAPBOOK ON THE BURROW WALL.', 40, y, NW - 80, '#2a140c', { al: 'c' }) + 4; }
+  if (news.length) { tx(news.length > 1 ? 'THEY WOKE UP WANTING SOMETHING.' : 'HE WOKE UP WANTING SOMETHING.', NW / 2, y, '#2a140c', { al: 'c' }); y += 12; }
+  else { tx('NOBODY NEW WANTS ANYTHING. YET.', NW / 2, y, '#2a140c', { al: 'c' }); y += 12; }
+  news.forEach((id, k) => {
+    const W = wantDef(id), x = Math.round(NW * (k + 1) / (news.length + 1)), set = famSet(W.who), sc2 = big ? 2 : 1;
+    const fr = (t + k * 20) % 120 < 60 ? set.cheer[(t >> 3) & 1] : set.idle[0];
+    fillEll(x, gy + 2, 14 * sc2, 3, '#3f8a2a');
+    g.drawImage(fr, 0, 0, BW, BH, x - BAX * sc2, gy + 1 - BAY * sc2, BW * sc2, BH * sc2);
+    const lines = txWrap(W.text, news.length > 2 ? 18 : 24).slice(0, 4), bw = Math.max(...lines.map(l => textW(l))) + 10, bh = lines.length * 9 + 6;
+    const bx = Math.round(clamp(x - bw / 2, 4, NW - bw - 4)), by = Math.max(y, gy - BAY * sc2 - bh - 8);
+    R_(bx - 1, by - 1, bw + 2, bh + 2, '#2a140c'); R_(bx, by, bw, bh, '#ffffff'); R_(x - 2, by + bh + 1, 4, 2, '#2a140c'); R_(x - 1, by + bh, 2, 2, '#ffffff');
+    let left = Math.floor(Math.max(0, t - k * 25) * 1.4); lines.forEach((l, i) => { if (left > 0) tx(l.slice(0, left), bx + 5, by + 4 + i * 9, '#2a140c'); left -= l.length + 1; });
+  });
+  if (s.call) tx('...AND THE PEBBLE PHONE IS RINGING.', NW / 2, H - 38, (t & 16) ? '#fff3b0' : '#ffffff', { al: 'c', oc: '#2a140c' });
+  btn(NW / 2 - 60, H - 24, 120, 18, 'LET\'S GO', () => { s.welcome = 0; writeSave(); sagaGo('hub'); }, { gold: 1, pulse: 1 });
+};
+const INTRO = [
+  'SEVENTEEN COUSINS LIVE IN ONE BURROW IN THE FOREST, IN A PART OF ATLANTA THAT IS MOSTLY TREES.',
+  'EVERY MORNING, ONE OF THEM WAKES UP WANTING SOMETHING. IT IS RARELY LOGICAL. IT IS ALWAYS URGENT.',
+  'ONLY TWO OF THEM HAVE NAMES: THE ROOF BUN AND THE NIBBIN\' BUN. GET THE OTHERS WHAT THEY WANT, AND THEY EARN ONE TOO.',
+  'YOU GET THREE SUNS A DAY. EVERY DAY ENDS WITH A COOKOUT.'
+];
+SCREENS.intro = function () {
+  const s = SAVE.saga, i = SG.d.i || 0, H = NH;
+  drawBurrowScene(burrowLayout(), []); g.globalAlpha = .55; R_(0, 0, NW, H, '#140a06'); g.globalAlpha = 1;
+  const w = Math.min(NW - 40, 330), x = Math.round(NW / 2 - w / 2), lines = txWrap(INTRO[i], Math.floor((w - 24) / 6)), h = lines.length * 11 + 42, y = Math.round(H / 2 - h / 2);
+  paper(x, y, w, h); let left = Math.floor(SG.t * 1.5); lines.forEach((l, k) => { if (left > 0) tx(l.slice(0, left), NW / 2, y + 10 + k * 11, '#2a140c', { al: 'c' }); left -= l.length + 1; });
+  btn(x + w - 90, y + h - 22, 80, 16, i < INTRO.length - 1 ? 'NEXT' : 'START', () => {
+    if (i < INTRO.length - 1) { SG.d.i = i + 1; SG.t = 0; return; }
+    s.started = true; s.today.news = ['creek']; writeSave(); sagaGo('morning', { news: ['creek'] });
+  }, { gold: 1 });
+};
+
+/* ================= Georgia Buns — missions inside the side-scroller =================
+   The six days are now places you go back to. A mission rides on top of a
+   level and changes what the run is about:
+     fetch    the level's own three things (the original days)
+     haul     carry something to the end; bumps knock it loose
+     roundup  wake the cousins and they follow you; bumps shake some loose
+     sprint   beat the sundown (the sky darkens with the clock)
+     toll     bring enough carrots
+     hunt     find one lost thing; the pebble pings when you're close
+     drive    Peachtree in the Escalade
+   No run can be lost. How well it went is one to three stars. */
+
+let MISSION = null;
+const HAUL = {
+  grill: { name: 'THE GRILL', ic: ['grill', '#2a2430', '#ff6a2a'] }, shingles: { name: 'THE SHINGLES', ic: ['shingles', '#9a4a32'] },
+  basket: { name: 'THE CARROT BASKET', ic: ['basket', '#a07448'] }, speaker: { name: 'THE SPEAKER', ic: ['speaker', '#1a1420', '#ff4fa0'] },
+  melon: { name: 'THE WATERMELON', ic: ['wmelon', '#3fb04a'] }, cooler: { name: 'THE COOLER', ic: ['cooler', '#3a7ad8'] },
+  cobbler: { name: 'THE COBBLER', ic: ['cobbler', '#d8a050'] }, obox: { name: 'THE ORANGE BOX', ic: ['box', '#ff8a1c', '#5a2a0a'] }
+};
+const HUNT = {
+  realeyes: { name: 'THE REAL EYES', ic: ['specs', '#1a1420', '#ffffff'] }, acorn: { name: 'THE GOLDEN ACORN', ic: ['acorn', '#f6c645'] },
+  chain: { name: 'THE CHAIN', ic: ['chain', '#f6c645'] }, pebble: { name: 'THE PEBBLE PHONE', ic: ['pebble', '#9aa3ad'] }, record: { name: 'THE RECORD', ic: ['record', '#ff4fa0'] }
+};
+// tucked-away spots for lost things (all reachable; most need a jump or a detour)
+const HUNTSPOTS = {
+  creek: [[1660, 216], [3040, 236], [3668, 208], [6330, 298], [352, 196]],
+  farm: [[2650, 250], [2955, 360], [5690, 214], [2600, 170]], marsh: [[2560, 300], [4150, 222], [5400, 198], [1200, 334]],
+  paris: [[1200, 236], [4500, 144], [6040, 222]], garden: [[1660, 222], [2950, -8], [3905, 222]], boulder: [[3060, -8], [3700, -34], [4620, -8]]
+};
+function perk(k) { return !!MISSION && has(k); }
+
+/* ---------- start, restart, leave ---------- */
+function startRun(spec, again) {
+  const s = SAVE.saga;
+  if (!again) { s.sun = Math.max(0, s.sun - 1); s.today.place = LVPLACE[spec.run] || s.today.place; writeSave(); }
+  if (MISSION) restoreLV();
+  MISSION = Object.assign({ t: 0, drops: 0, found: false, pt: 0, fol: [], said: 0 }, spec);
+  const M = MISSION; M.base = Object.assign({}, spec); delete M.base.base; $('again').hidden = true;
+  if (spec.run === 'icebox') { newGame('intro', 'icebox'); initDrive(); if (perk('rims')) S.drv.max = 295; if (M.say) { S.bubbles = []; say('hero', M.say, 200); } return; }
+  // a reverse run starts by the creek and ends at the house
+  LV = LEVELS[spec.run];
+  if (M.rev) { M.restore = { start: LV.start, goal: LV.goal, burrow: LV.burrow }; LV.start = 7600; LV.goal = 440; LV.burrow = false; }
+  newGame('intro', spec.run); missionInit(); startIntro();
+}
+function restoreLV() { const M = MISSION; if (M && M.restore) { const L = LEVELS[M.run]; L.start = M.restore.start; L.goal = M.restore.goal; L.burrow = M.restore.burrow; M.restore = null; } }
+function restartRun() { startRun(Object.assign({}, MISSION.base), true); }
+function abortRun() { restoreLV(); MISSION = null; SAVE.saga.sun = Math.min(sunsPerDay(), SAVE.saga.sun + 1); writeSave(); enterSaga('hub'); }
+
+function missionInit() {
+  const M = MISSION, L = S.L, p = S.pl, creek = LV.id === 'creek';
+  // the family shows up in the level instead of generic cousins
+  const pool = []; for (let i = 1; i < FAM.length; i++) if (i !== M.runner) pool.push(i);
+  srand((SAVE.saga.day * 7 + M.run.length) | 0); for (let i = pool.length - 1; i > 0; i--) { const j = (rnd() * (i + 1)) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  L.cousins.forEach((c, i) => { c.fam = pool[i % pool.length]; });
+  if (M.mode !== 'fetch') { for (const rk of L.rocks) { rk.got = true; rk.shown = false; } S.otter.gave = true; }
+  if (creek && M.mode !== 'fetch') { M.goalX = M.rev ? 470 : 7880; M.noThrow = true; }
+  if (M.rev) { for (const b of L.boulders) if (b.r > 16) { b.r = 14; b.y = groundY(b.x) - 10; } S.jam.open = true; const b = S.bob; b.state = 'done'; b.x = b.tx; b.y = groundY(b.tx); b.sit = true; }
+  if (M.mode === 'haul') M.haul = { st: 'held', x: p.x, y: p.y - 40, vx: 0, vy: 0, t: 0, k: (M.p && M.p.obj) || 'melon' };
+  if (M.mode === 'toll') M.need = (M.p && M.p.n) || 60;
+  if (M.mode === 'sprint') { const d = Math.abs((M.goalX != null ? M.goalX : LV.goal) - LV.start); M.time = M.time0 = Math.round((d / 3.6 + 420) * (perk('watch') ? 1.15 : 1)); }
+  if (M.mode === 'hunt') { const sp = HUNTSPOTS[LV.id] || [[LV.goal * .5, -8]], k = M.spot != null ? M.spot : (Math.random() * sp.length) | 0, [x, y] = sp[k % sp.length]; M.find = { x, y: y < 0 ? groundY(x) + y - 6 : y, k: (M.p && M.p.obj) || 'chain' }; }
+  if (M.mode === 'roundup') {
+    let want = M.p && M.p.all ? pool.filter(i => i !== 0) : null, n = want ? want.length : ((M.p && M.p.n) || 4);
+    const x0 = Math.min(LV.start, LV.goal) + 260, x1 = (M.goalX || Math.max(LV.start, LV.goal)) - 260;
+    while (L.cousins.length > n) L.cousins.pop();
+    const extra = n - L.cousins.length;
+    for (let i = 0; i < extra; i++) { let x = lerp(x0, x1, (i + .5) / extra) + 37; if (x > WATER.x0 - 40 && x < WATER.x1 + 40) x = WATER.x0 - 60; L.cousins.push({ x, y: groundY(x), fur: 'white', woke: false, t: 0 }); }
+    L.cousins.forEach((c, i) => { c.fam = want ? want[i] : pool[i % pool.length]; });
+    M.need = n;
+  }
+}
+
+/* ---------- every frame of a mission run ---------- */
+function missionStep() {
+  const M = MISSION; if (!M || M.run === 'icebox') return; const p = S.pl, play = S.mode === 'play'; M.t++;
+  // the gold rope pulls carrots in
+  if (perk('rope') && play) { const [cx, cy] = bodyC(p); for (const c of S.L.carrots) if (!c.got) { const dx = cx - c.x, dy = cy - c.y, d = Math.hypot(dx, dy); if (d < 60 && d > 1) { c.x += dx / d * 3.2; c.y += dy / d * 3.2; } } }
+  if (play && M.goalX != null && (M.rev ? p.x <= M.goalX : p.x >= M.goalX)) startGoal();
+  const hit = p.tumble > M.pt; M.pt = p.tumble;
+  if (M.mode === 'haul') stepHaul(M, p, hit && play);
+  if (M.mode === 'roundup') stepRoundup(M, p, hit && play);
+  if (M.mode === 'sprint' && play && M.time > 0) { M.time--; if (M.time === 0) { say('hero', 'SUN\'S DOWN! KEEP GOING ANYWAY.', 140); sfx('bonk'); } else if (M.time === 600) say('hero', 'SUN\'S GETTING LOW!', 100); }
+  if (M.mode === 'toll' && play && !M.met && S.carrots >= M.need) { M.met = 1; sfx('pay'); popText(p.x, p.y - 50, M.need + ' CARROTS! THAT\'S ENOUGH.', '#7ad050'); }
+  if (M.mode === 'hunt' && !M.found) {
+    const f = M.find, [cx, cy] = bodyC(p);
+    if (S.t % 18 === 0) sparkle(f.x + (Math.random() - .5) * 14, f.y - 6 + (Math.random() - .5) * 10);
+    if (Math.abs(cx - f.x) < 18 && Math.abs(cy - f.y) < 22) { M.found = true; M.foundT = M.t; sfx('rock'); sfx('crew'); for (let i = 0; i < 8; i++) sparkle(f.x + (Math.random() - .5) * 24, f.y + (Math.random() - .5) * 20); popText(f.x, f.y - 24, 'FOUND ' + HUNT[f.k].name + '!', '#f6c645'); say('hero', 'GOT IT! NOW TO ' + (LVEND[LV.id] || 'THE END') + '.', 130); }
+  }
+}
+function stepHaul(M, p, hit) {
+  const H = M.haul; H.t++;
+  if (H.st === 'held') {
+    if (hit) {
+      if (perk('duffel') && !M.freeDrop) { M.freeDrop = 1; popText(p.x, p.y - 56, 'THE DUFFEL CAUGHT IT!', '#f6c645'); return; }
+      const [vx] = curVel(p); H.st = 'loose'; H.t = 0; H.x = p.x; H.y = p.y - 40; H.vx = -sgn(vx || p.face) * 2.2 + (Math.random() - .5); H.vy = -5.5; M.drops++;
+      sfx('hurt'); popText(p.x, p.y - 56, 'DROPPED ' + HAUL[H.k].name + '!', '#ff8a5a'); if (M.drops === 1) say('hero', 'GO BACK FOR IT!', 90);
+    }
+    return;
+  }
+  H.vy += .25; H.x += H.vx; H.y += H.vy; H.vx *= .985;
+  let gy = groundY(H.x) - 8; if (H.x > WATER.x0 && H.x < WATER.x1 && WATER.y - 8 < gy) { gy = WATER.y - 6; if (H.vy > 0) H.vx *= .9; }
+  if (H.y > gy) { H.y = gy; H.vy = Math.abs(H.vy) > 1.5 ? -H.vy * .35 : 0; H.vx *= .7; }
+  H.x = clamp(H.x, 40, WW - 160);
+  const [cx, cy] = bodyC(p);
+  if (H.t > 36 && Math.abs(cx - H.x) < 20 && Math.abs(cy - H.y) < 26) { H.st = 'held'; sfx('carrot', 1); popText(p.x, p.y - 56, 'GOT IT BACK!', '#7ad050'); }
+}
+function stepRoundup(M, p, hit) {
+  // newly woken cousins fall in line
+  for (const c of S.L.cousins) if (c.woke && !c.joined) { c.joined = true; c.t = 1e9; M.fol.push({ fam: c.fam, x: c.x, y: c.y }); popText(c.x, c.y - 50, M.fol.length + ' OF ' + M.need, '#7ad050'); sfx('crew'); }
+  if (hit && M.fol.length) {
+    const n = Math.min(M.fol.length, perk('clip') ? 1 : 2);
+    for (let i = 0; i < n; i++) { const f = M.fol.pop(); const c = { x: f.x, y: groundY(f.x), fur: 'white', fam: f.fam, woke: false, t: 0, dazed: true }; S.L.cousins.push(c); }
+    popText(p.x, p.y - 60, n === 1 ? 'LOST ONE!' : 'LOST ' + n + '!', '#ff8a5a'); if (!M.lostSaid) { M.lostSaid = 1; say('hero', 'GO BACK FOR THEM. THEY\'RE CONFUSED.', 120); }
+  }
+  const moving = Math.abs(p.ground ? p.gsp : p.vx) > 1.2 || !p.ground;
+  M.fol.forEach((f, i) => {
+    let tx, ty; const h = S.hist[S.hist.length - 1 - Math.min(S.hist.length - 1, (i + 1) * 6)];
+    if (moving && h) { tx = h[0]; ty = h[1]; } else { tx = p.x - (M.rev ? -1 : p.face) * (16 + i * 12); ty = groundY(tx); for (const pl of PLATS) { const py = platY(pl, tx); if (py != null && Math.abs(py - p.y) < 6) ty = py; } }
+    f.vx = tx - f.x; f.x += (tx - f.x) * .35; f.y += (ty - f.y) * .35; f.mv = Math.abs(f.vx) > .8;
+  });
+}
+function missionMayFinish() {
+  const M = MISSION, p = S.pl; if (!M) return true;
+  let why = null;
+  if (M.mode === 'hunt' && !M.found) why = 'NOT WITHOUT ' + HUNT[M.find.k].name + '. LISTEN FOR THE PING.';
+  if (M.mode === 'haul' && M.haul.st !== 'held') why = 'GO BACK FOR ' + HAUL[M.haul.k].name + '!';
+  if (!why) return true;
+  const back = M.rev ? 1 : -1; if (p.ground) p.gsp = back * 3.5; else p.vx = back * 3.5; p.x += back * 6;
+  if (M.t - (M.whyT || -999) > 150) { M.whyT = M.t; say('hero', why, 130); sfx('bonk'); }
+  return false;
+}
+function missionGoalLine() {
+  const M = MISSION, w = M.want ? WANTS[M.want] || SAVE.saga.daily[M.want] : null;
+  const lines = { haul: HAUL[(M.haul || {}).k] ? HAUL[M.haul.k].name + ', DELIVERED.' : 'DELIVERED.', roundup: M.fol.length + ' OF ' + M.need + '. GOOD ENOUGH FOR FAMILY.', sprint: M.time > 0 ? 'BEAT THE SUN!' : 'THE SUN WON. I\'M CALLING IT A TIE.', toll: S.carrots >= M.need ? 'THAT\'S ' + M.need + ' CARROTS. PAY THE LADY.' : 'NOT QUITE ENOUGH CARROTS. CLOSE THOUGH.', hunt: 'FOUND IT AND MADE IT.', free: 'NOW THAT\'S A RUN.' };
+  if (M.mode === 'roundup' && M.fol.length >= M.need) lines.roundup = 'EVERYBODY\'S HERE. ' + M.need + ' FOR ' + M.need + '.';
+  say('hero', lines[M.mode] || 'NOW THAT\'S A RUN.', 150);
+}
+
+/* ---------- when the run ends ---------- */
+function missionResult() {
+  const M = MISSION; let stars = 1, carrots = S.carrots, note = '';
+  const items = S.rocks.filter(Boolean).length;
+  switch (M.mode) {
+    case 'fetch': case 'free': stars = Math.max(1, items); note = items + ' OF 3 ' + itemWord(); if (S.thr) note += ', ' + S.thr.total + ' SKIPS'; break;
+    case 'haul': stars = M.drops === 0 ? 3 : M.drops <= 2 ? 2 : 1; note = M.drops === 0 ? 'NOT ONE DROP' : M.drops === 1 ? 'DROPPED IT ONCE' : 'DROPPED IT ' + M.drops + ' TIMES'; break;
+    case 'roundup': { const k = M.fol.length / M.need; stars = k >= 1 ? 3 : k >= .6 ? 2 : 1; note = M.fol.length + ' OF ' + M.need + ' COUSINS MADE IT'; break; }
+    case 'sprint': stars = M.time >= M.time0 * .2 ? 3 : M.time > 0 ? 2 : 1; note = M.time > 0 ? 'BEAT THE SUN BY ' + Math.ceil(M.time / 60) + ' SECONDS' : 'THE SUN GOT THERE FIRST'; break;
+    case 'toll': stars = carrots >= M.need ? 3 : carrots >= M.need * .66 ? 2 : 1; note = Math.min(carrots, M.need) + ' OF ' + M.need + ' CARROTS'; carrots = Math.max(0, carrots - M.need); break;
+    case 'hunt': stars = M.foundT < 60 * 75 ? 3 : 2; note = 'FOUND ' + HUNT[M.find.k].name; break;
+    case 'drive': { const D = S.drv, tot = D.items.filter(i => i.k === 'gem').length; stars = D.ice >= tot * .3 ? 3 : D.ice >= tot * .12 ? 2 : 1; note = D.ice + ' ICE ON PEACHTREE'; carrots = Math.round(D.ice / 6); break; }
+  }
+  if (perk('pendant')) carrots = Math.round(carrots * 1.1);
+  return { stars, carrots, note, golds: S.golds, found: (S.found || []).slice(), mode: M.mode };
+}
+function itemWord() { return ({ rock: 'ROCKS', peach: 'PEACHES', sand: 'SAND DOLLARS', box: 'ORANGE BOXES', veg: 'VEGETABLES', snowball: 'SNOWBALLS' })[LV.item] || 'THINGS'; }
+function endRun() { const M = MISSION, res = missionResult(); restoreLV(); MISSION = null; sagaRunDone(M, res); }
+
+/* ---------- drawing ---------- */
+function missionDrawBack(vis) {
+  const M = MISSION; if (!M || M.run === 'icebox') return;
+  if (M.goalX != null && vis(M.goalX, 60)) { const x = M.goalX, y = groundY(x); R_(x, y - 44, 2, 44, '#5a3a22'); g.fillStyle = (S.t & 16) ? '#f6c645' : '#ff8a1c'; g.beginPath(); g.moveTo(x + 2, y - 44); g.lineTo(x + (M.rev ? -16 : 18), y - 38); g.lineTo(x + 2, y - 32); g.fill(); }
+  if (M.mode === 'hunt' && !M.found && vis(M.find.x)) { const ic = icon(HUNT[M.find.k].ic); g.drawImage(ic, Math.round(M.find.x - 8), Math.round(M.find.y - 10 + Math.sin(S.t * .1) * 2)); }
+  if (M.mode === 'roundup') for (let i = M.fol.length - 1; i >= 0; i--) { const f = M.fol[i]; if (!vis(f.x)) continue; const set = famSet(f.fam); drawSpr(f.mv ? set.run[((S.t >> 2) + i) & 3] : set.idle[((S.t >> 5) + i) % 7 === 0 ? 1 : 0], f.x, f.y, 0, f.vx < -.5 ? -1 : f.vx > .5 ? 1 : (M.rev ? -1 : S.pl.face), BAX, BAY); }
+  if (M.mode === 'haul' && M.haul.st === 'loose' && vis(M.haul.x)) { const H = M.haul, ic = icon(HAUL[H.k].ic); if (H.t > 36 || (S.t & 4)) g.drawImage(ic, Math.round(H.x - 8), Math.round(H.y - 8)); if (H.t > 36 && S.t % 30 < 15) tx('!', H.x, H.y - 20, '#fff3b0', { oc: '#2a140c', al: 'c' }); }
+}
+function missionDrawFront() {
+  const M = MISSION; if (!M || M.mode !== 'haul' || M.haul.st !== 'held') return; const p = S.pl;
+  if (p.inv > 0 && p.inv < 100 && (S.t & 2)) return;
+  const onG = p.ground || p.surf === 'loop', a = onG && !p.roll ? p.ang : 0, ball = p.roll || p.ball, up = ball ? 30 : 46;
+  const ic = icon(HAUL[M.haul.k].ic), bob = ball ? 0 : ((S.t >> 3) & 1);
+  g.drawImage(ic, Math.round(p.x + Math.sin(a) * up - 8), Math.round(p.y - Math.cos(a) * up - 8 - bob));
+}
+function missionHUD(mid) {
+  const M = MISSION; if (!M || M.mode === 'fetch' || M.mode === 'free' || M.run === 'icebox') return false;
+  const x = mid + 64, y = 3;
+  if (M.mode === 'haul') { g.drawImage(icon(HAUL[M.haul.k].ic), x, y); tx(M.haul.st === 'held' ? (M.drops ? 'DROPS ' + M.drops : 'CARRYING') : 'DROPPED!', x + 19, y + 5, M.haul.st === 'held' ? '#ffffff' : ((S.t & 8) ? '#ff8a5a' : '#ffffff'), { oc: '#2a140c' }); }
+  if (M.mode === 'roundup') { face(M.fol.length ? M.fol[M.fol.length - 1].fam : 2, x - 6, y - 5); tx(M.fol.length + '/' + M.need, x + 22, y + 5, M.fol.length >= M.need ? '#7ad050' : '#ffffff', { oc: '#2a140c' }); }
+  if (M.mode === 'sprint') { const k = M.time / M.time0, w = 60; g.drawImage(sunIcon(M.time > 0), x, y + 1); R_(x + 14, y + 5, w + 2, 5, '#2a140c'); R_(x + 15, y + 6, Math.round(w * k), 3, k > .3 ? '#ffc020' : k > 0 ? '#ff6a2a' : '#5a4a3e'); }
+  if (M.mode === 'toll') { const k = Math.min(1, S.carrots / M.need), w = 60; tx(Math.min(S.carrots, M.need) + '/' + M.need, x, y + 5, k >= 1 ? '#7ad050' : '#ffffff', { oc: '#2a140c' }); R_(x, y + 15, w + 2, 4, '#2a140c'); R_(x + 1, y + 16, Math.round(w * k), 2, k >= 1 ? '#7ad050' : '#ff8a1c'); }
+  if (M.mode === 'hunt') {
+    g.drawImage(icon(HUNT[M.find.k].ic), x, y);
+    if (M.found) tx('FOUND!', x + 19, y + 5, '#7ad050', { oc: '#2a140c' });
+    else { const d = M.find.x - S.pl.x, ad = Math.abs(d) + Math.abs(M.find.y - S.pl.y) * .5, bars = ad < 250 ? 3 : ad < 700 ? 2 : 1;
+      tx(d < 0 ? '<' : '>', x + 20, y + 5, '#fff3b0', { oc: '#2a140c' }); for (let i = 0; i < 3; i++) R_(x + 30 + i * 5, y + 11 - i * 3, 3, 3 + i * 3, i < bars ? ((S.t % (bars === 3 ? 16 : 40) < 8) ? '#7ad050' : '#3fb04a') : '#4e3220'); }
+  }
+  return true;
+}
+// iced-out perk: golden carrots marked on the trip meter
+function missionMeterMarks(x0, x1, y) { if (!perk('iced')) return; for (const gc of S.L.golds) if (!gc.got) { const k = clamp((gc.x - LV.start) / (LV.goal - LV.start), 0, 1); R_(Math.round(x0 + (x1 - x0) * k), y - 3, 2, 2, (S.t & 16) ? '#f6c645' : '#fff3b0'); } }
+function missionProgress() { const M = MISSION; if (M && M.mode === 'sprint' && M.time0) return clamp(1 - M.time / M.time0, 0, 1) * .97; return null; }
 
 /* ================= Georgia Buns — the game =================
    Physics rule: speed is sacred. Glancing hits deflect, small rocks get
@@ -2055,7 +3588,8 @@ const scr = mkC(NW, NH); let g = scr.getContext('2d');
 const SAVE_KEY = 'georgiabuns.save.v1';
 let SAVE = { easy: false, size: 'M', sound: true, best: { skips: 0, carrots: 0, cousins: 0 }, runs: 0, days: {}, stickers: {} };
 function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && typeof s === 'object') SAVE = Object.assign(SAVE, s, { best: Object.assign({}, SAVE.best, s.best || {}), days: s.days || {}, stickers: s.stickers || {} }); } catch (e) {}
-  if (SAVE.runs && !SAVE.days.creek) SAVE.days.creek = { done: true, gold: [false, false, false] }; }
+  if (SAVE.runs && !SAVE.days.creek) SAVE.days.creek = { done: true, gold: [false, false, false] };
+  fixSaga(); }
 function dayRec(id) { return SAVE.days[id] || (SAVE.days[id] = { done: false, gold: [false, false, false], best: 0 }); }
 function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) {} }
 
@@ -2077,7 +3611,7 @@ function buildAssets() {
 function boulderC(r) { return A.boulder[r] || (A.boulder[r] = boulderSpr(r)); }
 
 const IN = { ix: 0, iy: 0, jump: false, jumpP: false, press: false, tapX: null, tapY: null };
-function heroSet() { return LV && LV.hero ? A[LV.hero] : A.hero; }
+function heroSet() { if (MISSION && MISSION.runner != null) return famSet(MISSION.runner); return LV && LV.hero ? A[LV.hero] : A.hero; }
 const PH = { ACC: .09, DEC: .55, FRC: .07, TOP: 6.6, MAXS: 15, SLP: .14, SLPUP: .08, SLPDN: .32, RFRC: .028, RDEC: .13, AIR: .14, GRV: .22, JMP: 6.7, JCUT: 4 };
 let S = null;
 
@@ -2155,7 +3689,7 @@ function stepPlayer() {
   if (Math.abs(p.gsp) < .15 && p.ground && !p.crouch) p.idleT++; else p.idleT = 0;
   p.look = (p.ground && iy < -.55 && Math.abs(p.gsp) < .3) ? Math.min(60, p.look + 2) : Math.max(0, p.look - 4);
   if (p.ground && sp > 7 && S.t % 3 === 0 && !p.inWater) dust(p.x - p.face * 10, p.y, 1, 1.5);
-  S.hist.push([p.x, p.y, p.ang, p.face]); if (S.hist.length > 80) S.hist.shift();
+  S.hist.push([p.x, p.y, p.ang, p.face]); if (S.hist.length > 120) S.hist.shift();
 }
 function groundStep(p, ix, iy, ACC, TOP) {
   const s = p.surf, a = slopeAng(s, p.x); p.ang = a; const sa = Math.sin(a);
@@ -2332,7 +3866,7 @@ function stepWorld() {
   // sleeping cousins
   for (const c of L.cousins) {
     if (c.woke) { c.t++; continue; }
-    if (Math.abs(c.x - pcx) < 22 && Math.abs(c.y - 8 - pcy) < 22) { c.woke = true; c.t = 0; S.woke++; sfx('wake'); say(c, ['COOKOUT AT SUNDOWN? I\'M THERE.', 'HUH? OH, BET. SEE YOU TONIGHT.', 'WAS JUST RESTING MY EYES.', 'SAVE ME SOME COLLARDS.', 'IS IT RIBS? I\'M COMING.'][S.woke - 1] || 'I\'M UP, I\'M UP.', 150); }
+    if (Math.abs(c.x - pcx) < 22 && Math.abs(c.y - 8 - pcy) < 22) { c.woke = true; c.t = 0; S.woke++; sfx('wake'); if (c.dazed) { say(c, ['MY BAD. RIGHT BEHIND YOU.', 'WHICH WAY? OH. THAT WAY.', 'I WAS LOOKING AT A BUTTERFLY.'][S.woke % 3], 110); continue; } say(c, ['COOKOUT AT SUNDOWN? I\'M THERE.', 'HUH? OH, BET. SEE YOU TONIGHT.', 'WAS JUST RESTING MY EYES.', 'SAVE ME SOME COLLARDS.', 'IS IT RIBS? I\'M COMING.'][S.woke - 1] || 'I\'M UP, I\'M UP.', 150); }
   }
   // golden carrots and cameos (the secrets)
   for (let i = 0; i < L.golds.length; i++) { const gc = L.golds[i]; if (gc.got) continue; if (Math.abs(gc.x - pcx) < 16 && Math.abs(gc.y - pcy) < 18) { gc.got = true; S.golds++; dayRec(S.day).gold[i] = true; writeSave(); sfx('rock'); sfx('crew'); for (let k = 0; k < 8; k++) sparkle(gc.x + (Math.random() - .5) * 24, gc.y + (Math.random() - .5) * 20); popText(gc.x, gc.y - 22, 'GOLDEN CARROT!', '#f6c645'); } }
@@ -2342,7 +3876,7 @@ function stepWorld() {
   if (!S.roofSaid && S.t > 40 && p.x < 900) { S.roofSaid = 1; say('roof', 'UP HERE, CUZ! FOUND A GOOD ONE.', 220); }
   // Sunny: rowdy near her tree means acorns
   const sn = S.sunny; if (sn.cool > 0) sn.cool--;
-  if (p.x > 680 && p.x < 870 && plSpeed(p) > 4.6 && sn.cool === 0) {
+  if (p.x > 680 && p.x < 870 && plSpeed(p) > 4.6 && sn.cool === 0 && !perk('realeyes')) {
     sn.cool = 55; S.acorns.push({ x: clamp(p.x + (p.ground ? p.gsp : p.vx) * 26, 690, 860), y: 112, vy: 0, warn: 30 });
     if (sn.said < 2) { say('sunny', sn.said ? 'I SAID SLOW DOWN.' : 'SLOW DOWN, BOYS.', 120); sn.said++; }
   }
@@ -2369,8 +3903,8 @@ function stepWorld() {
   stepBobcat();
   stepOtter();
   // finale trigger: standing on the big flat rock
-  if (p.ground && p.surf === PLATS[5] && S.mode === 'play') startThrow();
-  if (S.mode === 'play' && p.x > 8990 && !S.fadeTo) { S.fadeTo = 'rock'; say('otter', 'OTHER SIDE, CUZ. I GOT YOU.', 120); }
+  if (p.ground && p.surf === PLATS[5] && S.mode === 'play' && !(MISSION && MISSION.noThrow)) startThrow();
+  if (S.mode === 'play' && p.x > 8990 && !S.fadeTo && !(MISSION && MISSION.noThrow)) { S.fadeTo = 'rock'; say('otter', 'OTHER SIDE, CUZ. I GOT YOU.', 120); }
   for (const c of S.amb) { c.ph += .05; if (c.k === 'fly') { c.x += Math.sin(c.ph * .7) * .7 + .15; c.y += Math.cos(c.ph * 1.3) * .5; } else { c.x += Math.sin(c.ph * .4) * 1.6; c.y += Math.sin(c.ph * 2.2) * .4; } }
   // ambient leaves and fireflies
   if (S.t % 14 === 0 && p.x > 1000 && p.x < 7900) part({ type: 'leaf', x: S.cam.x + Math.random() * NW, y: S.cam.y - 6, vx: -.4 - Math.random() * .5, vy: .5 + Math.random() * .4, life: 260, ph: Math.random() * 6 });
@@ -2488,14 +4022,15 @@ function startCook() {
 /* ---------- master update ---------- */
 function update() {
   S.t++;
-  if (S.fadeTo) { S.fade = Math.min(1, S.fade + .04); if (S.fade >= 1) { const to = S.fadeTo; S.fadeTo = null; if (to === 'cook') startCook(); if (to === 'rock') { const p = S.pl; p.x = 8460; p.y = 478; p.ground = true; p.surf = PLATS[5]; p.gsp = 0; S.cam.x = 8330; S.cam.y = WATER.y - NH * .64; startThrow(); } } }
+  if (S.fadeTo) { S.fade = Math.min(1, S.fade + .04); if (S.fade >= 1) { const to = S.fadeTo; S.fadeTo = null; if (to === 'cook') { if (MISSION) endRun(); else startCook(); } if (to === 'rock') { const p = S.pl; p.x = 8460; p.y = 478; p.ground = true; p.surf = PLATS[5]; p.gsp = 0; S.cam.x = 8330; S.cam.y = WATER.y - NH * .64; startThrow(); } } }
   else if (S.fade > 0) S.fade = Math.max(0, S.fade - .04);
-  if (S.mode === 'title') { if (IN.press || IN.jumpP) { IN.press = IN.jumpP = false; enterHub(); } }
+  if (S.mode === 'title') { if (IN.press || IN.jumpP) { IN.press = IN.jumpP = false; IN.tapX = null; enterHub(); } }
   else if (S.mode === 'hub') stepHub();
   else if (S.mode === 'drive') stepDrive();
-  else if (S.mode === 'goal') { stepGoal(); camFollow(); }
+  else if (S.mode === 'saga') stepSaga();
+  else if (S.mode === 'goal') { stepGoal(); missionStep(); camFollow(); }
   else if (S.mode === 'intro') { S.intro++; if (IN.press || IN.jumpP) { IN.press = IN.jumpP = false; if (S.intro < 175) S.intro = 175; if (S.card && S.card.t < 150) S.card.t = 150; } if (S.intro >= 175) beginPlay(); camFollow(); }
-  else if (S.mode === 'play') { easyAssist(); stepPlayer(); stepWorld(); camFollow(); }
+  else if (S.mode === 'play') { easyAssist(); stepPlayer(); stepWorld(); missionStep(); camFollow(); }
   else if (S.mode === 'throw') { stepThrow(); stepOtter(); camFollow(); }
   else if (S.mode === 'cook') { S.cook.t++; { const t = S.cook.t; for (let i = 0; i < 4; i++) { const t0 = 70 + i * 34; if (t >= t0 && t < t0 + 26 && t % 3 === 0) sfx('tick'); if (t === t0 + 26) sfx(i === 3 ? 'ding' : 'carrot', i === 3 ? 0 : 1); } } if (S.cook.t % 6 === 0) part({ type: 'smoke', x: 296 + Math.random() * 4, y: NH - 86, vx: .2 + Math.random() * .2, vy: -.5, life: 90 }); if (S.cook.credits) S.cook.credits++; }
   for (const b of S.bubbles) b.t++; stepSay(); if (S.card) { S.card.t++; if (S.card.t > 200) S.card = null; }
@@ -2508,7 +4043,8 @@ function zoneMusic() { return LV.music(S.pl.x); }
 function startIntro() { S.mode = 'intro'; S.intro = 0; S.card = { t: 0 }; sfx('card'); auMode(LV.music(LV.start)); if (LV.burrow) { S.cam.x = 340 - NW / 2; S.cam.y = 345 - NH * .55; } else { S.cam.x = LV.start - NW * .55; S.cam.y = groundY(LV.start) - NH * .6; } }
 function beginPlay() {
   const p = S.pl; S.mode = 'play'; p.x = LV.start; p.y = groundY(LV.start) - 1; airborne(p, 1.5, -6.2); p.spring = 30; p.face = 1;
-  dust(p.x, p.y + 1, 8, 3); sfx('spring'); say('hero', LV.want, 190); S.easyHint = SAVE.easy ? 200 : 0;
+  if (MISSION && MISSION.rev) { p.vx = -1.5; p.face = -1; }
+  dust(p.x, p.y + 1, 8, 3); sfx('spring'); say('hero', (MISSION && MISSION.say) || LV.want, 190); S.easyHint = SAVE.easy ? 200 : 0;
 }
 function easyAssist() {
   if (!SAVE.easy) return; const p = S.pl;
@@ -2542,8 +4078,9 @@ function introPos() {
 
 /* ---------- generic day finale: reach the goal, celebrate, cookout ---------- */
 function startGoal() {
-  const p = S.pl; S.mode = 'goal'; S.goalT = 0; p.gsp *= .3; p.face = 1; S.score = S.rocks.filter(Boolean).length * 10 + S.golds * 25 + S.carrots;
-  if (LV.onGoal) LV.onGoal(S); else say('hero', LV.endLine || 'NOW THAT\'S A DAY.', 160);
+  if (MISSION && !missionMayFinish()) return;
+  const p = S.pl; S.mode = 'goal'; S.goalT = 0; p.gsp *= .3; p.face = MISSION && MISSION.rev ? -1 : 1; S.score = S.rocks.filter(Boolean).length * 10 + S.golds * 25 + S.carrots;
+  if (MISSION && MISSION.mode !== 'fetch') missionGoalLine(); else if (LV.onGoal) LV.onGoal(S); else say('hero', LV.endLine || 'NOW THAT\'S A DAY.', 160);
 }
 function stepGoal() {
   const p = S.pl; S.goalT++;
@@ -2570,7 +4107,7 @@ function drawSpr(cv, x, y, ang, face, ax, ay) {
   g.drawImage(cv, -ax, -ay); g.restore();
 }
 function pixCircle(cx, cy, r, col) { g.fillStyle = col; for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y)); g.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1); } }
-function progress() { if (!S || S.mode === 'title' || S.mode === 'hub') return .05; if (S.mode === 'intro') return 0; if (S.mode === 'throw' || S.mode === 'goal') return 1; return clamp((S.pl.x - LV.start) / (LV.goal - LV.start), 0, 1); }
+function progress() { if (!S || S.mode === 'title' || S.mode === 'hub' || S.mode === 'saga') return .05; { const mp = missionProgress(); if (mp != null && S.mode !== 'goal') return mp; } if (S.mode === 'intro') return 0; if (S.mode === 'throw' || S.mode === 'goal') return 1; return clamp((S.pl.x - LV.start) / (LV.goal - LV.start), 0, 1); }
 
 const SKYC = new Map(), BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 function skyCanvas(pr) {
@@ -2680,7 +4217,8 @@ function drawWorld(cx, cy) {
   }
   for (const c of L.cousins) {
     if (!vis(c.x)) continue;
-    const set = A.cuz[c.fur];
+    const set = c.fam != null ? famSet(c.fam) : A.cuz[c.fur];
+    if (c.dazed && !c.woke) { drawSpr(set.idle[0], c.x, c.y, 0, -1, BAX, BAY); if (S.t % 40 < 26) tx('?', c.x - 2, c.y - 54, '#fff3b0', { oc: '#2a140c' }); continue; }
     if (!c.woke) { drawSpr(set.sleep[0], c.x, c.y, 0, -1, BAX, BAY); if (S.t % 70 === (c.x | 0) % 70) part({ type: 'z', x: c.x - 6, y: c.y - 16, vx: -.2, vy: -.4, life: 60 }); }
     else if (c.t < 150) drawSpr(set.cheer[(S.t >> 3) & 1], c.x, c.y, 0, -1, BAX, BAY);
     else if (c.t < 190) { g.globalAlpha = 1 - (c.t - 150) / 40; drawSpr(set.run[(S.t >> 2) & 3], c.x + (c.t - 150) * 4, c.y, 0, 1, BAX, BAY); g.globalAlpha = 1; }
@@ -2706,7 +4244,7 @@ function drawWorld(cx, cy) {
   // cousin crew stampede
   if (S.crew > 0 && S.mode === 'play' && (S.crew > 60 || (S.t & 4))) {
     const furs = ['white', 'ginger', 'dark', 'smoke', 'honey', 'white'];
-    for (let i = 5; i >= 0; i--) { const h = S.hist[S.hist.length - 1 - (i + 1) * 4]; if (!h) continue; drawSpr(A.cuz[furs[i]].run[((S.t >> 2) + i) & 3], h[0], h[1], h[2], h[3], BAX, BAY); }
+    for (let i = 5; i >= 0; i--) { const h = S.hist[S.hist.length - 1 - (i + 1) * 4]; if (!h) continue; const cs = MISSION ? famSet([3, 4, 5, 6, 7, 8, 9][(i + (MISSION.runner || 0)) % 7]) : A.cuz[furs[i]]; drawSpr(cs.run[((S.t >> 2) + i) & 3], h[0], h[1], h[2], h[3], BAX, BAY); }
   }
   for (const c of S.amb) if (vis(c.x)) { const fl = (S.t >> 2) & 1, x = Math.round(c.x), y = Math.round(c.y);
     if (c.k === 'fly') { g.fillStyle = c.c; g.fillRect(x - 2, y - (fl ? 2 : 0), 2, 2); g.fillRect(x + 1, y - (fl ? 2 : 0), 2, 2); g.fillStyle = '#2a140c'; g.fillRect(x, y - 1, 1, 3); }
@@ -2718,14 +4256,15 @@ function drawWorld(cx, cy) {
   if (S.mode === 'play' && (plSpeed(p) > 8.5 || S.crew > 0) && S.hist.length > 8) {
     const fr = bunFrame(heroSet(), p); [[3, .3], [6, .14]].forEach(([b, al]) => { const h = S.hist[S.hist.length - 1 - b]; if (!h) return; g.globalAlpha = al; drawSpr(fr, h[0], h[1], (p.ground || p.surf === 'loop') && Math.abs(h[2]) > .3 ? h[2] : 0, h[3], BAX, BAY); }); g.globalAlpha = 1;
   }
+  missionDrawBack(vis);
   // the hero
   if (S.mode === 'intro' && !creek) {
     const t = S.intro, ex = Math.min(LV.start - 120, LV.start - 520 + t * 5), gy0 = groundY(LV.start);
     g.drawImage(A.escL, Math.round(ex - 56), Math.round(groundY(ex) - 49));
-    if (t > 90) { const k = Math.min(1, (t - 90) / 30); drawSpr(A.hero.jump[0], lerp(ex + 30, LV.start, k), gy0 - Math.sin(k * Math.PI) * 30, 0, 1, BAX, BAY); }
+    if (t > 90) { const k = Math.min(1, (t - 90) / 30); drawSpr(heroSet().jump[0], lerp(ex + 30, LV.start, k), gy0 - Math.sin(k * Math.PI) * 30, 0, 1, BAX, BAY); }
   } else if (S.mode === 'intro') {
     const [ix, iy] = introPos(), t = S.intro;
-    const fr = t < 50 ? A.hero.sleep[0] : t < 62 ? A.hero.up[0] : A.hero.run[(t >> 2) & 3];
+    const HS = heroSet(), fr = t < 50 ? HS.sleep[0] : t < 62 ? HS.up[0] : HS.run[(t >> 2) & 3];
     const ang = t >= 105 ? -0.55 : 0;
     drawSpr(fr, ix, iy, ang, 1, BAX, BAY);
     if (t < 50 && t % 30 === 0) part({ type: 'z', x: ix + 8, y: iy - 16, vx: .2, vy: -.4, life: 60 });
@@ -2737,6 +4276,7 @@ function drawWorld(cx, cy) {
     if (S.ride) drawSpr(heroSet().cheer[(S.t >> 3) & 1], p.x - 4 + Math.sin(ang) * 26, p.y - 24 * Math.cos(ang) - ((S.t >> 2) & 1), ang, 1, BAX, BAY);
     else drawSpr(fr, p.x, p.y + (p.inWater && p.ground ? 1 : 0), ang, p.face, BAX, BAY);
   }
+  if (S.mode === 'play' || S.mode === 'goal') missionDrawFront();
   if (S.mode === 'title') drawSpr(A.hero.idle[(S.t % 200 > 192) ? 1 : 0], 540, 300, 0, -1, BAX, BAY);
   // easy-mode hint: a finger pressing ahead of the bun
   if (S.easyHint > 0 && S.mode === 'play') {
@@ -2821,8 +4361,8 @@ function drawHUD() {
   g.fillStyle = '#2a140c'; g.fillRect(x0 - 10, y - 5, 8, 9); g.fillStyle = '#c9a06a'; g.fillRect(x0 - 9, y - 1, 6, 4); g.fillStyle = '#4a3648'; g.fillRect(x0 - 10, y - 4, 8, 3);
   g.fillStyle = '#2a140c'; g.fillRect(x1 + 2, y - 4, 10, 8); g.fillStyle = LV.meter || '#3c8ed0'; g.fillRect(x1 + 3, y - 3, 8, 6); g.fillStyle = '#bfe8ff'; g.fillRect(x1 + 4, y - 1, 3, 1); g.fillRect(x1 + 7, y + 1, 3, 1);
   const hx = Math.round(x0 + (x1 - x0) * pr); g.fillStyle = '#2a140c'; g.fillRect(hx - 3, y - 5, 7, 7); g.fillStyle = '#a8683a'; g.fillRect(hx - 2, y - 4, 5, 5); g.fillStyle = '#2a140c'; g.fillRect(hx - 2, y - 9, 2, 4); g.fillRect(hx + 1, y - 9, 2, 4); g.fillStyle = '#ef8e94'; g.fillRect(hx + 1, y - 8, 1, 2);
-  // rocks
-  for (let i = 0; i < 3; i++) {
+  missionMeterMarks(x0, x1, y);
+  if (!missionHUD(mid)) for (let i = 0; i < 3; i++) {
     const rx = mid + 70 + i * 15, used = S.thr && i < S.thr.i;
     const ic = A.items[LV.item][0]; if (S.rocks[i] && !used) g.drawImage(ic, rx - 2, 4); else { g.globalAlpha = .35; g.drawImage(ic, rx - 2, 4); g.globalAlpha = 1; }
   }
@@ -2849,14 +4389,15 @@ function drawTitle() {
   const gold = (s, x, y, sc) => { drawTextO(g, s, x, y + 2, '#2a140c', sc, '#2a140c', 2); drawTextO(g, s, x, y, '#f6c645', sc, '#2a140c', 2); g.save(); g.beginPath(); g.rect(0, y, NW, sc * 2); g.clip(); drawText(g, s, x, y, '#fff3b0', sc); g.restore(); };
   gold(s1, Math.round(NW / 2 - w1 / 2), by, 4);
   gold(s2, Math.round(NW / 2 - w2 / 2), by + 34, 7);
-  const sub = 'DAY 1: ROCKS IN THE CREEK';
+  const sg = SAVE.saga, sub = sg && sg.started ? 'DAY ' + sg.day + '   ' + knownCount() + ' OF 17 COUSINS KNOWN' + (sg.finale ? '   BIGGEST COOKOUT: DONE' : '') : 'SEVENTEEN COUSINS. ONE ESCALADE.';
   drawTextO(g, sub, Math.round(NW / 2 - textW(sub) / 2), by + 90, '#ffffff', 1, '#2a140c');
   if ((t >> 4) & 1 || t < 20) { const cta = 'TAP TO PLAY'; drawTextO(g, cta, Math.round(NW / 2 - textW(cta, 2) / 2), NH - 34, '#ffffff', 2, '#2a140c'); }
 }
 const CREDITS = ['GEORGIA BUNS', '', 'STARRING', 'SEVENTEEN COUSINS', 'THE ROOF BUN', 'THE NIBBIN\' BUN', 'SUNNY THE SQUIRREL', 'THE BOBCAT', 'DEXTER, SEVEN AND MISS ELLI', 'PONTOON THE MARSH BUN', 'LES ESCARGOTS DISCO', '', 'MUSIC', 'THE GEORGIA BUNS ALBUM', 'IN 16-BIT', '', 'MADE IN GEORGIA', 'IN SPIRIT', '', 'THANKS FOR PLAYING', '', '', 'PSST. CHECK THE BURROW WINDOW.'];
 function drawCredits(t) { const y0 = NH - t * .35; g.globalAlpha = .65; g.fillStyle = '#0a0612'; g.fillRect(NW / 2 - 90, 0, 180, NH); g.globalAlpha = 1; CREDITS.forEach((l, i) => { const y = Math.round(y0 + i * 14); if (y < -10 || y > NH) return; drawTextO(g, l, NW / 2 - textW(l) / 2, y, i === 0 ? '#f6c645' : (CREDITS[i - 1] === '' ? '#7ad050' : '#ffffff'), 1, '#2a140c'); }); }
-function drawCook() {
-  const C = S.cook, t = C.t, gy = NH - 40;
+function drawCook() { drawCookScene(S.cook); drawCookBoard(S.cook); }
+function drawCookScene(C) {
+  const t = C.t, gy = NH - 40;
   // dusk sky
   const top = rgb('#2a2058'), mid = rgb('#8a3a6a'), bot = rgb('#ff9a50');
   for (let i = 0; i < 22; i++) { const k = i / 21; g.fillStyle = css(k < .55 ? mixRGB(top, mid, k / .55) : mixRGB(mid, bot, (k - .55) / .45)); g.fillRect(0, Math.floor(gy * i / 22), NW, Math.ceil(gy / 22) + 1); }
@@ -2892,11 +4433,12 @@ function drawCook() {
   }
   // the crew
   const homeish = C.scene === 'home' || C.scene === 'garden';
-  const R = C.roster.filter(k => k !== 'roof' && (k !== 'nib' || !homeish));
+  const R = C.roster.filter(k => k !== 'roof' && k !== 0 && ((k !== 'nib' && k !== 1) || !homeish));
   if (homeish) drawSpr(A.nib.chomp[(t >> 3) & 1], 266, gy + 1, 0, -1, BAX, BAY);
+  if (C.extra) C.extra(t, gy);
   for (let i = 0; i < R.length; i++) {
-    const k = R[i], set = k === 'hero' ? heroSet() : k === 'nib' ? A.nib : (A[k] && A[k].idle) ? A[k] : A.cuz[k];
-    const x = 26 + i * Math.min(40, 230 / Math.max(1, R.length - 1)), y = gy + 1, fr = (k === 'pontoon' ? set.catsit : set.cheer)[((t >> 3) + i) & 1];
+    const k = R[i], set = typeof k === 'number' ? famSet(k) : k === 'hero' ? heroSet() : k === 'nib' ? A.nib : (A[k] && A[k].idle) ? A[k] : A.cuz[k];
+    const x = 26 + i * Math.min(40, (C.wide || 230) / Math.max(1, R.length - 1)), y = gy + 1, fr = (k === 'pontoon' ? set.catsit : set.cheer)[((t >> 3) + i) & 1];
     drawSpr(fr, x, y, 0, 1, BAX, BAY);
   }
   for (const q of S.parts) drawPart(q);
@@ -2904,6 +4446,9 @@ function drawCook() {
   for (const b of S.bubbles) { const lines = wrap(b.text, 22), w = Math.max(...lines.map(l => textW(l))) + 8, h = lines.length * 9 + 5, bx = 290, by = gy - 100; g.fillStyle = '#2a140c'; g.fillRect(bx - 1, by - 1, w + 2, h + 2); g.fillStyle = '#ffe9c8'; g.fillRect(bx, by, w, h); lines.forEach((l, i) => drawText(g, l, bx + 4, by + 3 + i * 9, '#2a140c')); }
   // fireflies
   for (let i = 0; i < 14; i++) { const x = (i * 71 + Math.sin(t * .02 + i) * 20 + 424) % 424, y = gy - 20 - (i * 29 % 70) + Math.sin(t * .03 + i * 2) * 6; if ((t + i * 11) % 50 < 30) { g.fillStyle = '#e8ff8a'; g.fillRect(Math.round(x), Math.round(y), 1, 1); } }
+}
+function drawCookBoard(C) {
+  const t = C.t, gy = NH - 40;
   // results board
   if (t > 30 && !(C.credits && t > 420)) {
     const res = C.res, rows = [[LV.scoreName || 'SKIPS', res.skips, C.nb.skips], ['CARROTS', res.carrots, C.nb.carrots], ['COUSINS', res.cousins, C.nb.cousins], ['GOLDEN CARROTS', res.golds + '/3', false]];
@@ -2955,18 +4500,19 @@ function drawCard() {
   g.fillStyle = '#2a140c'; g.fillRect(30 + bw, Math.round(-bh + bh * a), 2, bh);
   for (let i = 0; i < 6; i++) { const yy = Math.round(-bh + bh * a + 30 + i * 46); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(30, yy, bw - 4, 18); }
   // the name banner from the right
-  const name = LV.title, sc = textW(name) * 2 > NW - 110 ? 1 : 2, tw = textW(name) * sc, bnW = tw + 40, by = Math.round(NH * .36);
+  const name = MISSION && MISSION.title ? MISSION.title : LV.title, sc = textW(name) * 2 > NW - 110 ? 1 : 2, tw = textW(name) * sc, bnW = tw + 40, by = Math.round(NH * .36);
   const bx = Math.round(NW - bnW * b + (1 - b) * 40);
   g.fillStyle = '#2a140c'; g.fillRect(bx - 2, by - 2, bnW + 60, 10 * sc + 16); g.fillStyle = '#fff6e0'; g.fillRect(bx, by, bnW + 60, 10 * sc + 12);
   g.fillStyle = col; g.fillRect(bx, by + 10 * sc + 8, bnW + 60, 4);
   drawTextO(g, name, bx + 18, by + 6, '#2a140c', sc, '#fff6e0', 1);
   // the day tag from below
-  const dt = 'DAY ' + LV.day, dw = textW(dt) * 2 + 20, dx = Math.round(NW - dw - 26), dy = Math.round(by + 10 * sc + 22 + (1 - c) * (NH - by));
+  const dt = 'DAY ' + (MISSION && SAVE.saga ? SAVE.saga.day : LV.day), dw = textW(dt) * 2 + 20, dx = Math.round(NW - dw - 26), dy = Math.round(by + 10 * sc + 22 + (1 - c) * (NH - by));
   g.fillStyle = '#2a140c'; g.fillRect(dx - 2, dy - 2, dw + 4, 28); g.fillStyle = col; g.fillRect(dx, dy, dw, 24); g.fillStyle = hi; g.fillRect(dx, dy, dw, 2);
   drawTextO(g, dt, dx + 10, dy + 5, hi, 2, '#2a140c', 1);
 }
 function render() {
   if (!S) return;
+  if (S.mode === 'saga') { drawSaga(); if (S.fade > 0) { g.globalAlpha = S.fade; g.fillStyle = '#000'; g.fillRect(0, 0, NW, NH); g.globalAlpha = 1; } return; }
   if (S.mode === 'hub') { drawHub(); if (S.fade > 0) { g.globalAlpha = S.fade; g.fillStyle = '#000'; g.fillRect(0, 0, NW, NH); g.globalAlpha = 1; } return; }
   if (S.mode === 'drive') { drawDrive(); if (S.fade > 0) { g.globalAlpha = S.fade; g.fillStyle = '#000'; g.fillRect(0, 0, NW, NH); g.globalAlpha = 1; } return; }
   if (S.mode === 'cook') { drawCook(); if (S.fade > 0) { g.globalAlpha = S.fade; g.fillStyle = '#000'; g.fillRect(0, 0, NW, NH); g.globalAlpha = 1; } return; }
@@ -3026,7 +4572,7 @@ function buildUI() {
   refreshPause();
   refreshEasy();
   // the page cancels touchstart (no zoom/scroll), which also cancels click on touch screens, so buttons act on pointerup
-  const btn = (id, fn) => { const el = $(id); let down = null; el.addEventListener('pointerdown', e => { e.stopPropagation(); down = e.pointerId; }); el.addEventListener('pointerup', e => { e.stopPropagation(); if (down === e.pointerId) { down = null; fn(); } }); el.addEventListener('pointercancel', () => { down = null; }); };
+  const btn = (id, fn) => { const el = $(id); let down = null; el.addEventListener('pointerdown', e => { e.stopPropagation(); down = e.pointerId; }); el.addEventListener('pointerup', e => { e.stopPropagation(); if (down === e.pointerId) { down = null; fn(); } }); el.addEventListener('pointercancel', () => { down = null; }); el.addEventListener('click', e => { if (e.detail === 0) fn(); }); };
   btn('easy', () => { auUnlock(); SAVE.easy = !SAVE.easy; SAVE.easySeen = true; writeSave(); refreshEasy(); layout(); sfx('tap'); easyExplain(); });
   btn('pause', () => { auUnlock(); openMenu(); });
   btn('again', () => { auUnlock(); $('again').hidden = true; enterHub(); });
@@ -3054,11 +4600,18 @@ function buildMenu() {
   const ids = [null].concat(Object.keys(SONG));
   row('MUSIC: ' + (AU.juke ? SONG[AU.juke].name : 'AUTO'), () => { const i = ids.indexOf(AU.juke); auJuke(ids[(i + 1) % ids.length]); buildMenu(); }, 'Auto plays each song in its place. Tap to pick any song on the album.');
   row('SOUND: ' + (SAVE.sound ? 'ON' : 'OFF'), () => { SAVE.sound = !SAVE.sound; auSetOn(SAVE.sound); writeSave(); buildMenu(); });
-  row('START THE DAY OVER', () => { closeMenu(); $('again').hidden = true; startDay(S.day); });
-  row('BACK TO THE BURROW', () => { closeMenu(); $('again').hidden = true; enterHub(); });
-  row('TITLE SCREEN', () => { closeMenu(); $('again').hidden = true; newGame('title'); auMode('title'); });
+  if (S && S.mode !== 'saga') {
+    if (MISSION) {
+      row('START THIS RUN OVER', () => { closeMenu(); restartRun(); });
+      row('LEAVE THE RUN', () => { closeMenu(); abortRun(); }, 'Back to the burrow. You keep nothing from this run, and the sun comes back.');
+    } else {
+      row('START THE DAY OVER', () => { closeMenu(); $('again').hidden = true; startDay(S.day); });
+      row('BACK TO THE BURROW', () => { closeMenu(); $('again').hidden = true; enterHub(); });
+    }
+  }
+  row('TITLE SCREEN', () => { closeMenu(); $('again').hidden = true; if (MISSION) { restoreLV(); if (SAVE.saga) SAVE.saga.sun = Math.min(sunsPerDay(), SAVE.saga.sun + 1); MISSION = null; writeSave(); } newGame('title', 'creek'); auMode('title'); });
 }
-function openMenu() { if (!S || S.mode === 'title' || S.mode === 'hub') return; paused = true; PTR.clear(); buildMenu(); $('menu').hidden = false; }
+function openMenu() { if (!S || S.mode === 'title' || S.mode === 'hub') return; if (S.mode === 'saga' && SG.scr === 'cook' && SG.d.credits) return; paused = true; PTR.clear(); buildMenu(); $('menu').hidden = false; }
 function closeMenu() { paused = false; $('menu').hidden = true; PTR.clear(); }
 
 /* ---------- layout ---------- */
@@ -3094,10 +4647,11 @@ function layout() {
   placeStick(null);
   const showCtl = S && (S.mode === 'play' || S.mode === 'throw' || S.mode === 'intro' || S.mode === 'drive' || S.mode === 'goal');
   jb.hidden = !showCtl; sb.hidden = !showCtl || SAVE.easy; kn.hidden = sb.hidden;
-  $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub'; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
+  $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub' || S.mode === 'saga'; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
   $('hint').hidden = !(UI.portrait && SAVE.easy && showCtl);
   // EASY and pause: smaller on phones; in portrait they sit at the top of the control deck, below the game
   const hs = hudScale(); if (UI.hs !== hs) { UI.hs = hs; refreshEasy(); refreshPause(); }
+  UI.pauseV = Math.ceil((15 * hs + 18) * NW / W) + 2;
   const eb = $('easy'), pb = $('pause'), pad = hs === 2 ? 2 : 4;
   let bt = pad; if (UI.portrait) bt = ctlMode ? playH + 4 + pad : Math.round((H - playH) / 2) + pad;
   eb.style.top = pb.style.top = bt + 'px';
@@ -3114,7 +4668,7 @@ function placeStick(pt) {
 /* ---------- pointers ---------- */
 function zoneFor(x, y) {
   if (!S) return 'tap';
-  if (S.mode === 'title' || S.mode === 'cook' || S.mode === 'intro' || S.mode === 'hub' || S.mode === 'goal' || (S.mode === 'drive' && S.drv && S.drv.phase === 'shop')) return 'tap';
+  if (S.mode === 'title' || S.mode === 'cook' || S.mode === 'intro' || S.mode === 'hub' || S.mode === 'saga' || S.mode === 'goal' || (S.mode === 'drive' && S.drv && S.drv.phase === 'shop')) return 'tap';
   if (S.mode === 'throw') return 'jump';
   const jd = UI.jd, jb = $('jump').getBoundingClientRect(), jcx = jb.left + jb.width / 2, jcy = jb.top + jb.height / 2;
   const nearJump = Math.hypot(x - jcx, y - jcy) < jd * .75;
@@ -3193,8 +4747,8 @@ function readInput() {
 let acc = 0, last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
-  let dt = (now - last) / 1000; last = now; if (dt > .25) dt = .25;
-  if (!paused && S) { acc += dt; let n = 0; while (acc >= 1 / 60 && n < 5) { readInput(); update(); acc -= 1 / 60; n++; } if (n >= 5) acc = 0; }
+  let dt = (now - last) / 1000; last = now; if (dt > .25) dt = .25; const spd = window.GBSPEED || 1; dt *= spd;
+  if (!paused && S) { acc += dt; let n = 0; while (acc >= 1 / 60 && n < 5 * spd) { readInput(); update(); acc -= 1 / 60; n++; } if (n >= 5 * spd) acc = 0; }
   if (S && UI.lastMode !== S.mode) layout();
   render();
   dctx.imageSmoothingEnabled = false; dctx.drawImage(scr, 0, 0, disp.width, disp.height);
@@ -3217,14 +4771,15 @@ function boot() {
   for (const ev of ['gesturestart', 'gesturechange', 'dblclick']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
   addEventListener('keydown', e => {
     auUnlock();
+    if (e.code === 'Escape' && S && S.mode === 'hub' && !paused) { enterSaga('hub'); e.preventDefault(); return; }
     if (e.code === 'Escape' || e.code === 'KeyP') { paused ? closeMenu() : openMenu(); e.preventDefault(); return; }
-    if (!KEY[e.code] && (e.code === 'Enter' || e.code === 'Space')) { IN.press = true; IN.tapX = null; if (S && S.mode === 'cook' && !$('again').hidden) $('again').click(); }
+    if (!KEY[e.code] && (e.code === 'Enter' || (e.code === 'Space' && (!S || S.mode !== 'saga')))) { IN.press = true; IN.tapX = null; if (S && S.mode === 'cook' && !$('again').hidden) $('again').click(); }
     KEY[e.code] = true; if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
   });
   addEventListener('keyup', e => { KEY[e.code] = false; });
   auSetOn(SAVE.sound);
   requestAnimationFrame(frame);
-  window.GB = { get S() { return S; }, IN, SAVE, UI };
+  window.GB = { get S() { return S; }, IN, get SAVE() { return SAVE; }, UI, get SG() { return SG; }, get MISSION() { return MISSION; }, hots: () => UIH.prev.map(h => ({ x: h.x, y: h.y, w: h.w, h: h.h, label: h.o.label || '', off: !!h.o.off })), NW, get NH() { return NH; } };
 }
 boot();
 

@@ -7,7 +7,8 @@ const scr = mkC(NW, NH); let g = scr.getContext('2d');
 const SAVE_KEY = 'georgiabuns.save.v1';
 let SAVE = { easy: false, size: 'M', sound: true, best: { skips: 0, carrots: 0, cousins: 0 }, runs: 0, days: {}, stickers: {} };
 function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && typeof s === 'object') SAVE = Object.assign(SAVE, s, { best: Object.assign({}, SAVE.best, s.best || {}), days: s.days || {}, stickers: s.stickers || {} }); } catch (e) {}
-  if (SAVE.runs && !SAVE.days.creek) SAVE.days.creek = { done: true, gold: [false, false, false] }; }
+  if (SAVE.runs && !SAVE.days.creek) SAVE.days.creek = { done: true, gold: [false, false, false] };
+  fixSaga(); }
 function dayRec(id) { return SAVE.days[id] || (SAVE.days[id] = { done: false, gold: [false, false, false], best: 0 }); }
 function writeSave() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) {} }
 
@@ -29,7 +30,7 @@ function buildAssets() {
 function boulderC(r) { return A.boulder[r] || (A.boulder[r] = boulderSpr(r)); }
 
 const IN = { ix: 0, iy: 0, jump: false, jumpP: false, press: false, tapX: null, tapY: null };
-function heroSet() { return LV && LV.hero ? A[LV.hero] : A.hero; }
+function heroSet() { if (MISSION && MISSION.runner != null) return famSet(MISSION.runner); return LV && LV.hero ? A[LV.hero] : A.hero; }
 const PH = { ACC: .09, DEC: .55, FRC: .07, TOP: 6.6, MAXS: 15, SLP: .14, SLPUP: .08, SLPDN: .32, RFRC: .028, RDEC: .13, AIR: .14, GRV: .22, JMP: 6.7, JCUT: 4 };
 let S = null;
 
@@ -107,7 +108,7 @@ function stepPlayer() {
   if (Math.abs(p.gsp) < .15 && p.ground && !p.crouch) p.idleT++; else p.idleT = 0;
   p.look = (p.ground && iy < -.55 && Math.abs(p.gsp) < .3) ? Math.min(60, p.look + 2) : Math.max(0, p.look - 4);
   if (p.ground && sp > 7 && S.t % 3 === 0 && !p.inWater) dust(p.x - p.face * 10, p.y, 1, 1.5);
-  S.hist.push([p.x, p.y, p.ang, p.face]); if (S.hist.length > 80) S.hist.shift();
+  S.hist.push([p.x, p.y, p.ang, p.face]); if (S.hist.length > 120) S.hist.shift();
 }
 function groundStep(p, ix, iy, ACC, TOP) {
   const s = p.surf, a = slopeAng(s, p.x); p.ang = a; const sa = Math.sin(a);
@@ -284,7 +285,7 @@ function stepWorld() {
   // sleeping cousins
   for (const c of L.cousins) {
     if (c.woke) { c.t++; continue; }
-    if (Math.abs(c.x - pcx) < 22 && Math.abs(c.y - 8 - pcy) < 22) { c.woke = true; c.t = 0; S.woke++; sfx('wake'); say(c, ['COOKOUT AT SUNDOWN? I\'M THERE.', 'HUH? OH, BET. SEE YOU TONIGHT.', 'WAS JUST RESTING MY EYES.', 'SAVE ME SOME COLLARDS.', 'IS IT RIBS? I\'M COMING.'][S.woke - 1] || 'I\'M UP, I\'M UP.', 150); }
+    if (Math.abs(c.x - pcx) < 22 && Math.abs(c.y - 8 - pcy) < 22) { c.woke = true; c.t = 0; S.woke++; sfx('wake'); if (c.dazed) { say(c, ['MY BAD. RIGHT BEHIND YOU.', 'WHICH WAY? OH. THAT WAY.', 'I WAS LOOKING AT A BUTTERFLY.'][S.woke % 3], 110); continue; } say(c, ['COOKOUT AT SUNDOWN? I\'M THERE.', 'HUH? OH, BET. SEE YOU TONIGHT.', 'WAS JUST RESTING MY EYES.', 'SAVE ME SOME COLLARDS.', 'IS IT RIBS? I\'M COMING.'][S.woke - 1] || 'I\'M UP, I\'M UP.', 150); }
   }
   // golden carrots and cameos (the secrets)
   for (let i = 0; i < L.golds.length; i++) { const gc = L.golds[i]; if (gc.got) continue; if (Math.abs(gc.x - pcx) < 16 && Math.abs(gc.y - pcy) < 18) { gc.got = true; S.golds++; dayRec(S.day).gold[i] = true; writeSave(); sfx('rock'); sfx('crew'); for (let k = 0; k < 8; k++) sparkle(gc.x + (Math.random() - .5) * 24, gc.y + (Math.random() - .5) * 20); popText(gc.x, gc.y - 22, 'GOLDEN CARROT!', '#f6c645'); } }
@@ -294,7 +295,7 @@ function stepWorld() {
   if (!S.roofSaid && S.t > 40 && p.x < 900) { S.roofSaid = 1; say('roof', 'UP HERE, CUZ! FOUND A GOOD ONE.', 220); }
   // Sunny: rowdy near her tree means acorns
   const sn = S.sunny; if (sn.cool > 0) sn.cool--;
-  if (p.x > 680 && p.x < 870 && plSpeed(p) > 4.6 && sn.cool === 0) {
+  if (p.x > 680 && p.x < 870 && plSpeed(p) > 4.6 && sn.cool === 0 && !perk('realeyes')) {
     sn.cool = 55; S.acorns.push({ x: clamp(p.x + (p.ground ? p.gsp : p.vx) * 26, 690, 860), y: 112, vy: 0, warn: 30 });
     if (sn.said < 2) { say('sunny', sn.said ? 'I SAID SLOW DOWN.' : 'SLOW DOWN, BOYS.', 120); sn.said++; }
   }
@@ -321,8 +322,8 @@ function stepWorld() {
   stepBobcat();
   stepOtter();
   // finale trigger: standing on the big flat rock
-  if (p.ground && p.surf === PLATS[5] && S.mode === 'play') startThrow();
-  if (S.mode === 'play' && p.x > 8990 && !S.fadeTo) { S.fadeTo = 'rock'; say('otter', 'OTHER SIDE, CUZ. I GOT YOU.', 120); }
+  if (p.ground && p.surf === PLATS[5] && S.mode === 'play' && !(MISSION && MISSION.noThrow)) startThrow();
+  if (S.mode === 'play' && p.x > 8990 && !S.fadeTo && !(MISSION && MISSION.noThrow)) { S.fadeTo = 'rock'; say('otter', 'OTHER SIDE, CUZ. I GOT YOU.', 120); }
   for (const c of S.amb) { c.ph += .05; if (c.k === 'fly') { c.x += Math.sin(c.ph * .7) * .7 + .15; c.y += Math.cos(c.ph * 1.3) * .5; } else { c.x += Math.sin(c.ph * .4) * 1.6; c.y += Math.sin(c.ph * 2.2) * .4; } }
   // ambient leaves and fireflies
   if (S.t % 14 === 0 && p.x > 1000 && p.x < 7900) part({ type: 'leaf', x: S.cam.x + Math.random() * NW, y: S.cam.y - 6, vx: -.4 - Math.random() * .5, vy: .5 + Math.random() * .4, life: 260, ph: Math.random() * 6 });
@@ -440,14 +441,15 @@ function startCook() {
 /* ---------- master update ---------- */
 function update() {
   S.t++;
-  if (S.fadeTo) { S.fade = Math.min(1, S.fade + .04); if (S.fade >= 1) { const to = S.fadeTo; S.fadeTo = null; if (to === 'cook') startCook(); if (to === 'rock') { const p = S.pl; p.x = 8460; p.y = 478; p.ground = true; p.surf = PLATS[5]; p.gsp = 0; S.cam.x = 8330; S.cam.y = WATER.y - NH * .64; startThrow(); } } }
+  if (S.fadeTo) { S.fade = Math.min(1, S.fade + .04); if (S.fade >= 1) { const to = S.fadeTo; S.fadeTo = null; if (to === 'cook') { if (MISSION) endRun(); else startCook(); } if (to === 'rock') { const p = S.pl; p.x = 8460; p.y = 478; p.ground = true; p.surf = PLATS[5]; p.gsp = 0; S.cam.x = 8330; S.cam.y = WATER.y - NH * .64; startThrow(); } } }
   else if (S.fade > 0) S.fade = Math.max(0, S.fade - .04);
-  if (S.mode === 'title') { if (IN.press || IN.jumpP) { IN.press = IN.jumpP = false; enterHub(); } }
+  if (S.mode === 'title') { if (IN.press || IN.jumpP) { IN.press = IN.jumpP = false; IN.tapX = null; enterHub(); } }
   else if (S.mode === 'hub') stepHub();
   else if (S.mode === 'drive') stepDrive();
-  else if (S.mode === 'goal') { stepGoal(); camFollow(); }
+  else if (S.mode === 'saga') stepSaga();
+  else if (S.mode === 'goal') { stepGoal(); missionStep(); camFollow(); }
   else if (S.mode === 'intro') { S.intro++; if (IN.press || IN.jumpP) { IN.press = IN.jumpP = false; if (S.intro < 175) S.intro = 175; if (S.card && S.card.t < 150) S.card.t = 150; } if (S.intro >= 175) beginPlay(); camFollow(); }
-  else if (S.mode === 'play') { easyAssist(); stepPlayer(); stepWorld(); camFollow(); }
+  else if (S.mode === 'play') { easyAssist(); stepPlayer(); stepWorld(); missionStep(); camFollow(); }
   else if (S.mode === 'throw') { stepThrow(); stepOtter(); camFollow(); }
   else if (S.mode === 'cook') { S.cook.t++; { const t = S.cook.t; for (let i = 0; i < 4; i++) { const t0 = 70 + i * 34; if (t >= t0 && t < t0 + 26 && t % 3 === 0) sfx('tick'); if (t === t0 + 26) sfx(i === 3 ? 'ding' : 'carrot', i === 3 ? 0 : 1); } } if (S.cook.t % 6 === 0) part({ type: 'smoke', x: 296 + Math.random() * 4, y: NH - 86, vx: .2 + Math.random() * .2, vy: -.5, life: 90 }); if (S.cook.credits) S.cook.credits++; }
   for (const b of S.bubbles) b.t++; stepSay(); if (S.card) { S.card.t++; if (S.card.t > 200) S.card = null; }
@@ -460,7 +462,8 @@ function zoneMusic() { return LV.music(S.pl.x); }
 function startIntro() { S.mode = 'intro'; S.intro = 0; S.card = { t: 0 }; sfx('card'); auMode(LV.music(LV.start)); if (LV.burrow) { S.cam.x = 340 - NW / 2; S.cam.y = 345 - NH * .55; } else { S.cam.x = LV.start - NW * .55; S.cam.y = groundY(LV.start) - NH * .6; } }
 function beginPlay() {
   const p = S.pl; S.mode = 'play'; p.x = LV.start; p.y = groundY(LV.start) - 1; airborne(p, 1.5, -6.2); p.spring = 30; p.face = 1;
-  dust(p.x, p.y + 1, 8, 3); sfx('spring'); say('hero', LV.want, 190); S.easyHint = SAVE.easy ? 200 : 0;
+  if (MISSION && MISSION.rev) { p.vx = -1.5; p.face = -1; }
+  dust(p.x, p.y + 1, 8, 3); sfx('spring'); say('hero', (MISSION && MISSION.say) || LV.want, 190); S.easyHint = SAVE.easy ? 200 : 0;
 }
 function easyAssist() {
   if (!SAVE.easy) return; const p = S.pl;
@@ -494,8 +497,9 @@ function introPos() {
 
 /* ---------- generic day finale: reach the goal, celebrate, cookout ---------- */
 function startGoal() {
-  const p = S.pl; S.mode = 'goal'; S.goalT = 0; p.gsp *= .3; p.face = 1; S.score = S.rocks.filter(Boolean).length * 10 + S.golds * 25 + S.carrots;
-  if (LV.onGoal) LV.onGoal(S); else say('hero', LV.endLine || 'NOW THAT\'S A DAY.', 160);
+  if (MISSION && !missionMayFinish()) return;
+  const p = S.pl; S.mode = 'goal'; S.goalT = 0; p.gsp *= .3; p.face = MISSION && MISSION.rev ? -1 : 1; S.score = S.rocks.filter(Boolean).length * 10 + S.golds * 25 + S.carrots;
+  if (MISSION && MISSION.mode !== 'fetch') missionGoalLine(); else if (LV.onGoal) LV.onGoal(S); else say('hero', LV.endLine || 'NOW THAT\'S A DAY.', 160);
 }
 function stepGoal() {
   const p = S.pl; S.goalT++;
