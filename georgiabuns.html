@@ -2920,7 +2920,7 @@ SCREENS.hub = function () {
   const open = openWants(), featured = [], fw = {};
   for (const id of open) { const w = wantDef(id).who; if (w > 1 && !featured.includes(w) && featured.length < 4) { featured.push(w); fw[w] = id; } else if (w <= 1 && !fw[w]) fw[w] = id; }
   drawBurrowScene(L, featured);
-  const slots = [204, 288, 328, 350].slice(0, featured.length); if (featured.length === 4) slots.splice(0, 4, 204, 282, 318, 352);
+  const slots = [204, 290, 324, 352].slice(0, featured.length);
   // hot spots for the house
   hot(4, wallTop, 116, gy - wallTop, () => sagaGo('map'));
   hot(126, wallTop + 4, 52, 14, () => enterScrapbook());
@@ -2928,7 +2928,7 @@ SCREENS.hub = function () {
   hot(186, gy - 26, 24, 22, () => toast(Object.keys(s.stash).filter(k => STASH[k] && STASH[k].cat === 'records').length + ' RECORDS. PICK ANY SONG FROM THE PAUSE MENU.'));
   hot(224, wallTop + 4, 26, gy - wallTop - 6, () => sagaGo('wants'));
   hot(252, gy - 34, 18, 32, () => s.day >= 2 ? sagaGo('wants', { tab: 'errands' }) : toast('NO ERRANDS UNTIL TOMORROW. THE COUSINS ARE STILL WAKING UP.'));
-  hot(360, gy - 40, 38, 40, () => s.sun > 0 ? confirmBox('CALL IT A DAY? YOU STILL HAVE ' + s.sun + (s.sun > 1 ? ' SUNS' : ' SUN') + ' LEFT.', 'COOKOUT', startSagaCook) : startSagaCook(), { snd: 'crew' });
+  hot(366, gy - 40, 34, 40, () => s.sun > 0 ? confirmBox('CALL IT A DAY? YOU STILL HAVE ' + s.sun + (s.sun > 1 ? ' SUNS' : ' SUN') + ' LEFT.', 'COOKOUT', startSagaCook) : startSagaCook(), { snd: 'crew' });
   hot(10, cy - ry, 188, ry * 2, () => sagaGo('stash'));
   hot(222, cy - ry, 192, ry * 2, () => sagaGo('family'));
   hot(132, roofTop - 44, 32, 44, () => s.call ? sagaGo('phone', { id: s.call, i: 0 }) : toast(fw[0] ? 'THE ROOF BUN WANTS SOMETHING. CHECK THE WANT LIST.' : ['NICE DAY FOR IT. FROM UP HERE.', 'I CAN SEE THE CREEK. AND THE BOBCAT. HE CAN SEE ME.', 'NOT COMING DOWN. DON\'T ASK.'][Math.floor(t / 300) % 3]));
@@ -2938,7 +2938,7 @@ SCREENS.hub = function () {
   featured.forEach((i, k) => { const x = slots[k], y = gy - 3, id = fw[i], sp = wantStep(id);
     drawSpr(famSet(i).idle[((t >> 3) + k * 7) % 40 === 0 ? 1 : 0], x, y, 0, x > 300 ? -1 : 1, BAX, BAY);
     bubbleIcon(x, y - 60, stepIcon(sp), true);
-    hot(x - 18, y - 72, 36, 72, () => sagaGo('brief', { id }), { snd: 'wake' }); });
+    hot(x - 14, y - 72, 28, 72, () => sagaGo('brief', { id }), { snd: 'wake' }); });
   if (fw[0]) bubbleIcon(150, roofTop - 58, stepIcon(wantStep(fw[0])), true), hot(136, roofTop - 70, 30, 24, () => sagaGo('brief', { id: fw[0] }));
   if (fw[1]) bubbleIcon(158, gy - 70, stepIcon(wantStep(fw[1])), true);
   // signs
@@ -3052,7 +3052,7 @@ SCREENS.brief = function () {
     if (cur && p.tip) { y += 10; y += txBlock(p.tip, x + 20, y, w - 20, '#c8b088', { lh: 9 }) - 9; }
     y += 13; });
   // reward
-  const R = W.reward, rw = rewardList(R); let rx = x;
+  const drw = W.steps.find(q => q.drift), R = st.drift === 'go' && drw ? drw.drift.goReward : W.reward, rw = rewardList(R); let rx = x;
   if (wantGivesName(id)) { tx('HE EARNS A NAME.', rx, y, '#7ad050', { oc: '#2a140c' }); y += 12; }
   rw.slice(0, 4).forEach(r => { if (rx > NW - 80) return; if (r.ic) { g.drawImage(r.ic, 0, 0, r.ic.width, r.ic.height, rx, y - 4, 14, Math.round(r.ic.height * 14 / r.ic.width)); rx += 16; } rx += tx(r.label.length > 18 ? r.label.slice(0, 17) + '.' : r.label, rx, y, '#f4e2bd') + 10; });
   // go
@@ -3072,7 +3072,7 @@ SCREENS.drift = function () {
   const id = SG.d.id, W = wantDef(id), sp = wantStep(id), D = sp.drift, H = NH;
   R_(0, 0, NW, H, '#2a1810');
   tx('LOSING THE PLOT', NW / 2, 12, '#f6c645', { al: 'c', sc: 2, oc: '#2a140c' });
-  face(W.who, 20, 40); face(0, NW - 50, 40);
+  { const sc2 = H >= 260 ? 2 : 1, fy = H - 78; [[W.who, 70, 1], [0, NW - 70, -1]].forEach(([i, fx, f]) => { const fr = famSet(i).idle[(S.t % 120 > 112) ? 1 : 0]; fillEll(fx, fy + 1, 16 * sc2, 3, '#4e3220'); g.save(); g.translate(fx, fy); g.scale(f * sc2, sc2); g.drawImage(fr, -BAX, -BAY); g.restore(); }); }
   let y = 40; y += txBlock(D.text, 60, y, NW - 120, '#fff3e0', { al: 'c', lh: 10 }) + 10;
   const bw = 180, by = Math.max(y, H - 70);
   const pick = (go) => { const st = wantState(id), s = SAVE.saga; st.drift = go ? 'go' : 'stick'; st.step++; if (go) s.log.drift++; else s.log.stuck++; writeSave();
