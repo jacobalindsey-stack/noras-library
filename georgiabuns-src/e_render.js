@@ -105,7 +105,7 @@ function drawWorld(cx, cy) {
     g.fillStyle = '#9aa3ad'; g.fillRect(318, 386, 6, 4); g.fillStyle = (S.t % 60 < 30) ? '#bfe8ff' : '#5b9cff'; g.fillRect(319, 387, 4, 2);
     g.fillStyle = '#5a3a22'; g.fillRect(352, 372, 22, 3); g.fillRect(355, 375, 2, 16); g.fillRect(369, 375, 2, 16);
     g.fillStyle = '#ffe9a0'; g.fillRect(359, 366, 6, 6); g.globalAlpha = .12; pixCircle(362, 369, 18, '#ffe9a0'); g.globalAlpha = 1;
-    g.fillStyle = '#1e0e06'; g.beginPath(); g.ellipse(500, 301, 11, 4, 0, 0, 7); g.fill();
+    g.fillStyle = '#8a4a2a'; g.beginPath(); g.ellipse(489, 300, 6, 2.5, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(517, 300, 6, 2.5, 0, 0, 7); g.fill(); g.fillStyle = '#1e0e06'; g.beginPath(); g.ellipse(503, 300, 10, 3.5, 0, 0, 7); g.fill();
   }
   for (const d of L.decor) if (vis(d.x, 30)) { const c = PROPS.decor[d.k]; g.drawImage(c, Math.round(d.x - c.width / 2), Math.round(groundY(d.x) - c.height + 2)); }
   if (creek && vis(8450, 120)) g.drawImage(A.flat, 8370, 465);
@@ -179,7 +179,7 @@ function drawWorld(cx, cy) {
   } else if (S.mode === 'intro') {
     const [ix, iy] = introPos(), t = S.intro;
     const HS = heroSet(), fr = t < 50 ? HS.sleep[0] : t < 62 ? HS.up[0] : HS.run[(t >> 2) & 3];
-    const ang = t >= 105 ? -0.55 : 0;
+    const ang = t >= 105 ? clamp(tunnelAng(Math.min(1, (t - 105) / 48)), -1.25, 0) : 0;
     drawSpr(fr, ix, iy, ang, 1, BAX, BAY);
     if (t < 50 && t % 30 === 0) part({ type: 'z', x: ix + 8, y: iy - 16, vx: .2, vy: -.4, life: 60 });
     if (t === 52) popText(ix + 4, iy - 44, '!', '#fff3b0');
@@ -252,19 +252,29 @@ function speakerPos(w) {
 }
 function wrap(s, n) { const out = []; let line = ''; for (const w of s.split(' ')) { if ((line + ' ' + w).trim().length > n) { out.push(line.trim()); line = w; } else line += ' ' + w; } if (line.trim()) out.push(line.trim()); return out; }
 function drawBubbles(cx, cy) {
+  const placed = [];
   for (const b of S.bubbles) {
     const [wx, wy] = speakerPos(b.who); let sx = wx - cx, sy = wy - cy;
     const lines = wrap(b.text, 22), w = Math.max(...lines.map(l => textW(l))) + 8, h = lines.length * 9 + 5;
-    const off = sx < -10 || sx > NW + 10 || sy < -40 || sy > NH + 40;
-    if (off) continue;
-    let bx = Math.round(clamp(sx - w / 2, 3, NW - w - 3)), by = Math.round(clamp(sy - h - 4, 18, NH - h - 6));
+    const pin = sx < 6 ? -1 : sx > NW - 6 ? 1 : 0;
+    if (!pin && (sy < -60 || sy > NH + 60)) continue;
+    let bx = Math.round(clamp(sx - w / 2, 3, NW - w - 3)), by = Math.round(clamp(sy - h - 4, 22, NH - h - 6));
+    if (pin) { bx = pin < 0 ? 9 : NW - w - 9; by = 26; }
+    // never on top of another bubble: step up past it, or below if there's no room above
+    for (let tries = 0; tries < 4; tries++) { const hit = placed.find(r => bx < r.x + r.w + 3 && bx + w + 3 > r.x && by < r.y + r.h + 4 && by + h + 4 > r.y); if (!hit) break; by = hit.y - h - 6; if (by < 22) by = hit.y + hit.h + 6; }
+    placed.push({ x: bx, y: by, w, h });
     const pop = Math.min(1, b.t / 6);
     if (pop < 1) { by += Math.round((1 - pop) * 4); }
     g.fillStyle = '#2a140c'; g.fillRect(bx - 1, by, w + 2, h); g.fillRect(bx, by - 1, w, h + 2);
     g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; g.fillRect(bx, by, w, h);
+    if (pin) { // an arrow on the side, pointing back at whoever said it
+      const ax = pin < 0 ? bx - 1 : bx + w, ay = by + Math.round(h / 2); g.fillStyle = '#2a140c'; for (let i = 0; i < 5; i++) g.fillRect(pin < 0 ? ax - i - 1 : ax + i, ay - (4 - i), 1, (4 - i) * 2 + 1);
+      g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; for (let i = 0; i < 3; i++) g.fillRect(pin < 0 ? ax - i : ax + i, ay - (2 - i), 1, (2 - i) * 2 + 1);
+    } else {
     const tx = clamp(Math.round(sx), bx + 4, bx + w - 6);
     g.fillStyle = '#2a140c'; g.fillRect(tx - 1, by + h, 5, 1); g.fillRect(tx, by + h + 1, 3, 1); g.fillRect(tx + 1, by + h + 2, 1, 1);
-    g.fillStyle = g.fillStyle; g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; g.fillRect(tx, by + h - 1, 3, 1); g.fillRect(tx + 1, by + h, 1, 1);
+    g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; g.fillRect(tx, by + h - 1, 3, 1); g.fillRect(tx + 1, by + h, 1, 1);
+    }
     let left = Math.floor(b.t * .95); // typed out, about 57 letters a second
     lines.forEach((l, i) => { if (left <= 0) return; drawText(g, l.slice(0, left), bx + 4, by + 3 + i * 9, '#2a140c'); left -= l.length + 1; });
   }

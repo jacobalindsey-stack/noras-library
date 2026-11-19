@@ -709,7 +709,21 @@ const BANK = ['#c9a878', '#b08c5c', '#9a7848', '#86663c', '#735632', '#634a2a', 
 const BED = ['#7a8478', '#5e6a64', '#94a092', '#4c5854'].map(rgb);
 const CHAMBER = rgb('#3b1d10'), CHAMBER_L = rgb('#5a2c18'), CHAMBER_GLOW = rgb('#7a4022');
 const TERR = { chunks: [], CW: 256 };
-function inChamber(x, y) { const dx = (x - 300) / 122, dy = (y - 362) / 34; if (dx * dx + dy * dy < 1 && y < 392) return 1; const tx = (x - 372) / 128; if (tx >= 0 && tx <= 1 && y < 389) { const cy = lerp(380, 302, tx); if (Math.abs(y - cy) < 9) return 2; } return 0; }
+// the burrow under the lawn: a round chamber, and a tunnel that runs along the floor and curves up to a hole by the house
+const TUN = { p0: [388, 381], c: [478, 386], p2: [503, 297] };
+function tunnelAt(k) { const u = 1 - k, T = TUN; return [u * u * T.p0[0] + 2 * u * k * T.c[0] + k * k * T.p2[0], u * u * T.p0[1] + 2 * u * k * T.c[1] + k * k * T.p2[1]]; }
+function tunnelAng(k) { const T = TUN, dx = 2 * (1 - k) * (T.c[0] - T.p0[0]) + 2 * k * (T.p2[0] - T.c[0]), dy = 2 * (1 - k) * (T.c[1] - T.p0[1]) + 2 * k * (T.p2[1] - T.c[1]); return Math.atan2(dy, dx); }
+let CH_MASK = null; const CHM = { x0: 150, y0: 270, w: 400, h: 150 };
+function chamberMask() {
+  if (CH_MASK) return CH_MASK; const M = new Uint8Array(CHM.w * CHM.h), set = (x, y, v) => { x = Math.round(x) - CHM.x0; y = Math.round(y) - CHM.y0; if (x >= 0 && y >= 0 && x < CHM.w && y < CHM.h && M[y * CHM.w + x] < v) M[y * CHM.w + x] = v; };
+  for (let y = CHM.y0; y < CHM.y0 + CHM.h; y++) for (let x = CHM.x0; x < CHM.x0 + CHM.w; x++) { const dx = (x - 300) / 122, dy = (y - 362) / 34; if (dx * dx + dy * dy < 1 && y < 392) set(x, y, 2); }
+  for (let k = 0; k <= 1.0001; k += .004) { const [cx, cy] = tunnelAt(k), r = lerp(10.5, 8, k); for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) set(cx + x, cy + y, 2); }
+  // a two-pixel rim of darker clay all the way round, so the hollow reads as dug out
+  const R = new Uint8Array(M); for (let y = 1; y < CHM.h - 1; y++) for (let x = 1; x < CHM.w - 1; x++) { if (M[y * CHM.w + x]) continue; for (let d = 1; d <= 2; d++) if (M[y * CHM.w + x - d] === 2 || M[y * CHM.w + x + d] === 2 || M[(y - d) * CHM.w + x] === 2 || M[(y + d) * CHM.w + x] === 2) { R[y * CHM.w + x] = d === 1 ? 1 : Math.max(R[y * CHM.w + x], 3); break; } }
+  return (CH_MASK = R);
+}
+// 0 solid, 1 rim, 3 outer rim, 2 hollow
+function inChamber(x, y) { if (x < CHM.x0 || y < CHM.y0 || x >= CHM.x0 + CHM.w || y >= CHM.y0 + CHM.h) return 0; return chamberMask()[(y - CHM.y0) * CHM.w + (x - CHM.x0)]; }
 function buildTerrain() {
   const CW = TERR.CW; TERR.chunks = []; const isCreek = LV.id === 'creek' || LV.id === 'garden';
   for (let cx = 0; cx < WW; cx += CW) {
@@ -745,14 +759,16 @@ function buildTerrain() {
           if (hash(x >> 1, y >> 1) < .004) col = rgb('#e8a070');
           if (dd > 120) col = mixRGB(col, [70, 22, 12], Math.min(.5, (dd - 120) / 260));
         }
-        if (dd >= 0 && x < 520 && LV.id === 'creek') { const ch = inChamber(x, y); if (ch) { col = (y > 385 && ch === 1) ? CHAMBER_L : CHAMBER; if (ch === 1 && y < 386) { const gd = Math.hypot(x - 362, (y - 370) * 1.6); if (gd < 46) col = mixRGB(CHAMBER_GLOW, col, gd / 46); } } }
+        if (dd >= -3 && x < 560 && (LV.id === 'creek' || LV.home)) { const ch = inChamber(x, y);
+          if (ch === 2) { const floor = inChamber(x, y + 3) !== 2; col = floor ? CHAMBER_L : CHAMBER; const gd = Math.hypot(x - 362, (y - 370) * 1.6); if (gd < 46) col = mixRGB(CHAMBER_GLOW, col, gd / 46); if (!floor && inChamber(x, y - 2) !== 2) col = mixRGB(col, [20, 8, 4], .35); }
+          else if (ch === 1 && col) col = mixRGB(col, [40, 12, 6], dd < 3 ? .3 : .55); else if (ch === 3 && col) col = mixRGB(col, [40, 12, 6], .25); }
         if (!col) continue;
         const p = ((y - top) * CW + i) * 4; d[p] = col[0]; d[p + 1] = col[1]; d[p + 2] = col[2]; d[p + 3] = 255;
       }
     }
     g.putImageData(id, 0, 0);
     srand(cx * 3 + 1);
-    for (let k = 0; k < 4; k++) { const sx = cx + 10 + rnd() * (CW - 20), dep = 16 + rnd() * 90, r = 2 + rnd() * 3.5; if (sx > WATER.x0 - 40 && sx < WATER.x1 + 40) continue; if (sx < 520 && LV.id === 'creek') continue; if (LV.noStones && LV.noStones(sx)) continue; const st = new Spr(Math.ceil(r * 2.6) + 4, Math.ceil(r * 2) + 4); st.ell(st.w / 2, st.h / 2, r * 1.3, r, [2, 3, 4]); g.drawImage(st.outline(1).canvas(palette(['#5a2414', '#9a8e86', '#6e625c', '#c4b8ae'])), Math.round(sx - cx - st.w / 2), Math.round(GY[Math.floor(sx)] + dep - top)); }
+    for (let k = 0; k < 4; k++) { const sx = cx + 10 + rnd() * (CW - 20), dep = 16 + rnd() * 90, r = 2 + rnd() * 3.5; if (sx > WATER.x0 - 40 && sx < WATER.x1 + 40) continue; if (sx < 560 && (LV.id === 'creek' || LV.home)) continue; if (LV.noStones && LV.noStones(sx)) continue; const st = new Spr(Math.ceil(r * 2.6) + 4, Math.ceil(r * 2) + 4); st.ell(st.w / 2, st.h / 2, r * 1.3, r, [2, 3, 4]); g.drawImage(st.outline(1).canvas(palette(['#5a2414', '#9a8e86', '#6e625c', '#c4b8ae'])), Math.round(sx - cx - st.w / 2), Math.round(GY[Math.floor(sx)] + dep - top)); }
     if (LV.zone(cx) === 1 || LV.zone(cx) === 6) for (let k = 0; k < 2; k++) { let rx = cx + rnd() * CW, ry = GY[Math.floor(rx)] + 8; g.fillStyle = '#5a2a14'; for (let i = 0; i < 26; i++) { g.fillRect(Math.round(rx - cx), Math.round(ry - top), 2, 2); rx += (rnd() - .5) * 2.4; ry += .8 + rnd() * .6; } }
     TERR.chunks.push({ x: cx, y: top, c });
   }
@@ -1641,7 +1657,7 @@ LEVELS.farm = { id: 'farm', day: 2, title: 'COUNTRY COUSIN', want: 'NEED THE SWE
         if (a.state === 'ride') { a.x = p.x; a.y = p.y; if (p.x > 5230) { a.state = 'done'; S.ride = 0; a.x = 5230; a.y = groundY(5230); airborne(p, 4, -6); say('hero', 'SEVEN DON\'T DO ORCHARDS. THANKS, SEVEN!', 140); } }
       }
     }
-    if (S.ride) { p.ball = false; p.tumble = 0; if (p.ground) { p.gsp = Math.max(p.gsp, 10.5); p.roll = false; for (const b of S.L.boulders) if (!b.broken && b.x > p.x && b.x - p.x < 70 && p.ground) { IN.jumpP = true; } } p.face = 1; }
+    if (S.ride) { p.ball = false; p.tumble = 0; if (p.ground) { p.gsp = Math.max(p.gsp, 8.6); p.roll = false; for (const b of S.L.boulders) if (!b.broken && b.x > p.x && b.x - p.x < 70 && p.ground) { IN.jumpP = true; } } p.face = 1; }
   },
   drawBack: (g, vis) => {
     if (vis(250, 80)) { g.fillStyle = '#5a3a22'; g.fillRect(190, 252, 4, 48); g.fillRect(306, 252, 4, 48); g.fillStyle = '#2a140c'; g.fillRect(186, 244, 128, 22); g.fillStyle = '#c89a6a'; g.fillRect(188, 246, 124, 18); drawText(g, 'ELLI\'S FARM', 196, 248, '#3a1e10'); drawText(g, 'WASHINGTON GA', 196, 256, '#7a4a2a'); }
@@ -1694,7 +1710,7 @@ LEVELS.marsh = { id: 'marsh', day: 4, title: 'MARSH BUNS', want: 'GOTTA LEARN TO
     K.cameo('volvo', 600, 300, 34); K.cameo('luna', 4110, 236); K.cameo('biscuit', 6150, groundY(6150), 30);
     K.decor(3400, 4600, ['cattail', 'stone', 'clover'], 41); K.decor(4640, 6780, ['cattail', 'stone'], 42);
     return L; },
-  init: S => { S.actors = [...[1150, 1600, 2250, 2850, 3100].map((x, i) => ({ k: 'crab', x, x0: x, y: groundY(x), h: 10, ph: i * 2 })), { k: 'pontoon', x: 6440, y: groundY(6440), h: 40 }, ...[0, 1].map(i => ({ k: 'pelican', x: 900 + i * 2400, y: 160 + i * 20 }))]; },
+  init: S => { S.actors = [...[1150, 1460, 2250, 2850, 3100].map((x, i) => ({ k: 'crab', x, x0: x, y: groundY(x), h: 10, ph: i * 2 })), { k: 'pontoon', x: 6440, y: groundY(6440), h: 40 }, ...[0, 1].map(i => ({ k: 'pelican', x: 900 + i * 2400, y: 160 + i * 20 }))]; },
   step: (S, p) => {
     for (const a of S.actors) {
       if (a.k === 'crab') { a.ph += .04; a.x = a.x0 + Math.sin(a.ph) * 26; a.y = groundY(a.x); if (near(p, a, 18, 16) && p.inv === 0) { const [vx] = curVel(p); airborne(p, vx * .9, -4.2); p.tumble = 16; p.inv = 50; p.ball = true; sfx('bonk'); popText(p.x, p.y - 44, 'PINCH!'); } }
@@ -1974,7 +1990,7 @@ function initDrive() {
   const golds = [[90000, .7, 1], [260000, -.7, 1], [410000, 0, 1]].map(([z, x, hi]) => ({ z, x, hi, got: !!0 }));
   const toks = [['spaghetti', 1500 * DRV.SEG + 400, 0], ['stonemtn', 1000 * DRV.SEG, -.65], ['peachdrop', 2600 * DRV.SEG, .65]].map(([k, z, x]) => ({ k, z, x, got: false }));
   const cars = []; for (let i = 0; i < 26; i++) cars.push({ z: 6000 + i * (L / 28), x: [-.6, 0, .6][i % 3] + (rnd() - .5) * .2, sp: 70 + rnd() * 60, spr: i % 4 });
-  S.drv = { segs, L, z: 0, x: 0, sp: 0, max: 260, hop: 0, hv: 0, ice: 0, cubes: 0, items, golds, toks, cars, phase: 'go', t: 0, bg: 0, sel: 1, bump: 0, said: 0 };
+  S.drv = { segs, L, z: 0, x: 0, sp: 0, max: 225, hop: 0, hv: 0, ice: 0, cubes: 0, items, golds, toks, cars, phase: 'go', t: 0, bg: 0, sel: 1, bump: 0, said: 0 };
   S.mode = 'drive'; S.carrots = 0; auMode('icebox'); say('hero', LV.want, 200);
 }
 function stepDrive() {
@@ -2912,7 +2928,7 @@ function enterSaga(scr, d) {
   fixSaga(); if (MISSION) { restoreLV(); MISSION = null; }
   const s = SAVE.saga;
   S = { mode: 'saga', t: 0, parts: [], bubbles: [], sayQ: [], card: null, fade: 0, fadeTo: null, pl: { x: 0, y: 0, face: 1 }, day: 'creek', scat: [], hist: [], rocks: [], golds: 0, found: [] };
-  if (!scr) scr = s.started ? 'hub' : 'intro';
+  if (!scr) { if (s.started) scr = 'hub'; else { s.started = true; s.today.news = ['creek']; writeSave(); scr = 'morning'; d = { news: ['creek'] }; } }
   sagaGo(scr, d); $('again').hidden = true;
 }
 function sagaGo(scr, d) {
@@ -3014,9 +3030,20 @@ function drawBurrowStatic(L, spent) {
   R_(0, gy + 3, NW, 1, '#2f6a1e');
   for (let i = 0; i < 18; i++) { const fx = x1 + 8 + (i * 47) % (NW - x1 - 10); if (fx > 292 && fx < 346) continue; R_(fx, gy - 4, 1, 2, '#3f8a2a'); R_(fx - 1, gy - 5, 3, 1, i % 3 ? '#ffffff' : '#ffd040'); R_(fx, gy - 6, 1, 1, i % 3 ? '#ffffff' : '#ffd040'); }
   // the burrow chambers and tunnel
-  const tun = (ax, ay, bx, by) => { for (let k = 0; k <= 1; k += .02) fillEll(lerp(ax, bx, k) - .8, lerp(ay, by, k) - .8, 8, 7, '#6a2a14'); for (let k = 0; k <= 1; k += .02) fillEll(lerp(ax, bx, k), lerp(ay, by, k), 7, 6, '#3b1d10'); };
-  tun(240, gy + 2, 212, cy - 6);
-  for (const [ccx, rx] of [[104, 94], [318, 96]]) { fillEll(ccx - 1, cy - 1, rx + 2, ry + 2, '#6a2a14'); fillEll(ccx, cy, rx, ry, '#3b1d10'); fillEll(ccx, cy + ry * .55, rx - 6, ry * .4, '#331709'); for (let k = 0; k < 40; k++) R_(ccx - rx + 8 + (k * 37) % (rx * 2 - 16), cy + ry - 4 - (k % 3), 2, 1, '#5a3418'); }
+  // one connected burrow: a rabbit hole in the lawn, a tunnel curving down into the dorm, a passage between the two rooms
+  const holeX = 274, tunnel = [], pass = [];
+  for (let k = 0; k <= 1.001; k += .02) { const u = 1 - k, ax = holeX, ay = gy + 1, cx2 = holeX - 4, cy2 = gy + (cy - gy) * .78, bx = 250, by = cy - ry * .42; tunnel.push([u * u * ax + 2 * u * k * cx2 + k * k * bx, u * u * ay + 2 * u * k * cy2 + k * k * by, lerp(5.5, 7.5, k)]); }
+  for (let x = 178; x <= 240; x += 2) pass.push([x, cy + ry * .28, 6.5]);
+  const rooms = [[104, 94], [318, 96]];
+  for (const [px, py, r] of tunnel.concat(pass)) fillEll(px, py, r + 2, r + 2, '#6a2a14');
+  for (const [ccx, rx] of rooms) fillEll(ccx, cy, rx + 2, ry + 2, '#6a2a14');
+  for (const [px, py, r] of tunnel.concat(pass)) fillEll(px, py, r, r, '#3b1d10');
+  for (const [ccx, rx] of rooms) { fillEll(ccx, cy, rx, ry, '#3b1d10'); fillEll(ccx, cy + ry * .55, rx - 6, ry * .4, '#331709'); for (let k = 0; k < 40; k++) R_(ccx - rx + 8 + (k * 37) % (rx * 2 - 16), cy + ry - 4 - (k % 3), 2, 1, '#5a3418'); }
+  // packed-dirt floors and a little lip of light along the tunnel's lower edge
+  for (const [px, py, r] of pass) R_(px - 1, py + r - 2, 3, 1, '#4e2a16');
+  // dug dirt either side of the hole
+  fillEll(holeX - 9, gy - 1, 5, 2.2, '#8a4a2a'); fillEll(holeX + 9, gy - 1, 5, 2.2, '#8a4a2a'); R_(holeX - 12, gy - 3, 4, 1, '#b06a3a'); R_(holeX + 6, gy - 3, 4, 1, '#b06a3a');
+  fillEll(holeX, gy, 7, 2.6, '#1e0e06');
   // stash shelves with brackets
   const sh = 21, shelves = Math.max(1, Math.min(3, Math.floor((ry * 2 - 12) / sh)));
   for (let r = 0; r < shelves; r++) { const y = cy - ry + 8 + (r + 1) * sh; R_(26, y, 156, 3, '#8a5a3a'); R_(26, y, 156, 1, '#b07a50'); R_(26, y + 3, 156, 1, '#4a2a16'); for (const bx of [34, 102, 170]) { R_(bx, y + 3, 2, 4, '#5a3a22'); R_(bx + 2, y + 4, 2, 2, '#5a3a22'); } }
@@ -3059,7 +3086,7 @@ function drawBurrowStatic(L, spent) {
   R_(230, wallTop + 11, 12, 16, '#fff8e0'); for (let k = 0; k < 4; k++) R_(232, wallTop + 14 + k * 3, 8, 1, '#7a5236'); R_(234, wallTop + 9, 4, 3, '#e8dca0');
   for (const [mx, my, mc] of [[229, 32, '#e03030'], [240, 30, '#3a7ad8'], [233, 40, '#ff8a1c'], [241, 44, '#3fb04a']]) if (wallTop + my < gy - 8) R_(mx, wallTop + my, 3, 3, mc);
   // lawn: stepping stones, mailbox, garden with a picket fence, the grill
-  for (let i = 0; i < 6; i++) fillEll(268 + i * 18, gy - 1, 5, 1.2, i & 1 ? '#a8a49c' : '#b8b4ac');
+  for (let i = 0; i < 5; i++) fillEll(292 + i * 18, gy - 1, 5, 1.2, i & 1 ? '#a8a49c' : '#b8b4ac');
   R_(260, gy - 24, 2, 22, '#6a4224'); R_(261, gy - 24, 1, 22, '#8a5a32'); R_(255, gy - 30, 12, 8, '#3a5aa8'); R_(255, gy - 30, 12, 1, '#6a8ad8'); R_(255, gy - 23, 12, 1, '#243a78'); R_(254, gy - 28, 1, 5, '#2a3a80');
   for (let r = 0; r < 3; r++) { fillEll(320, gy - 3 - r * 3, 24 - r * 2, 1.3, '#5a3a24'); for (let x = 300 + r * 2; x < 342 - r * 2; x += 6) { if (r === 1) { fillEll(x + 1, gy - 7 - r * 3, 2.2, 1.8, '#4f9a34'); R_(x, gy - 8 - r * 3, 1, 1, '#9ade6a'); } else { R_(x + 1, gy - 8 - r * 3, 1, 4, '#3fb04a'); R_(x, gy - 9 - r * 3, 1, 2, '#62c044'); R_(x + 2, gy - 9 - r * 3, 1, 2, '#62c044'); } } }
   for (let x = 294; x < 348; x += 5) { R_(x, gy - 12, 2, 10, '#f4f0e8'); R_(x, gy - 13, 1, 1, '#f4f0e8'); R_(x + 1, gy - 12, 1, 10, '#c8c4bc'); } R_(294, gy - 9, 54, 1, '#e8e4dc');
@@ -3079,7 +3106,7 @@ function drawBurrowScene(L, featured) {
   if (key !== BUR_K) { BUR_K = key; const gg = g;
     BUR_SKY = mkC(NW, gy + 4); g = BUR_SKY.getContext('2d'); const [top, bot] = skyAt(.08 + spent * .9);
     for (let i = 0; i < 24; i++) R_(0, Math.floor(gy * i / 24), NW, Math.ceil(gy / 24) + 1, css(mixRGB(top, bot, i / 23)));
-    const sx = 300 - spent * 230, sy = gy * .78 - Math.sin((.15 + spent * .7) * Math.PI) * (gy * .62), sc = mixRGB(rgb('#fff6c8'), rgb('#ff8a3a'), spent);
+    const sx = 300 + spent * 66, sy = 26 + spent * gy * .5, sc = mixRGB(rgb('#fff6c8'), rgb('#ff8a3a'), spent);
     g.globalAlpha = .18; pixCircle(sx, sy, 22, css(sc)); g.globalAlpha = .3; pixCircle(sx, sy, 15, css(sc)); g.globalAlpha = 1; pixCircle(sx, sy, 10, css(sc));
     BUR_FG = mkC(NW, NH); g = BUR_FG.getContext('2d'); drawBurrowStatic(L, spent); g = gg; }
   g.drawImage(BUR_SKY, 0, 0);
@@ -3590,7 +3617,6 @@ SCREENS.morning = function () {
   R_(0, gy, NW, H - gy, '#4ea232'); R_(0, gy, NW, 2, '#8ad860'); for (let x = 0; x < NW; x += 3) if (hash(x, 9) < .5) R_(x, gy - 2, 1, 2, '#62b83a');
   tx('DAY ' + s.day, NW / 2, 10, '#ffffff', { al: 'c', sc: 3, oc: '#2a140c' });
   let y = 38;
-  if (s.welcome) { y += txBlock('WELCOME BACK. YOUR GOLDEN CARROTS ARE WORTH ' + s.welcome + ' CARROTS IN THE BANK NOW. THE OLD DAYS ARE IN THE SCRAPBOOK ON THE BURROW WALL.', 40, y, NW - 80, '#2a140c', { al: 'c' }) + 4; }
   if (news.length) { tx(news.length > 1 ? 'THEY WOKE UP WANTING SOMETHING.' : 'HE WOKE UP WANTING SOMETHING.', NW / 2, y, '#2a140c', { al: 'c' }); y += 12; }
   else { tx('NOBODY NEW WANTS ANYTHING. YET.', NW / 2, y, '#2a140c', { al: 'c' }); y += 12; }
   news.forEach((id, k) => {
@@ -3605,22 +3631,6 @@ SCREENS.morning = function () {
   });
   if (s.call) tx('...AND THE PEBBLE PHONE IS RINGING.', NW / 2, H - 38, (t & 16) ? '#fff3b0' : '#ffffff', { al: 'c', oc: '#2a140c' });
   btn(NW / 2 - 60, H - 24, 120, 18, 'LET\'S GO', () => { s.welcome = 0; writeSave(); sagaGo('hub'); }, { gold: 1, pulse: 1 });
-};
-const INTRO = [
-  'SEVENTEEN COUSINS LIVE IN ONE BURROW IN THE FOREST, IN A PART OF ATLANTA THAT IS MOSTLY TREES.',
-  'EVERY MORNING, ONE OF THEM WAKES UP WANTING SOMETHING. IT IS RARELY LOGICAL. IT IS ALWAYS URGENT.',
-  'ONLY TWO OF THEM HAVE NAMES: THE ROOF BUN AND THE NIBBIN\' BUN. GET THE OTHERS WHAT THEY WANT, AND THEY EARN ONE TOO.',
-  'YOU GET THREE SUNS A DAY. EVERY DAY ENDS WITH A COOKOUT.'
-];
-SCREENS.intro = function () {
-  const s = SAVE.saga, i = SG.d.i || 0, H = NH;
-  drawBurrowScene(burrowLayout(), []); g.globalAlpha = .55; R_(0, 0, NW, H, '#140a06'); g.globalAlpha = 1;
-  const w = Math.min(NW - 40, 330), x = Math.round(NW / 2 - w / 2), lines = txWrap(INTRO[i], Math.floor((w - 24) / 6)), h = lines.length * 11 + 42, y = Math.round(H / 2 - h / 2);
-  paper(x, y, w, h); let left = Math.floor(SG.t * 1.5); lines.forEach((l, k) => { if (left > 0) tx(l.slice(0, left), NW / 2, y + 10 + k * 11, '#2a140c', { al: 'c' }); left -= l.length + 1; });
-  btn(x + w - 90, y + h - 22, 80, 16, i < INTRO.length - 1 ? 'NEXT' : 'START', () => {
-    if (i < INTRO.length - 1) { SG.d.i = i + 1; SG.t = 0; return; }
-    s.started = true; s.today.news = ['creek']; writeSave(); sagaGo('morning', { news: ['creek'] });
-  }, { gold: 1 });
 };
 
 /* ================= Georgia Buns — missions inside the side-scroller =================
@@ -3661,7 +3671,7 @@ function startRun(spec, again) {
   if (MISSION) restoreLV();
   MISSION = Object.assign({ t: 0, drops: 0, found: false, pt: 0, fol: [], said: 0 }, spec);
   const M = MISSION; M.base = Object.assign({}, spec); delete M.base.base; $('again').hidden = true;
-  if (spec.run === 'icebox') { newGame('intro', 'icebox'); initDrive(); if (perk('rims')) S.drv.max = 295; if (M.say) { S.bubbles = []; say('hero', M.say, 200); } return; }
+  if (spec.run === 'icebox') { newGame('intro', 'icebox'); initDrive(); if (perk('rims')) S.drv.max = 255; if (M.say) { S.bubbles = []; say('hero', M.say, 200); } return; }
   // a reverse run starts by the creek and ends at the house
   LV = LEVELS[spec.run];
   if (M.rev) { M.restore = { start: LV.start, goal: LV.goal, burrow: LV.burrow }; LV.start = 7600; LV.goal = 440; LV.burrow = false; }
@@ -3682,7 +3692,7 @@ function missionInit() {
   if (M.rev) { for (const b of L.boulders) if (b.r > 16) { b.r = 14; b.y = groundY(b.x) - 10; } S.jam.open = true; const b = S.bob; b.state = 'done'; b.x = b.tx; b.y = groundY(b.tx); b.sit = true; }
   if (M.mode === 'haul') M.haul = { st: 'held', x: p.x, y: p.y - 40, vx: 0, vy: 0, t: 0, k: (M.p && M.p.obj) || 'melon' };
   if (M.mode === 'toll') M.need = (M.p && M.p.n) || 60;
-  if (M.mode === 'sprint') { const d = Math.abs((M.goalX != null ? M.goalX : LV.goal) - LV.start); M.time = M.time0 = Math.round((d / 3.6 + 420) * (perk('watch') ? 1.15 : 1)); }
+  if (M.mode === 'sprint') { const d = Math.abs((M.goalX != null ? M.goalX : LV.goal) - LV.start); M.time = M.time0 = Math.round((d / 3.1 + 420) * (perk('watch') ? 1.15 : 1)); }
   if (M.mode === 'hunt') { const sp = HUNTSPOTS[LV.id] || [[LV.goal * .5, -8]], k = M.spot != null ? M.spot : (Math.random() * sp.length) | 0, [x, y] = sp[k % sp.length]; M.find = { x, y: y < 0 ? groundY(x) + y - 6 : y, k: (M.p && M.p.obj) || 'chain' }; }
   if (M.mode === 'roundup') {
     let want = M.p && M.p.all ? pool.filter(i => i !== 0) : null, n = want ? want.length : ((M.p && M.p.n) || 4);
@@ -3847,7 +3857,7 @@ function boulderC(r) { return A.boulder[r] || (A.boulder[r] = boulderSpr(r)); }
 
 const IN = { ix: 0, iy: 0, jump: false, jumpP: false, press: false, tapX: null, tapY: null };
 function heroSet() { if (MISSION && MISSION.runner != null) return famSet(MISSION.runner); return LV && LV.hero ? A[LV.hero] : A.hero; }
-const PH = { ACC: .09, DEC: .55, FRC: .07, TOP: 6.6, MAXS: 15, SLP: .14, SLPUP: .08, SLPDN: .32, RFRC: .028, RDEC: .13, AIR: .14, GRV: .22, JMP: 6.7, JCUT: 4 };
+const PH = { ACC: .09, DEC: .55, FRC: .07, TOP: 5.5, MAXS: 15, SLP: .14, SLPUP: .08, SLPDN: .32, RFRC: .028, RDEC: .13, AIR: .14, GRV: .22, JMP: 6.7, JCUT: 4 };
 let S = null;
 
 function newGame(mode, day) {
@@ -3870,7 +3880,7 @@ function newGame(mode, day) {
 
 /* ---------- helpers ---------- */
 // lines stay up long enough to read (about 3.4 frames a letter after the typing finishes) and wait their turn
-function readTime(text, dur) { return Math.max(dur || 150, 90 + text.length * 3.6); }
+function readTime(text, dur) { return Math.max(dur || 150, 130 + text.length * 4.6); }
 function say(who, text, dur) {
   const d = readTime(text, dur), busy = S.bubbles.find(b => b.who === who && b.t < b.dur * .75);
   if (busy || S.bubbles.length >= 2) { if (!S.sayQ.some(q => q.text === text)) S.sayQ.push({ who, text, dur: d, at: S.t }); return; }
@@ -3896,7 +3906,7 @@ function curVel(p) { return p.ground ? [p.gsp * Math.cos(p.ang), p.gsp * Math.si
 /* ---------- player ---------- */
 function stepPlayer() {
   const p = S.pl, crew = S.crew > 0;
-  const TOP = p.inWater ? 2.6 : (crew ? 9.5 : PH.TOP), ACC = p.inWater ? .06 : (crew ? .17 : PH.ACC);
+  const TOP = p.inWater ? 2.6 : (crew ? 8 : PH.TOP), ACC = p.inWater ? .06 : (crew ? .17 : PH.ACC);
   const ix = IN.ix, iy = IN.iy;
   if (p.tumble > 0) p.tumble--; if (p.inv > 0) p.inv--; if (p.spring > 0) p.spring--; if (p.springCD > 0) p.springCD--; if (p.skid > 0) p.skid--; if (p.throwT > 0) p.throwT--;
   p.prevX = p.x; p.prevY = p.y;
@@ -3974,7 +3984,7 @@ function groundStep(p, ix, iy, ACC, TOP) {
     p.jumping = true; p.ball = true; p.roll = false; sfx('jump'); return;
   }
   const nx = p.x + p.gsp * Math.cos(a);
-  if (LOOP && s === 'g' && p.gsp > 0 && p.x < LOOP.cx && nx >= LOOP.cx) { p.surf = 'loop'; p.lt = 0; p.x = LOOP.cx; p.y = LOOP.cy + LOOP.R; return; }
+  if (LOOP && s === 'g' && p.gsp > 0 && p.x < LOOP.cx && nx >= LOOP.cx) { if (p.gsp < 7.4) { p.gsp = 7.4; sfx('launch'); dust(p.x, p.y, 6, 3); } p.surf = 'loop'; p.lt = 0; p.x = LOOP.cx; p.y = LOOP.cy + LOOP.R; return; }
   const ny = surfAt(s, nx);
   if (ny != null && s === 'g' && p.y - ny > Math.max(12, Math.abs(p.gsp) * 1.3)) { // a cliff face, not a slope
     if (LV.climb && nx > p.x) { startClimb(p); return; }
@@ -4314,8 +4324,8 @@ function introPos() {
   const t = S.intro;
   if (!LV.burrow) { const ex = Math.min(LV.start - 70, LV.start - 400 + t * 4); return [ex + 60, groundY(LV.start) - (t > 110 ? 10 : 0)]; }
   if (t < 60) return [262, 391];
-  if (t < 105) return [lerp(262, 372, (t - 60) / 45), 391];
-  const k = Math.min(1, (t - 105) / 45); return [lerp(372, 500, k), lerp(389, 302, k)];
+  if (t < 105) return [lerp(262, 386, (t - 60) / 45), 391];
+  const k = Math.min(1, (t - 105) / 48), [x, y] = tunnelAt(k); return [x, y + lerp(9, 2, k)];
 }
 
 /* ---------- generic day finale: reach the goal, celebrate, cookout ---------- */
@@ -4446,7 +4456,7 @@ function drawWorld(cx, cy) {
     g.fillStyle = '#9aa3ad'; g.fillRect(318, 386, 6, 4); g.fillStyle = (S.t % 60 < 30) ? '#bfe8ff' : '#5b9cff'; g.fillRect(319, 387, 4, 2);
     g.fillStyle = '#5a3a22'; g.fillRect(352, 372, 22, 3); g.fillRect(355, 375, 2, 16); g.fillRect(369, 375, 2, 16);
     g.fillStyle = '#ffe9a0'; g.fillRect(359, 366, 6, 6); g.globalAlpha = .12; pixCircle(362, 369, 18, '#ffe9a0'); g.globalAlpha = 1;
-    g.fillStyle = '#1e0e06'; g.beginPath(); g.ellipse(500, 301, 11, 4, 0, 0, 7); g.fill();
+    g.fillStyle = '#8a4a2a'; g.beginPath(); g.ellipse(489, 300, 6, 2.5, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(517, 300, 6, 2.5, 0, 0, 7); g.fill(); g.fillStyle = '#1e0e06'; g.beginPath(); g.ellipse(503, 300, 10, 3.5, 0, 0, 7); g.fill();
   }
   for (const d of L.decor) if (vis(d.x, 30)) { const c = PROPS.decor[d.k]; g.drawImage(c, Math.round(d.x - c.width / 2), Math.round(groundY(d.x) - c.height + 2)); }
   if (creek && vis(8450, 120)) g.drawImage(A.flat, 8370, 465);
@@ -4520,7 +4530,7 @@ function drawWorld(cx, cy) {
   } else if (S.mode === 'intro') {
     const [ix, iy] = introPos(), t = S.intro;
     const HS = heroSet(), fr = t < 50 ? HS.sleep[0] : t < 62 ? HS.up[0] : HS.run[(t >> 2) & 3];
-    const ang = t >= 105 ? -0.55 : 0;
+    const ang = t >= 105 ? clamp(tunnelAng(Math.min(1, (t - 105) / 48)), -1.25, 0) : 0;
     drawSpr(fr, ix, iy, ang, 1, BAX, BAY);
     if (t < 50 && t % 30 === 0) part({ type: 'z', x: ix + 8, y: iy - 16, vx: .2, vy: -.4, life: 60 });
     if (t === 52) popText(ix + 4, iy - 44, '!', '#fff3b0');
@@ -4593,19 +4603,29 @@ function speakerPos(w) {
 }
 function wrap(s, n) { const out = []; let line = ''; for (const w of s.split(' ')) { if ((line + ' ' + w).trim().length > n) { out.push(line.trim()); line = w; } else line += ' ' + w; } if (line.trim()) out.push(line.trim()); return out; }
 function drawBubbles(cx, cy) {
+  const placed = [];
   for (const b of S.bubbles) {
     const [wx, wy] = speakerPos(b.who); let sx = wx - cx, sy = wy - cy;
     const lines = wrap(b.text, 22), w = Math.max(...lines.map(l => textW(l))) + 8, h = lines.length * 9 + 5;
-    const off = sx < -10 || sx > NW + 10 || sy < -40 || sy > NH + 40;
-    if (off) continue;
-    let bx = Math.round(clamp(sx - w / 2, 3, NW - w - 3)), by = Math.round(clamp(sy - h - 4, 18, NH - h - 6));
+    const pin = sx < 6 ? -1 : sx > NW - 6 ? 1 : 0;
+    if (!pin && (sy < -60 || sy > NH + 60)) continue;
+    let bx = Math.round(clamp(sx - w / 2, 3, NW - w - 3)), by = Math.round(clamp(sy - h - 4, 22, NH - h - 6));
+    if (pin) { bx = pin < 0 ? 9 : NW - w - 9; by = 26; }
+    // never on top of another bubble: step up past it, or below if there's no room above
+    for (let tries = 0; tries < 4; tries++) { const hit = placed.find(r => bx < r.x + r.w + 3 && bx + w + 3 > r.x && by < r.y + r.h + 4 && by + h + 4 > r.y); if (!hit) break; by = hit.y - h - 6; if (by < 22) by = hit.y + hit.h + 6; }
+    placed.push({ x: bx, y: by, w, h });
     const pop = Math.min(1, b.t / 6);
     if (pop < 1) { by += Math.round((1 - pop) * 4); }
     g.fillStyle = '#2a140c'; g.fillRect(bx - 1, by, w + 2, h); g.fillRect(bx, by - 1, w, h + 2);
     g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; g.fillRect(bx, by, w, h);
+    if (pin) { // an arrow on the side, pointing back at whoever said it
+      const ax = pin < 0 ? bx - 1 : bx + w, ay = by + Math.round(h / 2); g.fillStyle = '#2a140c'; for (let i = 0; i < 5; i++) g.fillRect(pin < 0 ? ax - i - 1 : ax + i, ay - (4 - i), 1, (4 - i) * 2 + 1);
+      g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; for (let i = 0; i < 3; i++) g.fillRect(pin < 0 ? ax - i : ax + i, ay - (2 - i), 1, (2 - i) * 2 + 1);
+    } else {
     const tx = clamp(Math.round(sx), bx + 4, bx + w - 6);
     g.fillStyle = '#2a140c'; g.fillRect(tx - 1, by + h, 5, 1); g.fillRect(tx, by + h + 1, 3, 1); g.fillRect(tx + 1, by + h + 2, 1, 1);
-    g.fillStyle = g.fillStyle; g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; g.fillRect(tx, by + h - 1, 3, 1); g.fillRect(tx + 1, by + h, 1, 1);
+    g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; g.fillRect(tx, by + h - 1, 3, 1); g.fillRect(tx + 1, by + h, 1, 1);
+    }
     let left = Math.floor(b.t * .95); // typed out, about 57 letters a second
     lines.forEach((l, i) => { if (left <= 0) return; drawText(g, l.slice(0, left), bx + 4, by + 3 + i * 9, '#2a140c'); left -= l.length + 1; });
   }
@@ -4884,19 +4904,23 @@ function safeInsets() {
   const cs = getComputedStyle(el), f = v => parseFloat(v) || 0;
   return { t: f(cs.paddingTop), r: f(cs.paddingRight), b: f(cs.paddingBottom), l: f(cs.paddingLeft) };
 }
+// touch controls only on touch screens; a desktop with a mouse and keyboard gets a clean screen
+function hasTouch() { return !!(UI.touchSeen || ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && matchMedia('(any-pointer: coarse)').matches)); }
 function layout() {
   const vv = window.visualViewport, W = Math.round(vv ? vv.width : innerWidth), H = Math.round(vv ? vv.height : innerHeight);
-  UI.W = W; UI.H = H; UI.portrait = H > W * 1.08;
+  UI.W = W; UI.H = H; UI.portrait = H > W * 1.08; UI.touch = hasTouch();
   let playH = H, deckH = 0;
-  if (UI.portrait) { playH = Math.min(Math.round(W * 320 / NW), H - 220); deckH = H - playH; }
+  if (UI.portrait && UI.touch) { playH = Math.min(Math.round(W * 320 / NW), H - 220); deckH = H - playH; }
+  else if (UI.portrait) playH = Math.min(Math.round(W * 320 / NW), H);
   UI.playW = W; UI.playH = playH;
   const newNH = clamp(Math.round(NW * playH / W), 200, 320);
   if (newNH !== NH) { NH = newNH; scr.height = NH; g = scr.getContext('2d'); g.imageSmoothingEnabled = false; }
   const dpr = window.devicePixelRatio || 1, k = clamp(Math.ceil(W * dpr / NW), 1, 6);
   disp.width = NW * k; disp.height = NH * k; UI.k = k;
   const ctlMode = S && (S.mode === 'play' || S.mode === 'throw' || S.mode === 'intro' || S.mode === 'drive' || S.mode === 'goal');
-  const play = $('play'); play.style.width = W + 'px'; play.style.height = playH + 'px'; play.style.top = (UI.portrait && !ctlMode ? Math.round((H - playH) / 2) : 0) + 'px';
-  const deck = $('deck'); deck.hidden = !UI.portrait || !ctlMode; deck.style.height = deckH + 'px';
+  const deckOn = UI.portrait && ctlMode && UI.touch;
+  const play = $('play'); play.style.width = W + 'px'; play.style.height = playH + 'px'; play.style.top = (UI.portrait && !deckOn ? Math.round((H - playH) / 2) : 0) + 'px';
+  const deck = $('deck'); deck.hidden = !deckOn; deck.style.height = deckH + 'px';
   const sz = { S: .8, M: 1, L: 1.22 }[SAVE.size] || 1, short = Math.min(W, H);
   const jd = Math.round(clamp(short * (UI.portrait ? .26 : .19), 96, 190) * sz);
   const jb = $('jump'); jb.style.width = jb.style.height = jd + 'px';
@@ -4908,16 +4932,16 @@ function layout() {
   UI.ghost = UI.portrait ? [W * .25, playH + (deckH - SI.b) / 2] : [Math.round(W * .03) + SI.l + UI.stickR + 10, H - Math.max(Math.round(H * .05), SI.b + 6) - UI.stickR - 10];
   placeStick(null);
   const showCtl = S && (S.mode === 'play' || S.mode === 'throw' || S.mode === 'intro' || S.mode === 'drive' || S.mode === 'goal');
-  jb.hidden = !showCtl; sb.hidden = !showCtl || SAVE.easy; kn.hidden = sb.hidden;
-  $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub' || S.mode === 'saga'; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
-  $('hint').hidden = !(UI.portrait && SAVE.easy && showCtl);
+  jb.hidden = !showCtl || !UI.touch; sb.hidden = !showCtl || SAVE.easy || !UI.touch; kn.hidden = sb.hidden;
+  $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub' || S.mode === 'saga' || !UI.touch; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
+  $('hint').hidden = !(UI.portrait && SAVE.easy && showCtl && UI.touch);
   // EASY and pause: smaller on phones; in portrait they sit at the top of the control deck, below the game
   const hs = hudScale(); if (UI.hs !== hs) { UI.hs = hs; refreshEasy(); refreshPause(); }
   UI.pauseV = Math.ceil((15 * hs + 18) * NW / W) + 2;
   const eb = $('easy'), pb = $('pause'), pad = hs === 2 ? 2 : 4;
-  let bt = pad; if (UI.portrait) bt = ctlMode ? playH + 4 + pad : Math.round((H - playH) / 2) + pad;
+  let bt = pad; if (UI.portrait) bt = deckOn ? playH + 4 + pad : Math.round((H - playH) / 2) + pad;
   eb.style.top = pb.style.top = bt + 'px';
-  if (UI.portrait && ctlMode) { const top = playH + 4 + pad + 15 * hs + 16, rest = H - top - SI.b; jb.style.top = Math.round(top + rest * .45 - jd / 2) + 'px'; UI.ghost = [W * .25, top + rest * .45]; placeStick(null); const hn = $('hint'); hn.style.top = top + 'px'; hn.style.height = rest + 'px'; hn.style.bottom = 'auto'; }
+  if (deckOn) { const top = playH + 4 + pad + 15 * hs + 16, rest = H - top - SI.b; jb.style.top = Math.round(top + rest * .45 - jd / 2) + 'px'; UI.ghost = [W * .25, top + rest * .45]; placeStick(null); const hn = $('hint'); hn.style.top = top + 'px'; hn.style.height = rest + 'px'; hn.style.bottom = 'auto'; }
   UI.lastMode = S && S.mode;
 }
 function placeStick(pt) {
@@ -4945,6 +4969,7 @@ function zoneFor(x, y) {
   return 'none';
 }
 function onDown(e) {
+  if (e.pointerType === 'touch' && !UI.touchSeen) { UI.touchSeen = true; layout(); }
   if (paused) return;
   auUnlock();
   const z = zoneFor(e.clientX, e.clientY);

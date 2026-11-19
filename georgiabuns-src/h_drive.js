@@ -89,7 +89,7 @@ function initDrive() {
   const golds = [[90000, .7, 1], [260000, -.7, 1], [410000, 0, 1]].map(([z, x, hi]) => ({ z, x, hi, got: !!0 }));
   const toks = [['spaghetti', 1500 * DRV.SEG + 400, 0], ['stonemtn', 1000 * DRV.SEG, -.65], ['peachdrop', 2600 * DRV.SEG, .65]].map(([k, z, x]) => ({ k, z, x, got: false }));
   const cars = []; for (let i = 0; i < 26; i++) cars.push({ z: 6000 + i * (L / 28), x: [-.6, 0, .6][i % 3] + (rnd() - .5) * .2, sp: 70 + rnd() * 60, spr: i % 4 });
-  S.drv = { segs, L, z: 0, x: 0, sp: 0, max: 260, hop: 0, hv: 0, ice: 0, cubes: 0, items, golds, toks, cars, phase: 'go', t: 0, bg: 0, sel: 1, bump: 0, said: 0 };
+  S.drv = { segs, L, z: 0, x: 0, sp: 0, max: 225, hop: 0, hv: 0, ice: 0, cubes: 0, items, golds, toks, cars, phase: 'go', t: 0, bg: 0, sel: 1, bump: 0, said: 0 };
   S.mode = 'drive'; S.carrots = 0; auMode('icebox'); say('hero', LV.want, 200);
 }
 function stepDrive() {

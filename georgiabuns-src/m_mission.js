@@ -36,7 +36,7 @@ function startRun(spec, again) {
   if (MISSION) restoreLV();
   MISSION = Object.assign({ t: 0, drops: 0, found: false, pt: 0, fol: [], said: 0 }, spec);
   const M = MISSION; M.base = Object.assign({}, spec); delete M.base.base; $('again').hidden = true;
-  if (spec.run === 'icebox') { newGame('intro', 'icebox'); initDrive(); if (perk('rims')) S.drv.max = 295; if (M.say) { S.bubbles = []; say('hero', M.say, 200); } return; }
+  if (spec.run === 'icebox') { newGame('intro', 'icebox'); initDrive(); if (perk('rims')) S.drv.max = 255; if (M.say) { S.bubbles = []; say('hero', M.say, 200); } return; }
   // a reverse run starts by the creek and ends at the house
   LV = LEVELS[spec.run];
   if (M.rev) { M.restore = { start: LV.start, goal: LV.goal, burrow: LV.burrow }; LV.start = 7600; LV.goal = 440; LV.burrow = false; }
@@ -57,7 +57,7 @@ function missionInit() {
   if (M.rev) { for (const b of L.boulders) if (b.r > 16) { b.r = 14; b.y = groundY(b.x) - 10; } S.jam.open = true; const b = S.bob; b.state = 'done'; b.x = b.tx; b.y = groundY(b.tx); b.sit = true; }
   if (M.mode === 'haul') M.haul = { st: 'held', x: p.x, y: p.y - 40, vx: 0, vy: 0, t: 0, k: (M.p && M.p.obj) || 'melon' };
   if (M.mode === 'toll') M.need = (M.p && M.p.n) || 60;
-  if (M.mode === 'sprint') { const d = Math.abs((M.goalX != null ? M.goalX : LV.goal) - LV.start); M.time = M.time0 = Math.round((d / 3.6 + 420) * (perk('watch') ? 1.15 : 1)); }
+  if (M.mode === 'sprint') { const d = Math.abs((M.goalX != null ? M.goalX : LV.goal) - LV.start); M.time = M.time0 = Math.round((d / 3.1 + 420) * (perk('watch') ? 1.15 : 1)); }
   if (M.mode === 'hunt') { const sp = HUNTSPOTS[LV.id] || [[LV.goal * .5, -8]], k = M.spot != null ? M.spot : (Math.random() * sp.length) | 0, [x, y] = sp[k % sp.length]; M.find = { x, y: y < 0 ? groundY(x) + y - 6 : y, k: (M.p && M.p.obj) || 'chain' }; }
   if (M.mode === 'roundup') {
     let want = M.p && M.p.all ? pool.filter(i => i !== 0) : null, n = want ? want.length : ((M.p && M.p.n) || 4);

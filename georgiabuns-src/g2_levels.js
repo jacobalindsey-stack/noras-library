@@ -119,7 +119,7 @@ LEVELS.farm = { id: 'farm', day: 2, title: 'COUNTRY COUSIN', want: 'NEED THE SWE
         if (a.state === 'ride') { a.x = p.x; a.y = p.y; if (p.x > 5230) { a.state = 'done'; S.ride = 0; a.x = 5230; a.y = groundY(5230); airborne(p, 4, -6); say('hero', 'SEVEN DON\'T DO ORCHARDS. THANKS, SEVEN!', 140); } }
       }
     }
-    if (S.ride) { p.ball = false; p.tumble = 0; if (p.ground) { p.gsp = Math.max(p.gsp, 10.5); p.roll = false; for (const b of S.L.boulders) if (!b.broken && b.x > p.x && b.x - p.x < 70 && p.ground) { IN.jumpP = true; } } p.face = 1; }
+    if (S.ride) { p.ball = false; p.tumble = 0; if (p.ground) { p.gsp = Math.max(p.gsp, 8.6); p.roll = false; for (const b of S.L.boulders) if (!b.broken && b.x > p.x && b.x - p.x < 70 && p.ground) { IN.jumpP = true; } } p.face = 1; }
   },
   drawBack: (g, vis) => {
     if (vis(250, 80)) { g.fillStyle = '#5a3a22'; g.fillRect(190, 252, 4, 48); g.fillRect(306, 252, 4, 48); g.fillStyle = '#2a140c'; g.fillRect(186, 244, 128, 22); g.fillStyle = '#c89a6a'; g.fillRect(188, 246, 124, 18); drawText(g, 'ELLI\'S FARM', 196, 248, '#3a1e10'); drawText(g, 'WASHINGTON GA', 196, 256, '#7a4a2a'); }
@@ -172,7 +172,7 @@ LEVELS.marsh = { id: 'marsh', day: 4, title: 'MARSH BUNS', want: 'GOTTA LEARN TO
     K.cameo('volvo', 600, 300, 34); K.cameo('luna', 4110, 236); K.cameo('biscuit', 6150, groundY(6150), 30);
     K.decor(3400, 4600, ['cattail', 'stone', 'clover'], 41); K.decor(4640, 6780, ['cattail', 'stone'], 42);
     return L; },
-  init: S => { S.actors = [...[1150, 1600, 2250, 2850, 3100].map((x, i) => ({ k: 'crab', x, x0: x, y: groundY(x), h: 10, ph: i * 2 })), { k: 'pontoon', x: 6440, y: groundY(6440), h: 40 }, ...[0, 1].map(i => ({ k: 'pelican', x: 900 + i * 2400, y: 160 + i * 20 }))]; },
+  init: S => { S.actors = [...[1150, 1460, 2250, 2850, 3100].map((x, i) => ({ k: 'crab', x, x0: x, y: groundY(x), h: 10, ph: i * 2 })), { k: 'pontoon', x: 6440, y: groundY(6440), h: 40 }, ...[0, 1].map(i => ({ k: 'pelican', x: 900 + i * 2400, y: 160 + i * 20 }))]; },
   step: (S, p) => {
     for (const a of S.actors) {
       if (a.k === 'crab') { a.ph += .04; a.x = a.x0 + Math.sin(a.ph) * 26; a.y = groundY(a.x); if (near(p, a, 18, 16) && p.inv === 0) { const [vx] = curVel(p); airborne(p, vx * .9, -4.2); p.tumble = 16; p.inv = 50; p.ball = true; sfx('bonk'); popText(p.x, p.y - 44, 'PINCH!'); } }

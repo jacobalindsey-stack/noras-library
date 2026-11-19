@@ -181,7 +181,7 @@ function enterSaga(scr, d) {
   fixSaga(); if (MISSION) { restoreLV(); MISSION = null; }
   const s = SAVE.saga;
   S = { mode: 'saga', t: 0, parts: [], bubbles: [], sayQ: [], card: null, fade: 0, fadeTo: null, pl: { x: 0, y: 0, face: 1 }, day: 'creek', scat: [], hist: [], rocks: [], golds: 0, found: [] };
-  if (!scr) scr = s.started ? 'hub' : 'intro';
+  if (!scr) { if (s.started) scr = 'hub'; else { s.started = true; s.today.news = ['creek']; writeSave(); scr = 'morning'; d = { news: ['creek'] }; } }
   sagaGo(scr, d); $('again').hidden = true;
 }
 function sagaGo(scr, d) {
@@ -283,9 +283,20 @@ function drawBurrowStatic(L, spent) {
   R_(0, gy + 3, NW, 1, '#2f6a1e');
   for (let i = 0; i < 18; i++) { const fx = x1 + 8 + (i * 47) % (NW - x1 - 10); if (fx > 292 && fx < 346) continue; R_(fx, gy - 4, 1, 2, '#3f8a2a'); R_(fx - 1, gy - 5, 3, 1, i % 3 ? '#ffffff' : '#ffd040'); R_(fx, gy - 6, 1, 1, i % 3 ? '#ffffff' : '#ffd040'); }
   // the burrow chambers and tunnel
-  const tun = (ax, ay, bx, by) => { for (let k = 0; k <= 1; k += .02) fillEll(lerp(ax, bx, k) - .8, lerp(ay, by, k) - .8, 8, 7, '#6a2a14'); for (let k = 0; k <= 1; k += .02) fillEll(lerp(ax, bx, k), lerp(ay, by, k), 7, 6, '#3b1d10'); };
-  tun(240, gy + 2, 212, cy - 6);
-  for (const [ccx, rx] of [[104, 94], [318, 96]]) { fillEll(ccx - 1, cy - 1, rx + 2, ry + 2, '#6a2a14'); fillEll(ccx, cy, rx, ry, '#3b1d10'); fillEll(ccx, cy + ry * .55, rx - 6, ry * .4, '#331709'); for (let k = 0; k < 40; k++) R_(ccx - rx + 8 + (k * 37) % (rx * 2 - 16), cy + ry - 4 - (k % 3), 2, 1, '#5a3418'); }
+  // one connected burrow: a rabbit hole in the lawn, a tunnel curving down into the dorm, a passage between the two rooms
+  const holeX = 274, tunnel = [], pass = [];
+  for (let k = 0; k <= 1.001; k += .02) { const u = 1 - k, ax = holeX, ay = gy + 1, cx2 = holeX - 4, cy2 = gy + (cy - gy) * .78, bx = 250, by = cy - ry * .42; tunnel.push([u * u * ax + 2 * u * k * cx2 + k * k * bx, u * u * ay + 2 * u * k * cy2 + k * k * by, lerp(5.5, 7.5, k)]); }
+  for (let x = 178; x <= 240; x += 2) pass.push([x, cy + ry * .28, 6.5]);
+  const rooms = [[104, 94], [318, 96]];
+  for (const [px, py, r] of tunnel.concat(pass)) fillEll(px, py, r + 2, r + 2, '#6a2a14');
+  for (const [ccx, rx] of rooms) fillEll(ccx, cy, rx + 2, ry + 2, '#6a2a14');
+  for (const [px, py, r] of tunnel.concat(pass)) fillEll(px, py, r, r, '#3b1d10');
+  for (const [ccx, rx] of rooms) { fillEll(ccx, cy, rx, ry, '#3b1d10'); fillEll(ccx, cy + ry * .55, rx - 6, ry * .4, '#331709'); for (let k = 0; k < 40; k++) R_(ccx - rx + 8 + (k * 37) % (rx * 2 - 16), cy + ry - 4 - (k % 3), 2, 1, '#5a3418'); }
+  // packed-dirt floors and a little lip of light along the tunnel's lower edge
+  for (const [px, py, r] of pass) R_(px - 1, py + r - 2, 3, 1, '#4e2a16');
+  // dug dirt either side of the hole
+  fillEll(holeX - 9, gy - 1, 5, 2.2, '#8a4a2a'); fillEll(holeX + 9, gy - 1, 5, 2.2, '#8a4a2a'); R_(holeX - 12, gy - 3, 4, 1, '#b06a3a'); R_(holeX + 6, gy - 3, 4, 1, '#b06a3a');
+  fillEll(holeX, gy, 7, 2.6, '#1e0e06');
   // stash shelves with brackets
   const sh = 21, shelves = Math.max(1, Math.min(3, Math.floor((ry * 2 - 12) / sh)));
   for (let r = 0; r < shelves; r++) { const y = cy - ry + 8 + (r + 1) * sh; R_(26, y, 156, 3, '#8a5a3a'); R_(26, y, 156, 1, '#b07a50'); R_(26, y + 3, 156, 1, '#4a2a16'); for (const bx of [34, 102, 170]) { R_(bx, y + 3, 2, 4, '#5a3a22'); R_(bx + 2, y + 4, 2, 2, '#5a3a22'); } }
@@ -328,7 +339,7 @@ function drawBurrowStatic(L, spent) {
   R_(230, wallTop + 11, 12, 16, '#fff8e0'); for (let k = 0; k < 4; k++) R_(232, wallTop + 14 + k * 3, 8, 1, '#7a5236'); R_(234, wallTop + 9, 4, 3, '#e8dca0');
   for (const [mx, my, mc] of [[229, 32, '#e03030'], [240, 30, '#3a7ad8'], [233, 40, '#ff8a1c'], [241, 44, '#3fb04a']]) if (wallTop + my < gy - 8) R_(mx, wallTop + my, 3, 3, mc);
   // lawn: stepping stones, mailbox, garden with a picket fence, the grill
-  for (let i = 0; i < 6; i++) fillEll(268 + i * 18, gy - 1, 5, 1.2, i & 1 ? '#a8a49c' : '#b8b4ac');
+  for (let i = 0; i < 5; i++) fillEll(292 + i * 18, gy - 1, 5, 1.2, i & 1 ? '#a8a49c' : '#b8b4ac');
   R_(260, gy - 24, 2, 22, '#6a4224'); R_(261, gy - 24, 1, 22, '#8a5a32'); R_(255, gy - 30, 12, 8, '#3a5aa8'); R_(255, gy - 30, 12, 1, '#6a8ad8'); R_(255, gy - 23, 12, 1, '#243a78'); R_(254, gy - 28, 1, 5, '#2a3a80');
   for (let r = 0; r < 3; r++) { fillEll(320, gy - 3 - r * 3, 24 - r * 2, 1.3, '#5a3a24'); for (let x = 300 + r * 2; x < 342 - r * 2; x += 6) { if (r === 1) { fillEll(x + 1, gy - 7 - r * 3, 2.2, 1.8, '#4f9a34'); R_(x, gy - 8 - r * 3, 1, 1, '#9ade6a'); } else { R_(x + 1, gy - 8 - r * 3, 1, 4, '#3fb04a'); R_(x, gy - 9 - r * 3, 1, 2, '#62c044'); R_(x + 2, gy - 9 - r * 3, 1, 2, '#62c044'); } } }
   for (let x = 294; x < 348; x += 5) { R_(x, gy - 12, 2, 10, '#f4f0e8'); R_(x, gy - 13, 1, 1, '#f4f0e8'); R_(x + 1, gy - 12, 1, 10, '#c8c4bc'); } R_(294, gy - 9, 54, 1, '#e8e4dc');
@@ -348,7 +359,7 @@ function drawBurrowScene(L, featured) {
   if (key !== BUR_K) { BUR_K = key; const gg = g;
     BUR_SKY = mkC(NW, gy + 4); g = BUR_SKY.getContext('2d'); const [top, bot] = skyAt(.08 + spent * .9);
     for (let i = 0; i < 24; i++) R_(0, Math.floor(gy * i / 24), NW, Math.ceil(gy / 24) + 1, css(mixRGB(top, bot, i / 23)));
-    const sx = 300 - spent * 230, sy = gy * .78 - Math.sin((.15 + spent * .7) * Math.PI) * (gy * .62), sc = mixRGB(rgb('#fff6c8'), rgb('#ff8a3a'), spent);
+    const sx = 300 + spent * 66, sy = 26 + spent * gy * .5, sc = mixRGB(rgb('#fff6c8'), rgb('#ff8a3a'), spent);
     g.globalAlpha = .18; pixCircle(sx, sy, 22, css(sc)); g.globalAlpha = .3; pixCircle(sx, sy, 15, css(sc)); g.globalAlpha = 1; pixCircle(sx, sy, 10, css(sc));
     BUR_FG = mkC(NW, NH); g = BUR_FG.getContext('2d'); drawBurrowStatic(L, spent); g = gg; }
   g.drawImage(BUR_SKY, 0, 0);
@@ -859,7 +870,6 @@ SCREENS.morning = function () {
   R_(0, gy, NW, H - gy, '#4ea232'); R_(0, gy, NW, 2, '#8ad860'); for (let x = 0; x < NW; x += 3) if (hash(x, 9) < .5) R_(x, gy - 2, 1, 2, '#62b83a');
   tx('DAY ' + s.day, NW / 2, 10, '#ffffff', { al: 'c', sc: 3, oc: '#2a140c' });
   let y = 38;
-  if (s.welcome) { y += txBlock('WELCOME BACK. YOUR GOLDEN CARROTS ARE WORTH ' + s.welcome + ' CARROTS IN THE BANK NOW. THE OLD DAYS ARE IN THE SCRAPBOOK ON THE BURROW WALL.', 40, y, NW - 80, '#2a140c', { al: 'c' }) + 4; }
   if (news.length) { tx(news.length > 1 ? 'THEY WOKE UP WANTING SOMETHING.' : 'HE WOKE UP WANTING SOMETHING.', NW / 2, y, '#2a140c', { al: 'c' }); y += 12; }
   else { tx('NOBODY NEW WANTS ANYTHING. YET.', NW / 2, y, '#2a140c', { al: 'c' }); y += 12; }
   news.forEach((id, k) => {
@@ -874,20 +884,4 @@ SCREENS.morning = function () {
   });
   if (s.call) tx('...AND THE PEBBLE PHONE IS RINGING.', NW / 2, H - 38, (t & 16) ? '#fff3b0' : '#ffffff', { al: 'c', oc: '#2a140c' });
   btn(NW / 2 - 60, H - 24, 120, 18, 'LET\'S GO', () => { s.welcome = 0; writeSave(); sagaGo('hub'); }, { gold: 1, pulse: 1 });
-};
-const INTRO = [
-  'SEVENTEEN COUSINS LIVE IN ONE BURROW IN THE FOREST, IN A PART OF ATLANTA THAT IS MOSTLY TREES.',
-  'EVERY MORNING, ONE OF THEM WAKES UP WANTING SOMETHING. IT IS RARELY LOGICAL. IT IS ALWAYS URGENT.',
-  'ONLY TWO OF THEM HAVE NAMES: THE ROOF BUN AND THE NIBBIN\' BUN. GET THE OTHERS WHAT THEY WANT, AND THEY EARN ONE TOO.',
-  'YOU GET THREE SUNS A DAY. EVERY DAY ENDS WITH A COOKOUT.'
-];
-SCREENS.intro = function () {
-  const s = SAVE.saga, i = SG.d.i || 0, H = NH;
-  drawBurrowScene(burrowLayout(), []); g.globalAlpha = .55; R_(0, 0, NW, H, '#140a06'); g.globalAlpha = 1;
-  const w = Math.min(NW - 40, 330), x = Math.round(NW / 2 - w / 2), lines = txWrap(INTRO[i], Math.floor((w - 24) / 6)), h = lines.length * 11 + 42, y = Math.round(H / 2 - h / 2);
-  paper(x, y, w, h); let left = Math.floor(SG.t * 1.5); lines.forEach((l, k) => { if (left > 0) tx(l.slice(0, left), NW / 2, y + 10 + k * 11, '#2a140c', { al: 'c' }); left -= l.length + 1; });
-  btn(x + w - 90, y + h - 22, 80, 16, i < INTRO.length - 1 ? 'NEXT' : 'START', () => {
-    if (i < INTRO.length - 1) { SG.d.i = i + 1; SG.t = 0; return; }
-    s.started = true; s.today.news = ['creek']; writeSave(); sagaGo('morning', { news: ['creek'] });
-  }, { gold: 1 });
 };

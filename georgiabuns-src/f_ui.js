@@ -91,19 +91,23 @@ function safeInsets() {
   const cs = getComputedStyle(el), f = v => parseFloat(v) || 0;
   return { t: f(cs.paddingTop), r: f(cs.paddingRight), b: f(cs.paddingBottom), l: f(cs.paddingLeft) };
 }
+// touch controls only on touch screens; a desktop with a mouse and keyboard gets a clean screen
+function hasTouch() { return !!(UI.touchSeen || ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0 || (window.matchMedia && matchMedia('(any-pointer: coarse)').matches)); }
 function layout() {
   const vv = window.visualViewport, W = Math.round(vv ? vv.width : innerWidth), H = Math.round(vv ? vv.height : innerHeight);
-  UI.W = W; UI.H = H; UI.portrait = H > W * 1.08;
+  UI.W = W; UI.H = H; UI.portrait = H > W * 1.08; UI.touch = hasTouch();
   let playH = H, deckH = 0;
-  if (UI.portrait) { playH = Math.min(Math.round(W * 320 / NW), H - 220); deckH = H - playH; }
+  if (UI.portrait && UI.touch) { playH = Math.min(Math.round(W * 320 / NW), H - 220); deckH = H - playH; }
+  else if (UI.portrait) playH = Math.min(Math.round(W * 320 / NW), H);
   UI.playW = W; UI.playH = playH;
   const newNH = clamp(Math.round(NW * playH / W), 200, 320);
   if (newNH !== NH) { NH = newNH; scr.height = NH; g = scr.getContext('2d'); g.imageSmoothingEnabled = false; }
   const dpr = window.devicePixelRatio || 1, k = clamp(Math.ceil(W * dpr / NW), 1, 6);
   disp.width = NW * k; disp.height = NH * k; UI.k = k;
   const ctlMode = S && (S.mode === 'play' || S.mode === 'throw' || S.mode === 'intro' || S.mode === 'drive' || S.mode === 'goal');
-  const play = $('play'); play.style.width = W + 'px'; play.style.height = playH + 'px'; play.style.top = (UI.portrait && !ctlMode ? Math.round((H - playH) / 2) : 0) + 'px';
-  const deck = $('deck'); deck.hidden = !UI.portrait || !ctlMode; deck.style.height = deckH + 'px';
+  const deckOn = UI.portrait && ctlMode && UI.touch;
+  const play = $('play'); play.style.width = W + 'px'; play.style.height = playH + 'px'; play.style.top = (UI.portrait && !deckOn ? Math.round((H - playH) / 2) : 0) + 'px';
+  const deck = $('deck'); deck.hidden = !deckOn; deck.style.height = deckH + 'px';
   const sz = { S: .8, M: 1, L: 1.22 }[SAVE.size] || 1, short = Math.min(W, H);
   const jd = Math.round(clamp(short * (UI.portrait ? .26 : .19), 96, 190) * sz);
   const jb = $('jump'); jb.style.width = jb.style.height = jd + 'px';
@@ -115,16 +119,16 @@ function layout() {
   UI.ghost = UI.portrait ? [W * .25, playH + (deckH - SI.b) / 2] : [Math.round(W * .03) + SI.l + UI.stickR + 10, H - Math.max(Math.round(H * .05), SI.b + 6) - UI.stickR - 10];
   placeStick(null);
   const showCtl = S && (S.mode === 'play' || S.mode === 'throw' || S.mode === 'intro' || S.mode === 'drive' || S.mode === 'goal');
-  jb.hidden = !showCtl; sb.hidden = !showCtl || SAVE.easy; kn.hidden = sb.hidden;
-  $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub' || S.mode === 'saga'; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
-  $('hint').hidden = !(UI.portrait && SAVE.easy && showCtl);
+  jb.hidden = !showCtl || !UI.touch; sb.hidden = !showCtl || SAVE.easy || !UI.touch; kn.hidden = sb.hidden;
+  $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub' || S.mode === 'saga' || !UI.touch; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
+  $('hint').hidden = !(UI.portrait && SAVE.easy && showCtl && UI.touch);
   // EASY and pause: smaller on phones; in portrait they sit at the top of the control deck, below the game
   const hs = hudScale(); if (UI.hs !== hs) { UI.hs = hs; refreshEasy(); refreshPause(); }
   UI.pauseV = Math.ceil((15 * hs + 18) * NW / W) + 2;
   const eb = $('easy'), pb = $('pause'), pad = hs === 2 ? 2 : 4;
-  let bt = pad; if (UI.portrait) bt = ctlMode ? playH + 4 + pad : Math.round((H - playH) / 2) + pad;
+  let bt = pad; if (UI.portrait) bt = deckOn ? playH + 4 + pad : Math.round((H - playH) / 2) + pad;
   eb.style.top = pb.style.top = bt + 'px';
-  if (UI.portrait && ctlMode) { const top = playH + 4 + pad + 15 * hs + 16, rest = H - top - SI.b; jb.style.top = Math.round(top + rest * .45 - jd / 2) + 'px'; UI.ghost = [W * .25, top + rest * .45]; placeStick(null); const hn = $('hint'); hn.style.top = top + 'px'; hn.style.height = rest + 'px'; hn.style.bottom = 'auto'; }
+  if (deckOn) { const top = playH + 4 + pad + 15 * hs + 16, rest = H - top - SI.b; jb.style.top = Math.round(top + rest * .45 - jd / 2) + 'px'; UI.ghost = [W * .25, top + rest * .45]; placeStick(null); const hn = $('hint'); hn.style.top = top + 'px'; hn.style.height = rest + 'px'; hn.style.bottom = 'auto'; }
   UI.lastMode = S && S.mode;
 }
 function placeStick(pt) {
@@ -152,6 +156,7 @@ function zoneFor(x, y) {
   return 'none';
 }
 function onDown(e) {
+  if (e.pointerType === 'touch' && !UI.touchSeen) { UI.touchSeen = true; layout(); }
   if (paused) return;
   auUnlock();
   const z = zoneFor(e.clientX, e.clientY);

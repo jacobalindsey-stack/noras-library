@@ -31,7 +31,7 @@ function boulderC(r) { return A.boulder[r] || (A.boulder[r] = boulderSpr(r)); }
 
 const IN = { ix: 0, iy: 0, jump: false, jumpP: false, press: false, tapX: null, tapY: null };
 function heroSet() { if (MISSION && MISSION.runner != null) return famSet(MISSION.runner); return LV && LV.hero ? A[LV.hero] : A.hero; }
-const PH = { ACC: .09, DEC: .55, FRC: .07, TOP: 6.6, MAXS: 15, SLP: .14, SLPUP: .08, SLPDN: .32, RFRC: .028, RDEC: .13, AIR: .14, GRV: .22, JMP: 6.7, JCUT: 4 };
+const PH = { ACC: .09, DEC: .55, FRC: .07, TOP: 5.5, MAXS: 15, SLP: .14, SLPUP: .08, SLPDN: .32, RFRC: .028, RDEC: .13, AIR: .14, GRV: .22, JMP: 6.7, JCUT: 4 };
 let S = null;
 
 function newGame(mode, day) {
@@ -54,7 +54,7 @@ function newGame(mode, day) {
 
 /* ---------- helpers ---------- */
 // lines stay up long enough to read (about 3.4 frames a letter after the typing finishes) and wait their turn
-function readTime(text, dur) { return Math.max(dur || 150, 90 + text.length * 3.6); }
+function readTime(text, dur) { return Math.max(dur || 150, 130 + text.length * 4.6); }
 function say(who, text, dur) {
   const d = readTime(text, dur), busy = S.bubbles.find(b => b.who === who && b.t < b.dur * .75);
   if (busy || S.bubbles.length >= 2) { if (!S.sayQ.some(q => q.text === text)) S.sayQ.push({ who, text, dur: d, at: S.t }); return; }
@@ -80,7 +80,7 @@ function curVel(p) { return p.ground ? [p.gsp * Math.cos(p.ang), p.gsp * Math.si
 /* ---------- player ---------- */
 function stepPlayer() {
   const p = S.pl, crew = S.crew > 0;
-  const TOP = p.inWater ? 2.6 : (crew ? 9.5 : PH.TOP), ACC = p.inWater ? .06 : (crew ? .17 : PH.ACC);
+  const TOP = p.inWater ? 2.6 : (crew ? 8 : PH.TOP), ACC = p.inWater ? .06 : (crew ? .17 : PH.ACC);
   const ix = IN.ix, iy = IN.iy;
   if (p.tumble > 0) p.tumble--; if (p.inv > 0) p.inv--; if (p.spring > 0) p.spring--; if (p.springCD > 0) p.springCD--; if (p.skid > 0) p.skid--; if (p.throwT > 0) p.throwT--;
   p.prevX = p.x; p.prevY = p.y;
@@ -158,7 +158,7 @@ function groundStep(p, ix, iy, ACC, TOP) {
     p.jumping = true; p.ball = true; p.roll = false; sfx('jump'); return;
   }
   const nx = p.x + p.gsp * Math.cos(a);
-  if (LOOP && s === 'g' && p.gsp > 0 && p.x < LOOP.cx && nx >= LOOP.cx) { p.surf = 'loop'; p.lt = 0; p.x = LOOP.cx; p.y = LOOP.cy + LOOP.R; return; }
+  if (LOOP && s === 'g' && p.gsp > 0 && p.x < LOOP.cx && nx >= LOOP.cx) { if (p.gsp < 7.4) { p.gsp = 7.4; sfx('launch'); dust(p.x, p.y, 6, 3); } p.surf = 'loop'; p.lt = 0; p.x = LOOP.cx; p.y = LOOP.cy + LOOP.R; return; }
   const ny = surfAt(s, nx);
   if (ny != null && s === 'g' && p.y - ny > Math.max(12, Math.abs(p.gsp) * 1.3)) { // a cliff face, not a slope
     if (LV.climb && nx > p.x) { startClimb(p); return; }
@@ -498,8 +498,8 @@ function introPos() {
   const t = S.intro;
   if (!LV.burrow) { const ex = Math.min(LV.start - 70, LV.start - 400 + t * 4); return [ex + 60, groundY(LV.start) - (t > 110 ? 10 : 0)]; }
   if (t < 60) return [262, 391];
-  if (t < 105) return [lerp(262, 372, (t - 60) / 45), 391];
-  const k = Math.min(1, (t - 105) / 45); return [lerp(372, 500, k), lerp(389, 302, k)];
+  if (t < 105) return [lerp(262, 386, (t - 60) / 45), 391];
+  const k = Math.min(1, (t - 105) / 48), [x, y] = tunnelAt(k); return [x, y + lerp(9, 2, k)];
 }
 
 /* ---------- generic day finale: reach the goal, celebrate, cookout ---------- */

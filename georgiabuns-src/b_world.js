@@ -109,7 +109,21 @@ const BANK = ['#c9a878', '#b08c5c', '#9a7848', '#86663c', '#735632', '#634a2a', 
 const BED = ['#7a8478', '#5e6a64', '#94a092', '#4c5854'].map(rgb);
 const CHAMBER = rgb('#3b1d10'), CHAMBER_L = rgb('#5a2c18'), CHAMBER_GLOW = rgb('#7a4022');
 const TERR = { chunks: [], CW: 256 };
-function inChamber(x, y) { const dx = (x - 300) / 122, dy = (y - 362) / 34; if (dx * dx + dy * dy < 1 && y < 392) return 1; const tx = (x - 372) / 128; if (tx >= 0 && tx <= 1 && y < 389) { const cy = lerp(380, 302, tx); if (Math.abs(y - cy) < 9) return 2; } return 0; }
+// the burrow under the lawn: a round chamber, and a tunnel that runs along the floor and curves up to a hole by the house
+const TUN = { p0: [388, 381], c: [478, 386], p2: [503, 297] };
+function tunnelAt(k) { const u = 1 - k, T = TUN; return [u * u * T.p0[0] + 2 * u * k * T.c[0] + k * k * T.p2[0], u * u * T.p0[1] + 2 * u * k * T.c[1] + k * k * T.p2[1]]; }
+function tunnelAng(k) { const T = TUN, dx = 2 * (1 - k) * (T.c[0] - T.p0[0]) + 2 * k * (T.p2[0] - T.c[0]), dy = 2 * (1 - k) * (T.c[1] - T.p0[1]) + 2 * k * (T.p2[1] - T.c[1]); return Math.atan2(dy, dx); }
+let CH_MASK = null; const CHM = { x0: 150, y0: 270, w: 400, h: 150 };
+function chamberMask() {
+  if (CH_MASK) return CH_MASK; const M = new Uint8Array(CHM.w * CHM.h), set = (x, y, v) => { x = Math.round(x) - CHM.x0; y = Math.round(y) - CHM.y0; if (x >= 0 && y >= 0 && x < CHM.w && y < CHM.h && M[y * CHM.w + x] < v) M[y * CHM.w + x] = v; };
+  for (let y = CHM.y0; y < CHM.y0 + CHM.h; y++) for (let x = CHM.x0; x < CHM.x0 + CHM.w; x++) { const dx = (x - 300) / 122, dy = (y - 362) / 34; if (dx * dx + dy * dy < 1 && y < 392) set(x, y, 2); }
+  for (let k = 0; k <= 1.0001; k += .004) { const [cx, cy] = tunnelAt(k), r = lerp(10.5, 8, k); for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) set(cx + x, cy + y, 2); }
+  // a two-pixel rim of darker clay all the way round, so the hollow reads as dug out
+  const R = new Uint8Array(M); for (let y = 1; y < CHM.h - 1; y++) for (let x = 1; x < CHM.w - 1; x++) { if (M[y * CHM.w + x]) continue; for (let d = 1; d <= 2; d++) if (M[y * CHM.w + x - d] === 2 || M[y * CHM.w + x + d] === 2 || M[(y - d) * CHM.w + x] === 2 || M[(y + d) * CHM.w + x] === 2) { R[y * CHM.w + x] = d === 1 ? 1 : Math.max(R[y * CHM.w + x], 3); break; } }
+  return (CH_MASK = R);
+}
+// 0 solid, 1 rim, 3 outer rim, 2 hollow
+function inChamber(x, y) { if (x < CHM.x0 || y < CHM.y0 || x >= CHM.x0 + CHM.w || y >= CHM.y0 + CHM.h) return 0; return chamberMask()[(y - CHM.y0) * CHM.w + (x - CHM.x0)]; }
 function buildTerrain() {
   const CW = TERR.CW; TERR.chunks = []; const isCreek = LV.id === 'creek' || LV.id === 'garden';
   for (let cx = 0; cx < WW; cx += CW) {
@@ -145,14 +159,16 @@ function buildTerrain() {
           if (hash(x >> 1, y >> 1) < .004) col = rgb('#e8a070');
           if (dd > 120) col = mixRGB(col, [70, 22, 12], Math.min(.5, (dd - 120) / 260));
         }
-        if (dd >= 0 && x < 520 && LV.id === 'creek') { const ch = inChamber(x, y); if (ch) { col = (y > 385 && ch === 1) ? CHAMBER_L : CHAMBER; if (ch === 1 && y < 386) { const gd = Math.hypot(x - 362, (y - 370) * 1.6); if (gd < 46) col = mixRGB(CHAMBER_GLOW, col, gd / 46); } } }
+        if (dd >= -3 && x < 560 && (LV.id === 'creek' || LV.home)) { const ch = inChamber(x, y);
+          if (ch === 2) { const floor = inChamber(x, y + 3) !== 2; col = floor ? CHAMBER_L : CHAMBER; const gd = Math.hypot(x - 362, (y - 370) * 1.6); if (gd < 46) col = mixRGB(CHAMBER_GLOW, col, gd / 46); if (!floor && inChamber(x, y - 2) !== 2) col = mixRGB(col, [20, 8, 4], .35); }
+          else if (ch === 1 && col) col = mixRGB(col, [40, 12, 6], dd < 3 ? .3 : .55); else if (ch === 3 && col) col = mixRGB(col, [40, 12, 6], .25); }
         if (!col) continue;
         const p = ((y - top) * CW + i) * 4; d[p] = col[0]; d[p + 1] = col[1]; d[p + 2] = col[2]; d[p + 3] = 255;
       }
     }
     g.putImageData(id, 0, 0);
     srand(cx * 3 + 1);
-    for (let k = 0; k < 4; k++) { const sx = cx + 10 + rnd() * (CW - 20), dep = 16 + rnd() * 90, r = 2 + rnd() * 3.5; if (sx > WATER.x0 - 40 && sx < WATER.x1 + 40) continue; if (sx < 520 && LV.id === 'creek') continue; if (LV.noStones && LV.noStones(sx)) continue; const st = new Spr(Math.ceil(r * 2.6) + 4, Math.ceil(r * 2) + 4); st.ell(st.w / 2, st.h / 2, r * 1.3, r, [2, 3, 4]); g.drawImage(st.outline(1).canvas(palette(['#5a2414', '#9a8e86', '#6e625c', '#c4b8ae'])), Math.round(sx - cx - st.w / 2), Math.round(GY[Math.floor(sx)] + dep - top)); }
+    for (let k = 0; k < 4; k++) { const sx = cx + 10 + rnd() * (CW - 20), dep = 16 + rnd() * 90, r = 2 + rnd() * 3.5; if (sx > WATER.x0 - 40 && sx < WATER.x1 + 40) continue; if (sx < 560 && (LV.id === 'creek' || LV.home)) continue; if (LV.noStones && LV.noStones(sx)) continue; const st = new Spr(Math.ceil(r * 2.6) + 4, Math.ceil(r * 2) + 4); st.ell(st.w / 2, st.h / 2, r * 1.3, r, [2, 3, 4]); g.drawImage(st.outline(1).canvas(palette(['#5a2414', '#9a8e86', '#6e625c', '#c4b8ae'])), Math.round(sx - cx - st.w / 2), Math.round(GY[Math.floor(sx)] + dep - top)); }
     if (LV.zone(cx) === 1 || LV.zone(cx) === 6) for (let k = 0; k < 2; k++) { let rx = cx + rnd() * CW, ry = GY[Math.floor(rx)] + 8; g.fillStyle = '#5a2a14'; for (let i = 0; i < 26; i++) { g.fillRect(Math.round(rx - cx), Math.round(ry - top), 2, 2); rx += (rnd() - .5) * 2.4; ry += .8 + rnd() * .6; } }
     TERR.chunks.push({ x: cx, y: top, c });
   }
