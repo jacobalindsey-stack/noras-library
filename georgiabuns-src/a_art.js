@@ -153,9 +153,10 @@ const BUN_FURS = {
   dexter: ['#e2c48e', '#b8955c', '#f6e2b6'],
   marsh: ['#9a8468', '#6e5a44', '#c2ad8e']
 };
+let beanieCol = null;
 function bunPal(fur) {
   const f = BUN_FURS[fur] || BUN_FURS.hero;
-  return palette(['#2a140c', f[0], f[1], f[2], '#f4e2bd', '#d4b88c', '#ef8e94', '#ffffff', '#1a0e0a', '#d95a72', '#f6c645', '#b8860b', '#fff3b0', '#ff8a1c', '#3fb04a', '#121018']);
+  return palette(['#2a140c', f[0], f[1], f[2], '#f4e2bd', '#d4b88c', '#ef8e94', '#ffffff', '#1a0e0a', '#d95a72', '#f6c645', '#b8860b', '#fff3b0', '#ff8a1c', '#3fb04a', '#121018', beanieCol || '#c8302a', '#ffffff']);
 }
 const BW = 40, BH = 46, BAX = 19, BAY = 44; // sprite size and feet anchor
 function bunSpr(o) {
@@ -187,6 +188,7 @@ function bunSpr(o) {
     s.set(hx + 6.6, hy + 0.6, 10); s.set(hx + 6.6, hy + 1.6, 10);
     if (o.teeth) { s.set(hx + 5, hy + 3.6, 8); s.set(hx + 5, hy + 4.6, 8); }
     if (o.mouth) { s.ell(hx + 4.6, hy + 4, 1.6, 1.4, 9); s.set(hx + 5, hy + 2.8, 8); }
+    if (o.beanie) { s.ell(hx - .5, hy - 4, 7, 3.6, 17); s.rect(hx - 7, hy - 3, 14, 2, 17); s.ell(hx - 6, hy - 8, 1.8, 1.8, 18); }
     // front ear + inner
     s.ell(o.e1x, Y(o.e1y), 2.7, o.el1 || 7.8, F, o.e1a);
     s.ell(o.e1x + Math.cos(o.e1a) * 0.6, Y(o.e1y) + Math.sin(o.e1a) * 0.6, 1.1, (o.el1 || 7.8) - 2.6, 7, o.e1a);
@@ -239,7 +241,7 @@ const POSES = {
 };
 // build every pose for a fur/accessory combo
 function buildBun(fur, extra) {
-  const pal = bunPal(fur), out = {};
+  beanieCol = extra && extra.beanie; const pal = bunPal(fur), out = {}; beanieCol = null;
   for (const k in POSES) out[k] = POSES[k].map(o => bunSpr(Object.assign({}, o, extra || {})).canvas(pal));
   return out;
 }

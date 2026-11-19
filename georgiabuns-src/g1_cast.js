@@ -14,7 +14,8 @@ function itemSprites() {
   const sand = s => { s.ell(8, 7, 6, 5.5, [7, 7, 7]); s.ell(8, 7, 5, 4.5, 7); for (let k = 0; k < 5; k++) { const a = k * 1.256 - 1.57; s.line(8, 7, 8 + Math.cos(a) * 3, 7 + Math.sin(a) * 3, 8); } s.ell(6, 5, 1.5, 1, 11); };
   const box = s => { s.rect(2, 4, 12, 9, 9); s.rect(2, 4, 12, 2, 10); s.rect(3, 6, 10, 6, 9); s.rect(4, 7, 8, 4, 9); s.rect(2, 4, 12, 1, 9); s.line(5, 4, 7, 1, 15); s.line(11, 4, 9, 1, 15); s.rect(7, 4, 2, 9, 15); };
   const veg = s => { s.ell(6, 9, 4, 4, [12, 13, 5]); s.ell(11, 10, 3.5, 3, [14, 15, 14]); s.ell(5, 4, 1, 3, 5, -.4); s.ell(8, 5, 1, 3, 12, .3); };
-  return { rock: [A.rock, A.rockG], peach: [mk(peach), mk(peach, 1)], sand: [mk(sand), mk(sand, 1)], box: [mk(box), mk(box, 1)], veg: [mk(veg), mk(veg, 1)] };
+  const snow = s => { s.sphere(8, 8, 5.5, 5.5, [7, 7, 16, 16]); s.set(6, 6, 16); };
+  return { snowball: [mk(snow), mk(snow, 1)], rock: [A.rock, A.rockG], peach: [mk(peach), mk(peach, 1)], sand: [mk(sand), mk(sand, 1)], box: [mk(box), mk(box, 1)], veg: [mk(veg), mk(veg, 1)] };
 }
 function sevenFrames() {
   const pal = palShift(['#1e0e06', '#8a4a24', '#5e3014', '#b06a3a', '#2a1a10', '#f4e2bd', '#1a0e0a', '#ffffff', '#d8b080']);
@@ -96,6 +97,8 @@ const CAMEOS = {
   peachdrop: { name: 'THE BIG PEACH', line: 'IT DROPS ON NEW YEAR\'S.', art: () => smallSpr(26, 30, ['#2a140c', '#ffb347', '#e0782a', '#ffd9a0', '#3fb04a', '#8a8a8a'], s => { s.rect(12, 0, 2, 8, 6); s.ell(13, 18, 10, 10, [2, 3, 4]); s.line(13, 9, 13, 27, 3); s.ell(18, 8, 4, 2, 5, -.5); }) },
   mailbox: { name: 'THE BUNS\' MAILBOX', line: 'MOSTLY CARROT CATALOGS.', art: () => smallSpr(22, 34, ['#2a140c', '#3a5aa8', '#2a3a80', '#6a8ad8', '#e03030', '#8a5a3a'], s => { s.rect(10, 14, 3, 20, 6); s.rect(2, 4, 18, 11, 2); s.ell(11, 4, 9, 3, 2); s.rect(2, 4, 18, 2, 4); s.rect(19, 2, 2, 6, 5); s.rect(18, 2, 3, 2, 5); }) },
   sphinx: { name: 'A SPHINX FRAGMENT', line: 'THIRTEEN OF THESE ARE SOMEWHERE.', art: () => smallSpr(22, 18, ['#2a140c', '#d8b67b', '#a8864b', '#f0d8a8'], s => { s.ell(9, 12, 8, 5, [2, 3, 4]); s.ell(16, 7, 4, 4.5, [2, 3, 4]); s.rect(13, 3, 7, 2, 3); s.tri(4, 8, 2, 16, 10, 16, 2); }) },
+  bsquirrel: { name: 'A BOULDER SQUIRREL', line: 'SUNNY? NAH. I\'M FROM AROUND HERE. ...WE\'RE RELATED, PROBABLY.', art: () => smallSpr(26, 26, ['#20161a', '#8c8c94', '#5f5f69', '#c4c4cc', '#f2eee6', '#c8302a'], s => { for (let k = 0; k < 9; k++) { const t = k / 8, a = -0.3 - t * 2.9; s.ell(7 + Math.cos(a) * 6, 16 + Math.sin(a) * 8, 4 - t * .8, 4 - t * .8, [2, 3, 4]); } s.ell(15, 18, 5, 6, [2, 3, 4]); s.ell(16.5, 19, 2.6, 4, 5); s.ell(18, 11, 4.5, 4, [2, 3, 4]); s.ell(18, 8, 4.5, 2.2, 6); s.set(20, 10, 1); s.ell(14, 24, 3, 1.6, 2); s.ell(19, 24, 3, 1.6, 2); }) },
+  skis: { name: 'TINY SKIS', line: 'SOMEBODY\'S HAVING A BETTER DAY THAN US.', art: () => smallSpr(20, 30, ['#1a1420', '#c8302a', '#2a6ab8', '#c8ced8'], s => { s.rect(5, 2, 3, 26, 2); s.rect(12, 2, 3, 26, 3); s.rect(5, 1, 3, 2, 4); s.rect(12, 1, 3, 2, 4); s.rect(3, 14, 14, 2, 4); }) },
   vinyl: { name: 'A GOLD RECORD', line: 'FRENCH TOUCH. VERY TOUCHY.', art: () => smallSpr(22, 22, ['#1a1420', '#2a2430', '#f6c645', '#ff4fa0'], s => { s.ell(11, 11, 10, 10, 1); for (let r = 4; r < 10; r += 2) for (let a = 0; a < 6.3; a += .08) s.set(11 + Math.cos(a) * r, 11 + Math.sin(a) * r, 2); s.ell(11, 11, 3, 3, 3); s.set(11, 11, 4); }) }
 };
 for (const k in CAMEOS) {
@@ -110,5 +113,7 @@ function buildAssets2() {
   A.suitcase = [0, 1].map(i => smallSpr(34, 22, ['#1a0e0a', '#c8302a', '#8a1a14', '#e85a4a', '#d8d0c0', '#2a2a2a'], s => { s.rect(2, 6 + i * 3, 30, 15 - i * 3, 2); s.rect(2, 6 + i * 3, 30, 2, 4); s.rect(12, 2 + i * 3, 10, 4, 6); s.rect(14, 3 + i * 3, 6, 2, 0); s.rect(6, 8 + i * 3, 2, 12 - i * 3, 3); s.rect(26, 8 + i * 3, 2, 12 - i * 3, 3); }));
   A.sprinkler = [0, 1].map(i => smallSpr(20, 18, ['#1a0e0a', '#3fb04a', '#237a2e', '#9ad0ff', '#d8d0c0'], s => { s.rect(6, 12 - i * 3, 8, 6 + i * 3, 2); s.rect(8, 6 - i * 3, 4, 7, 1); if (i) for (let k = 0; k < 7; k++) s.set(3 + k * 2.3, 2 + Math.abs(k - 3), 4); }));
   A.hero = buildBun('hero', { pendant: SAVE.drip || 1 });
+  A.bb1 = buildBun('white', { beanie: '#c8302a' }); A.bb2 = buildBun('gray', { beanie: '#2f8a3a' }); A.bb3 = buildBun('honey', { beanie: '#2a6ab8' });
+  A.snowbank = [0, 1].map(i => smallSpr(36, 16, ['#5a78a0', '#ffffff', '#dfeaf6', '#b8cce4'], s => { s.sphere(18, 16 - (i ? 3 : 6) + 6, 16, i ? 6 : 9, [4, 3, 2, 2]); }));
 }
 function setDrip(kind) { SAVE.drip = kind; writeSave(); A.hero = buildBun('hero', { pendant: kind }); }

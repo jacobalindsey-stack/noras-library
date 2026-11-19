@@ -73,10 +73,16 @@ function stepPlayer() {
   const ix = IN.ix, iy = IN.iy;
   if (p.tumble > 0) p.tumble--; if (p.inv > 0) p.inv--; if (p.spring > 0) p.spring--; if (p.springCD > 0) p.springCD--; if (p.skid > 0) p.skid--; if (p.throwT > 0) p.throwT--;
   p.prevX = p.x; p.prevY = p.y;
-  if (p.surf === 'loop') { loopStep(p, ix, ACC, TOP); }
+  if (p.climb) {
+    const c = p.climb; p.y -= IN.jump ? 3.8 : 2.7; p.x = c.x; p.ang = 0; p.face = 1;
+    if (S.t % 10 === 0) { part({ type: 'chip', x: p.x + 6, y: p.y - 6, vx: Math.random() - .2, vy: -1, g: .2, life: 30, col: '#c87a56' }); }
+    if (ix < -.6) { p.climb = null; airborne(p, -2.5, -2); }
+    else if (p.y <= c.top + 1) { p.climb = null; p.x = c.x + 14; p.y = groundY(p.x); p.ground = true; p.surf = 'g'; p.gsp = 3.5; dust(p.x, p.y, 5, 2); sfx('land'); }
+  }
+  else if (p.surf === 'loop') { loopStep(p, ix, ACC, TOP); }
   else if (p.ground) groundStep(p, ix, iy, ACC, TOP);
   else airStep(p, ix, iy, TOP);
-  if (p.surf !== 'loop') collide(p);
+  if (p.surf !== 'loop' && !p.climb) collide(p);
   // water
   const wasW = p.inWater;
   p.inWater = p.x > WATER.x0 && p.x < WATER.x1 && p.y > WATER.y - 4;
@@ -137,6 +143,10 @@ function groundStep(p, ix, iy, ACC, TOP) {
   const nx = p.x + p.gsp * Math.cos(a);
   if (LOOP && s === 'g' && p.gsp > 0 && p.x < LOOP.cx && nx >= LOOP.cx) { p.surf = 'loop'; p.lt = 0; p.x = LOOP.cx; p.y = LOOP.cy + LOOP.R; return; }
   const ny = surfAt(s, nx);
+  if (ny != null && s === 'g' && p.y - ny > Math.max(12, Math.abs(p.gsp) * 1.3)) { // a cliff face, not a slope
+    if (LV.climb && nx > p.x) { startClimb(p); return; }
+    p.gsp = -p.gsp * .4; sfx('bonk'); return;
+  }
   if (ny == null) { airborne(p, p.gsp * Math.cos(a), p.gsp * Math.sin(a)); p.x = nx; p.ball = p.roll; return; }
   const expect = p.y + p.gsp * Math.sin(a);
   if (ny - expect > 4 && Math.abs(p.gsp) > 8.5) { airborne(p, p.gsp * Math.cos(a), p.gsp * Math.sin(a)); p.x = nx; p.y = expect; p.ball = p.roll; return; }
@@ -151,6 +161,7 @@ function airStep(p, ix, iy, TOP) {
   p.x += p.vx; p.y += p.vy;
   // landing: solid ground, or one-way platforms from above
   const gy = groundY(p.x); let land = null, ly = 0;
+  if (p.y - gy > 16 && p.prevY > gy + 4) { if (LV.climb && p.vx >= 0) { p.x = p.prevX; startClimb(p); return; } p.x = p.prevX; p.vx = -p.vx * .3; return; }
   if (p.y >= gy) { land = 'g'; ly = gy; }
   if (p.vy >= 0) for (const pl of PLATS) { const py = platY(pl, p.x); if (py != null && p.prevY <= py + 2 && p.y >= py && (land == null || py < ly)) { land = pl; ly = py; } }
   if (!land) return;
@@ -482,4 +493,11 @@ function stepGoal() {
   if (S.goalT % 40 === 20 && p.ground && S.goalT < 140) { airborne(p, 0, -5); p.spring = 20; sfx('jump'); }
   if (LV.goalStep) LV.goalStep(S);
   if (S.goalT === 170) S.fadeTo = 'cook';
+}
+
+function startClimb(p) {
+  let wx = p.x; while (wx < p.x + 24 && groundY(wx + 1) > p.y - 12) wx++;
+  let tx = wx + 2; while (tx < wx + 40 && groundY(tx + 1) < groundY(tx) - .5) tx++;
+  p.climb = { x: wx - 7, top: groundY(tx + 4) }; p.ground = false; p.surf = null; p.vx = 0; p.vy = 0; p.ball = false; p.roll = false; p.gsp = 0;
+  sfx('jump'); if (!S.climbSaid) { S.climbSaid = 1; popText(p.x, p.y - 50, 'CLIMB! (HOLD JUMP TO GO FASTER)', '#f6c645'); }
 }

@@ -157,7 +157,7 @@ window.NORA_GAMES = [
     platforms: ['iPad', 'PC', 'iPhone'],
     blurb: "Seventeen bunny cousins, six days, one burning want each. Throw rocks in the creek, find the sweetest peach on Dexter's farm, cruise Peachtree in the Escalade for ice, learn to sit like a cat with Pontoon, go shopping in Paris, and throw the biggest garden party Georgia ever saw.",
     howto: "Arrow keys or WASD to run, Space to jump, Down to roll (hold Down and tap jump to rev up). On an iPad, slide a thumb anywhere on the left to run and tap JUMP; the EASY switch lets you just hold where you want to go. Pick a day from the pebble phone in the burrow. On an iPhone, turn it sideways.",
-    note: "Sega-style covers of the Georgia Buns album. Hidden in every day: three golden carrots and stickers from Nora's other games.",
+    note: "Sega-style covers of the Georgia Buns album. Hidden in every day: three golden carrots and stickers from Nora's other games. And keep an eye on the burrow window.",
     shots: ['previews/georgiabuns-play.jpg', 'previews/georgiabuns-title.jpg'],
     href: 'georgiabuns.html',
     ground: '#2a2058',

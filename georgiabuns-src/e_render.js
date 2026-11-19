@@ -47,6 +47,7 @@ function drawBackdrop(cx, cy, pr) {
 }
 function bunFrame(set, p) {
   const sp = Math.abs(p.gsp), ph = Math.floor(p.animPh) & 3;
+  if (p.climb) return (S.t >> 3) & 1 ? set.jump[0] : set.fall[0];
   if (p.throwT > 0) return set.throw[p.throwT > 12 ? 0 : 1];
   if (S.mode === 'throw') return set.idle[(S.t % 200 < 8) ? 1 : 0];
   if (p.surf === 'loop') return p.roll ? set.ball[(S.t >> 1) & 3] : sp > 8 ? set.dash[ph] : set.run[ph];
@@ -204,6 +205,7 @@ function drawPart(q) {
     case 'text': g.globalAlpha = k > .7 ? (1 - k) / .3 : 1; drawTextO(g, q.s, x - textW(q.s) / 2, y, q.col, 1, '#2a140c'); g.globalAlpha = 1; break;
     case 'z': g.globalAlpha = 1 - k; drawText(g, 'Z', x, y, '#ffffff', 1, '#2a140c'); g.globalAlpha = 1; break;
     case 'leaf': g.fillStyle = (q.ph > 3) ? '#c8913a' : '#7cc85a'; g.fillRect(x, y, 2, 1); g.fillRect(x + 1, y + 1, 1, 1); break;
+    case 'snow': g.fillStyle = '#ffffff'; g.fillRect(x, y, (q.t & 64) ? 2 : 1, 1); break;
     case 'smoke': g.globalAlpha = .35 * (1 - k); g.fillStyle = '#d8d0c8'; const s = 2 + k * 6; g.fillRect(x - s / 2, y - s / 2, s, s); g.globalAlpha = 1; break;
   }
 }
@@ -282,7 +284,7 @@ function drawTitle() {
   drawTextO(g, sub, Math.round(NW / 2 - textW(sub) / 2), by + 90, '#ffffff', 1, '#2a140c');
   if ((t >> 4) & 1 || t < 20) { const cta = 'TAP TO PLAY'; drawTextO(g, cta, Math.round(NW / 2 - textW(cta, 2) / 2), NH - 34, '#ffffff', 2, '#2a140c'); }
 }
-const CREDITS = ['GEORGIA BUNS', '', 'STARRING', 'SEVENTEEN COUSINS', 'THE ROOF BUN', 'THE NIBBIN\' BUN', 'SUNNY THE SQUIRREL', 'THE BOBCAT', 'DEXTER, SEVEN AND MISS ELLI', 'PONTOON THE MARSH BUN', 'LES ESCARGOTS DISCO', '', 'MUSIC', 'THE GEORGIA BUNS ALBUM', 'IN 16-BIT', '', 'MADE IN GEORGIA', 'IN SPIRIT', '', 'THANKS FOR PLAYING'];
+const CREDITS = ['GEORGIA BUNS', '', 'STARRING', 'SEVENTEEN COUSINS', 'THE ROOF BUN', 'THE NIBBIN\' BUN', 'SUNNY THE SQUIRREL', 'THE BOBCAT', 'DEXTER, SEVEN AND MISS ELLI', 'PONTOON THE MARSH BUN', 'LES ESCARGOTS DISCO', '', 'MUSIC', 'THE GEORGIA BUNS ALBUM', 'IN 16-BIT', '', 'MADE IN GEORGIA', 'IN SPIRIT', '', 'THANKS FOR PLAYING', '', '', 'PSST. CHECK THE BURROW WINDOW.'];
 function drawCredits(t) { const y0 = NH - t * .35; g.globalAlpha = .65; g.fillStyle = '#0a0612'; g.fillRect(NW / 2 - 90, 0, 180, NH); g.globalAlpha = 1; CREDITS.forEach((l, i) => { const y = Math.round(y0 + i * 14); if (y < -10 || y > NH) return; drawTextO(g, l, NW / 2 - textW(l) / 2, y, i === 0 ? '#f6c645' : (CREDITS[i - 1] === '' ? '#7ad050' : '#ffffff'), 1, '#2a140c'); }); }
 function drawCook() {
   const C = S.cook, t = C.t, gy = NH - 40;

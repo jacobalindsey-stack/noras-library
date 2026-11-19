@@ -12,6 +12,9 @@ const ZONES = {
   9: (x, y, dd) => { if (dd < 0) { if ((x % 22) > 9 && (x % 22) < 13 && -dd <= 4) return -dd === 4 ? C3('#7ad050') : C3('#3fb04a'); return null; } if (dd < 2) return SOIL[2]; if (dd < 40) { let c = SOIL[(hash(x >> 1, y >> 1) * 2) | 0]; if (hash(x, y) < .02) c = C3('#8a6a4a'); return c; } const q = y + Math.sin(x * .021) * 3; return CLAY[((Math.floor(q / 7) % 5) + 5) % 5]; },
   10: (x, y, dd) => { if (dd < 0) return null; if (dd < 2) return C3('#f4f0e8'); const t = ((x >> 4) + (dd >> 4)) & 1; return C3(t ? '#d8d4cc' : '#c4c0b6'); },
   11: (x, y, dd) => { if (dd < 0) return null; if (dd < 2) return C3('#ffffff'); const t = ((x >> 4) + (dd >> 4)) % 4; return C3(['#ff4fa0', '#4fe0ff', '#f6c645', '#a060ff'][(t + 4) % 4]); },
+  13: (x, y, dd) => { if (dd < 0) return null; if (dd < 2) return C3('#ffffff'); if (dd < 26) { const b = ((dd + (Math.sin(x * .05) * 3 | 0)) >> 3) & 1; let c = C3(dd < 6 ? '#eef4fc' : b ? '#dfe9f5' : '#d2e0f0'); if (hash(x, y) < .03) c = C3('#ffffff'); if (dd > 20) c = mixRGB(c, [150, 170, 200], (dd - 20) / 8); return c; } const q = Math.floor((y + Math.sin(x * .02) * 4) / 9); let c = C3(['#7a6e72', '#8a7e80', '#6a5e62', '#94888a'][(q % 4 + 4) % 4]); if (hash(x, y) < .02) c = C3('#c4b8b4'); return c; },
+  14: (x, y, dd) => { if (dd < 0) return null; if (dd < 2) return C3('#f4fcff'); if (dd < 4) return C3('#bfe8ff'); if (dd < 30) { let c = C3(hash(x >> 3, dd >> 2) < .5 ? '#9ad0f0' : '#8ac4e8'); if ((x + dd * 2) % 23 === 0) c = C3('#e8f8ff'); return c; } return ZONES[13](x, y, dd + 26); },
+  15: (x, y, dd) => { if (dd < 0) { if (-dd <= 2 && hash(x >> 1, 21) < .25) return C3(hash(x, 4) < .5 ? '#b8a060' : '#d8c080'); return null; } if (dd < 2) return C3('#d8b88a'); if (dd < 6) return C3(hash(x, y) < .3 ? '#b8946a' : '#c8a47a'); const slab = Math.floor((y + x * .35) / 11), pos = ((Math.floor(y + x * .35) % 11) + 11) % 11; let c = C3(['#b8603e', '#a8543a', '#c46e48', '#9a4a32'][(slab % 4 + 4) % 4]); if (pos === 0) c = mixRGB(c, [255, 200, 160], .3); else if (pos === 10) c = mixRGB(c, [60, 20, 10], .35); if (hash(x >> 2, y >> 2) < .05) c = C3('#6a2a1a'); return c; },
   12: (x, y, dd) => { if (dd < 0) return null; if (dd < 2) return C3('#5a5a60'); if (dd === 2 || dd === 3) return (x % 24 < 12) ? C3('#f6c645') : C3('#3a3a40'); return C3(hash(x >> 1, y >> 1) < .5 ? '#3a3a40' : '#34343a'); }
 };
 
@@ -26,6 +29,10 @@ const THEME_LAYERS = {
     { c: layerFrom(700, 120, ['#7cc0dc', '#5aa0c8', '#b8e4f2', '#2a2a30', '#ffffff', '#8a9aa8', '#c8ced8'], s => { for (let y = 70; y < 120; y++) for (let x = 0; x < 700; x++) s.set(x, y, y === 70 ? 3 : hash(x >> 3, y) < .06 ? 3 : 1); s.tri(300, 70, 308, 18, 316, 70, 4); s.tri(303, 70, 308, 26, 313, 70, 5); s.rect(305, 14, 6, 6, 4); s.rect(306, 12, 4, 2, 3); for (let x = 470; x < 640; x++) s.set(x, 58 + Math.round(Math.abs(Math.sin((x - 470) / 170 * Math.PI)) * -12) + 12, 6); for (const x of [520, 590]) { s.tri(x - 6, 70, x, 30, x + 6, 70, 7); } }), fx: .1, fy: .05, base: 10, fill: '#5aa0c8' },
     { c: layerFrom(600, 70, ['#b8b060', '#9a9a48', '#d8d080', '#6aa8c8'], s => { srand(91); for (let x = 0; x < 600; x++) { const h = 30 + (hash(x >> 2, 1) * 8 | 0); for (let y = h; y < 70; y++) s.set(x, y, hash(x, y >> 1) < .5 ? 1 : 2); if (hash(x, 2) < .3) s.set(x, h - 1, 3); } for (let i = 0; i < 6; i++) { const x = rnd() * 560, w = 30 + rnd() * 40; for (let y = 48; y < 54; y++) for (let k = 0; k < w; k++) s.set(x + k, y, 4); } }), fx: .3, fy: .18, base: 50, fill: '#9a9a48' },
     { c: layerFrom(720, 200, ['#5a4a32', '#3f8a32', '#2c6a24', '#6cbc4a'], s => { srand(93); for (let i = 0; i < 5; i++) { const x = 40 + i * 140 + rnd() * 50, h = 110 + rnd() * 60; for (let y = 200 - h; y < 200; y++) { s.set(x, y, 1); s.set(x + 1, y, 1); s.set(x + 2, y, (y % 6 < 2) ? 1 : 1); } for (let k = 0; k < 9; k++) { const a = -Math.PI + k * .39; for (let r = 0; r < 26; r++) s.set(x + 1 + Math.cos(a) * r, 200 - h + Math.sin(a) * r * .5 + r * r * .02, r > 20 ? 4 : (k % 2 ? 2 : 3)); } } }), fx: .55, fy: .4, base: 20, fill: null }]; },
+  snow: () => { const F = buildLayers('forest'); return [F[0], F[1],
+    { c: layerFrom(700, 140, ['#8a9ab8', '#a8b8d0', '#c8d4e8', '#ffffff', '#6a7a98', '#e8eef8'], s => { srand(131); for (let i = 0; i < 9; i++) { const x = i * 80 + rnd() * 40, h = 70 + rnd() * 60, w = 70 + rnd() * 50; s.cone(x, 140 - h, 140, w, [5, 1, 2, 3]); for (let y = 140 - h; y < 140 - h + h * .32; y++) { const k = (y - (140 - h)) / h, ww = w * k; for (let xx = -ww; xx <= ww; xx++) if (hash(Math.round(x + xx), y) < .85 - k) s.set(x + xx, y, xx < 0 ? 4 : 6); } } }), fx: .08, fy: .04, base: -10, fill: '#8a9ab8' },
+    { c: layerFrom(640, 130, ['#8a4a32', '#a85e40', '#c47a56', '#6a3424', '#ffffff', '#3a5a3a', '#4a7048'], s => { for (let i = 0; i < 5; i++) { const x0 = 40 + i * 120, top = 20 + (i % 2) * 18; for (let y = top; y < 130; y++) { const k = (y - top) / (130 - top), x1 = x0 + k * 34, x2 = x0 + 46 + k * 52; for (let x = x1; x < x2; x++) { const u = (x - x1) / (x2 - x1); s.set(x, y, u < .25 ? 3 : u > .8 ? 4 : (hash(Math.round(x) >> 1, y >> 3) < .2 ? 1 : 2)); if (hash(Math.round(x), y) < .05 && y > top + 6) s.set(x, y, 5); } } } for (let x = 0; x < 640; x++) for (let y = 112; y < 130; y++) s.set(x, y, hash(x >> 3, y >> 2) < .5 ? 6 : 7); }), fx: .18, fy: .09, base: 20, fill: '#3a5a3a' },
+    { c: layerFrom(560, 170, ['#173c26', '#22583a', '#2f704a', '#4a9060', '#ffffff', '#dfeaf6', '#2a1e18'], s => { srand(133); const tr = []; for (let i = 0; i < 16; i++) tr.push([rnd() * 560, 80 + rnd() * 70, 15 + rnd() * 9]); tr.sort((a, b) => a[1] - b[1]); for (const [x, h, w] of tr) { s.cyl(x - 2, 150, 4, 20, [7, 7]); for (let k = 0; k < 6; k++) { const yy = 170 - h + k * h / 7, top = yy - 6, bot = yy + h / 5, hw = w * (.38 + k * .13); s.cone(x, top, bot, hw, [1, 2, 3, 4]); for (let xx = -hw; xx <= hw; xx++) if (hash(Math.round(x + xx), k) < .7) s.set(x + xx, bot - 1, xx < 0 ? 5 : 6); } } for (let y = 156; y < 170; y++) for (let x = 0; x < 560; x++) if (hash(x >> 1, y) < .5 + (y - 156) * .04) s.set(x, y, 1); }), fx: .38, fy: .22, base: 60, fill: '#173c26' }]; },
   paris: () => { const F = buildLayers('forest'); return [F[0], F[1],
     { c: layerFrom(700, 140, ['#8d9ccb', '#a9b6de', '#7a88b8', '#c8d0f0', '#6a78a8'], s => { srand(101); let x = 0; while (x < 700) { const w = 18 + rnd() * 26 | 0, h = 26 + rnd() * 30 | 0; s.rect(x, 140 - h, w, h, 1); s.rect(x, 140 - h, w, 3, 3); x += w; }
       const ex = 360; for (let y = 10; y < 140; y++) { const k = (y - 10) / 130, hw = 2 + Math.pow(k, 2.2) * 34; for (let i = -hw; i <= hw; i++) if (Math.abs(i) > hw - 3 || y % 9 < 1 || (y > 95 && Math.abs(i) > hw * .55 && y < 120)) s.set(ex + i, y, 5); } s.rect(ex - 9, 92, 18, 3, 5); s.rect(ex - 5, 58, 10, 2, 5); s.rect(ex - 1, 2, 2, 8, 5);
@@ -286,6 +293,40 @@ LEVELS.garden = { id: 'garden', day: 6, title: 'GARDEN PARTY', want: 'HARVEST DA
   onGoal: S => { say('hero', 'HEY BOBCAT. CARROTS FOR PEACE?', 120); setTimeout(() => S && say(actorAt(S, 'bob'), '...DOOO BA DEE DA DEE BA DA DOOO.', 180), 1300); }
 };
 
+/* =====================================================================
+   DAY 7 (the not-so-secret one) — BOULDER: snow, the Flatirons, cousins in beanies
+   ===================================================================== */
+LEVELS.boulder = { id: 'boulder', day: 7, title: 'CLIMBING SANITAS', want: 'GONNA CLIMB MOUNT SANITAS. HEARD THERE\'S SNOW AT THE TOP.', theme: 'snow', ww: 6200, wbot: 940, start: 380, goal: 5150, climb: true,
+  gpts: [[-200, 640], [0, 640], [600, 640], [900, 600], [1200, 562], [1300, 560], [1306, 470], [1500, 462], [1700, 422], [1900, 402], [2000, 400], [2006, 300], [2200, 296], [2400, 262], [2700, 242], [2800, 240], [2806, 140], [3000, 136], [3300, 110], [3550, 110], [3800, 92], [3900, 90], [3906, -10], [4100, -14], [4400, -40], [4700, -50], [6200, -50]],
+  loop: { cx: 3425, cy: 110 - 56, R: 56 }, plats: [],
+  zone: x => x < 2990 ? 15 : 13, noStones: x => false,
+  music: x => 'lawn', item: 'snowball', itemLines: ['FIRST SNOW!', 'TWO SNOWBALLS. MY PAWS ARE FREEZING.', 'THREE. SNOW BUN TIME.'],
+  finale: 'goal', cook: 'snow', cookSong: 'cookout', meter: '#bfe8ff', scoreName: 'SCORE', springArt: 'snowbank',
+  objects: () => { const L = newL(), K = kit(L);
+    K.line(480, 1250, 34); K.line(1340, 1960, 34); K.line(2050, 2760, 34); K.line(2840, 3280, 34); K.loopRing(); K.line(3560, 3860, 30); K.line(3950, 5000, 36); K.arc(4250, 4350, 4, 90);
+    [[900, 14], [1750, 12], [3700, 12], [4550, 16]].forEach(([x, r]) => K.rock(x, r));
+    [1100, 2500, 4300].forEach(K.spring);
+    K.item(0, 3060, groundY(3060) - 8); K.item(1, 3700, groundY(3700) - 34); K.item(2, 4620, groundY(4620) - 8);
+    K.cuz(1460, groundY(1460), 'white'); K.cuz(2300, groundY(2300), 'dark'); K.cuz(4180, groundY(4180), 'ginger');
+    K.token(1600, groundY(1600) - 34);
+    K.gold(120, 628); K.gold(3425, 14); K.gold(4300, groundY(4300) - 228);
+    K.cameo('bsquirrel', 1020, groundY(1020)); K.cameo('skis', 4900, groundY(4900));
+    K.decor(80, 6100, ['stone', 'stone', 'clover'], 71);
+    return L; },
+  init: S => { S.actors = [{ k: 'bb', set: 'bb1', x: 700, y: groundY(700), h: 40, line: 'SANITAS? IT\'S STRAIGHT UP, CUZ. RUN AT THE ROCK AND CLIMB.' }, { k: 'bb', set: 'bb2', x: 2240, y: groundY(2240), h: 40, line: 'IT\'S SANDSTONE. GRIPPY. YOU GOT THIS.' }, { k: 'bb', set: 'bb3', x: 5320, y: groundY(5320), h: 40, line: 'SNOW BUN GOES RIGHT HERE. BEST VIEW IN BOULDER.' }]; },
+  step: (S, p) => {
+    for (const a of S.actors) if (!a.said && Math.abs(p.x - a.x) < 170) { a.said = 1; say(a, a.line, 190); }
+    if (p.x > 2700 && S.t % 3 === 0) part({ type: 'snow', x: S.cam.x + Math.random() * (NW + 60), y: S.cam.y - 4, vx: -.3 - Math.random() * .3, vy: .5 + Math.random() * .5, life: 400 });
+  },
+  drawBack: (g, vis) => {
+    if (vis(520, 80)) { const y = groundY(520); g.fillStyle = '#5a3a22'; g.fillRect(498, y - 40, 4, 40); g.fillRect(546, y - 40, 4, 40); g.fillStyle = '#2a140c'; g.fillRect(492, y - 52, 64, 22); g.fillStyle = '#7a5236'; g.fillRect(494, y - 50, 60, 18); drawText(g, 'MT SANITAS', 497, y - 48, '#f4e2bd'); drawText(g, 'TRAIL', 510, y - 40, '#f4e2bd'); }
+    if (vis(5000, 120)) { const y = groundY(5000); for (let k = 0; k < 5; k++) pixCircle(5000 + (k % 2) * 3 - 1, y - 4 - k * 7, 6 - k, k % 2 ? '#8a7e80' : '#a89c9c'); }
+    if (vis(5210, 120) && S.mode === 'goal') { const k = Math.min(1, S.goalT / 80), gy = groundY(5210), x0 = 5210; pixCircle(x0, gy - 10, Math.round(12 * k), '#ffffff'); if (k > .4) pixCircle(x0, gy - 28, Math.round(9 * Math.min(1, (k - .4) / .3)), '#f4f8ff'); if (k > .7) { pixCircle(x0, gy - 41, 6, '#ffffff'); g.fillStyle = '#ffffff'; g.fillRect(x0 - 5, gy - 58, 3, 12); g.fillRect(x0 + 2, gy - 58, 3, 12); g.fillStyle = '#ff8a1c'; g.fillRect(x0 + 4, gy - 41, 5, 2); g.fillStyle = '#1a0e0a'; g.fillRect(x0 - 3, gy - 44, 2, 2); g.fillRect(x0 + 2, gy - 44, 2, 2); g.fillStyle = '#c8302a'; g.fillRect(x0 - 8, gy - 35, 16, 3); } }
+  },
+  drawActors: (g, vis) => { for (const a of S.actors) if (vis(a.x)) drawSpr(A[a.set].idle[(S.t % 200 > 190) ? 1 : 0], a.x, a.y, 0, -1, BAX, BAY); },
+  onGoal: S => { say('hero', 'TOP OF SANITAS! SNOW! I\'M BUILDING A SNOW BUN.', 160); setTimeout(() => S && say(S.actors[2], 'WELCOME TO BOULDER, CUZ.', 150), 1500); }
+};
+
 /* ---------- cookout backdrops for the away days ---------- */
 function duskSky(t, gy, top, mid, bot) { top = rgb(top); mid = rgb(mid); bot = rgb(bot); for (let i = 0; i < 22; i++) { const k = i / 21; g.fillStyle = css(k < .55 ? mixRGB(top, mid, k / .55) : mixRGB(mid, bot, (k - .55) / .45)); g.fillRect(0, Math.floor(gy * i / 22), NW, Math.ceil(gy / 22) + 1); } }
 function groundStrip(gy, top, body) { for (let x = 0; x < NW; x++) { g.fillStyle = top; g.fillRect(x, gy, 1, 6); g.fillStyle = body; g.fillRect(x, gy + 6, 1, NH - gy); } }
@@ -311,4 +352,11 @@ const COOKSCENES = {
     R(150, gy - 96, 200, 96, '#14101e'); R(150, gy - 96, 200, 4, '#4fe0ff'); drawText(g, 'THE ICE BOX', 214, gy - 86, (t & 16) ? '#4fe0ff' : '#ffffff'); R(170, gy - 70, 160, 40, '#2a3a5a'); for (let k = 0; k < 9; k++) if ((t + k * 7) % 30 < 15) R(180 + k * 17, gy - 60 + (k % 3) * 8, 2, 2, '#ffffff');
     groundStrip(gy, '#3a3a40', '#2a2a30'); g.drawImage(A.escL, 300, gy - 49); }
 };
+COOKSCENES.snow = (t, gy) => { const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  const fl = LAYERSETS.snow ? LAYERSETS.snow[3].c : null; if (fl) { g.globalAlpha = .6; g.drawImage(fl, -60, gy - 140); g.globalAlpha = 1; }
+  R(20, gy - 80, 150, 80, '#5a3a26'); for (let y = gy - 78; y < gy; y += 7) R(20, y, 150, 2, '#4a2e1c'); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(10, gy - 80); g.lineTo(95, gy - 126); g.lineTo(180, gy - 80); g.fill(); R(50, gy - 60, 28, 22, '#ffd68a'); R(112, gy - 60, 28, 22, '#ffd68a');
+  for (let x = 0; x < NW; x++) { R(x, gy, 1, NH - gy, x % 7 ? '#eef4fc' : '#dfe9f5'); } R(0, gy, NW, 2, '#ffffff');
+  R(300, gy - 10, 40, 10, '#5a5a60'); for (let k = 0; k < 5; k++) R(306 + k * 6, gy - 20 - (t + k * 9) % 12, 4, 8, ['#ffd040', '#ff8a1c', '#e03030'][k % 3]);
+  for (const [x, set] of [[360, 'bb1'], [392, 'bb3']]) drawSpr(A[set].cheer[(t >> 3) & 1], x, gy + 1, 0, -1, BAX, BAY);
+  for (let i = 0; i < 40; i++) { R((i * 53 + t * .4) % NW, (i * 31 + t * .8) % gy, 1, 1, '#ffffff'); } };
 COOKSCENES.garden = null; // home scene is drawn by drawCook itself (plus the guests)
