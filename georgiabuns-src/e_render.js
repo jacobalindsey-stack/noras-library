@@ -157,7 +157,7 @@ function drawWorld(cx, cy) {
   } else if (S.mode === 'intro') {
     const [ix, iy] = introPos(), t = S.intro;
     const fr = t < 50 ? A.hero.sleep[0] : t < 62 ? A.hero.up[0] : A.hero.run[(t >> 2) & 3];
-    const ang = t >= 105 ? -0.85 : 0;
+    const ang = t >= 105 ? -0.55 : 0;
     drawSpr(fr, ix, iy, ang, 1, BAX, BAY);
     if (t < 50 && t % 30 === 0) part({ type: 'z', x: ix + 8, y: iy - 16, vx: .2, vy: -.4, life: 60 });
     if (t === 52) popText(ix + 4, iy - 44, '!', '#fff3b0');
@@ -282,7 +282,7 @@ function drawTitle() {
   drawTextO(g, sub, Math.round(NW / 2 - textW(sub) / 2), by + 90, '#ffffff', 1, '#2a140c');
   if ((t >> 4) & 1 || t < 20) { const cta = 'TAP TO PLAY'; drawTextO(g, cta, Math.round(NW / 2 - textW(cta, 2) / 2), NH - 34, '#ffffff', 2, '#2a140c'); }
 }
-const CREDITS = ['GEORGIA BUNS', '', 'STORIES TOLD AT BEDTIME', 'BY DAD, FOR NORA', 'SIX YEARS AND COUNTING', '', 'STARRING', 'SEVENTEEN COUSINS', 'THE ROOF BUN', 'THE NIBBIN\' BUN', 'SUNNY THE SQUIRREL', 'THE BOBCAT', 'DEXTER, SEVEN AND MISS ELLI', 'PONTOON THE MARSH BUN', 'LES ESCARGOTS DISCO', '', 'MUSIC', 'THE GEORGIA BUNS ALBUM', 'IN 16-BIT', '', 'MADE IN GEORGIA', 'IN SPIRIT', '', 'THANKS FOR PLAYING'];
+const CREDITS = ['GEORGIA BUNS', '', 'STARRING', 'SEVENTEEN COUSINS', 'THE ROOF BUN', 'THE NIBBIN\' BUN', 'SUNNY THE SQUIRREL', 'THE BOBCAT', 'DEXTER, SEVEN AND MISS ELLI', 'PONTOON THE MARSH BUN', 'LES ESCARGOTS DISCO', '', 'MUSIC', 'THE GEORGIA BUNS ALBUM', 'IN 16-BIT', '', 'MADE IN GEORGIA', 'IN SPIRIT', '', 'THANKS FOR PLAYING'];
 function drawCredits(t) { const y0 = NH - t * .35; g.globalAlpha = .65; g.fillStyle = '#0a0612'; g.fillRect(NW / 2 - 90, 0, 180, NH); g.globalAlpha = 1; CREDITS.forEach((l, i) => { const y = Math.round(y0 + i * 14); if (y < -10 || y > NH) return; drawTextO(g, l, NW / 2 - textW(l) / 2, y, i === 0 ? '#f6c645' : (CREDITS[i - 1] === '' ? '#7ad050' : '#ffffff'), 1, '#2a140c'); }); }
 function drawCook() {
   const C = S.cook, t = C.t, gy = NH - 40;

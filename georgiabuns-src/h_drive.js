@@ -11,13 +11,8 @@ LEVELS.icebox.forestFrom = 1e9;
 const DRV = { SEG: 200, ROADW: 2000, CAMH: 1000, DEPTH: 1 / Math.tan(50 * Math.PI / 180), DRAW: 160 };
 function driveArt() {
   if (A.drive) return; A.drive = {};
-  const pal = palette(['#06060a', '#16161e', '#2a2a36', '#44445a', '#c8ced8', '#ffffff', '#e02828', '#ff6a5a', '#f6c645', '#1a2238', '#3a4a70', '#8a8a96']);
-  { const s = new Spr(88, 54); s.rect(6, 14, 76, 30, 2); s.rect(10, 4, 68, 14, 2); s.rect(14, 6, 60, 10, 10); s.rect(16, 7, 20, 3, 11); s.rect(6, 14, 76, 2, 4);
-    s.rect(7, 18, 5, 18, 7); s.rect(76, 18, 5, 18, 7); s.rect(8, 19, 3, 16, 8); s.rect(77, 19, 3, 16, 8);
-    s.rect(30, 24, 28, 9, 1); s.rect(32, 26, 24, 5, 9); s.rect(40, 27, 8, 3, 5); s.rect(6, 40, 76, 5, 5); s.rect(6, 40, 76, 1, 12);
-    s.rect(4, 42, 12, 10, 1); s.rect(72, 42, 12, 10, 1); s.rect(42, 18, 4, 2, 9);
-    A.drive.esc = s.outline(1).canvas(pal); }
-  A.drive.cars = ['#3a7ad8', '#e8e0d0', '#c8302a', '#3fb04a'].map(col => { const p2 = palette(['#06060a', col, '#2a2a36', '#e02828', '#c8ced8', '#ffffff']); const s = new Spr(60, 34); s.rect(4, 12, 52, 16, 1); s.rect(12, 4, 36, 10, 1); s.rect(14, 6, 32, 7, 2); s.rect(5, 15, 7, 4, 3); s.rect(48, 15, 7, 4, 3); s.rect(4, 26, 52, 3, 4); s.rect(6, 28, 10, 6, 0); s.rect(44, 28, 10, 6, 0); return s.outline(1).canvas(p2); });
+  A.drive.esc = escaladeRear(); A.drive.escB = escaladeRear(1);
+  A.drive.cars = [['#2a5ab8', '#4a7ad8', '#183a80'], ['#d8d4cc', '#f4f0e8', '#a8a49c'], ['#b8282a', '#e04a44', '#801818'], ['#2f8a3a', '#4ab05a', '#1e5a26']].map(c => sedanRear(c));
   A.drive.lamp = smallSpr(16, 80, ['#1a1a24', '#3a3a48', '#ffe9a0', '#fff6d0'], s => { s.rect(7, 10, 3, 70, 2); s.rect(2, 6, 12, 5, 2); s.rect(3, 10, 10, 2, 3); });
   A.drive.neon = [0, 1].map(i => propCanvas(70, 64, (x, R) => { R(31, 34, 4, 30, '#2a2a34'); R(0, 0, 70, 36, '#14101e'); R(2, 2, 66, 32, i ? '#ff4fa0' : '#4fe0ff'); R(5, 5, 60, 26, '#14101e'); drawText(x, 'CLUB', 22, 14, i ? '#ff4fa0' : '#4fe0ff'); }));
   A.drive.street = propCanvas(80, 70, (x, R) => { R(38, 20, 4, 50, '#5a5a60'); R(0, 0, 80, 22, '#ffffff'); R(1, 1, 78, 20, '#1e6a3a'); drawText(x, 'PEACHTREE', 13, 4, '#ffffff'); drawText(x, 'ST NE', 25, 12, '#ffffff'); });
@@ -25,6 +20,53 @@ function driveArt() {
   A.drive.gem = [0, 1, 2, 3].map(i => smallSpr(16, 16, ['#1a2a4a', '#bff4ff', '#4fe0ff', '#ffffff', '#2a8ad8'], s => { const w = [6, 4, 2, 4][i]; s.tri(8 - w, 6, 8 + w, 6, 8, 15, 3); s.tri(8 - w, 6, 8, 1, 8 + w, 6, 2); s.set(8, 3, 4); }));
   A.drive.cube = smallSpr(14, 14, ['#3a5a8a', '#d8f0ff', '#a8d8f0', '#ffffff'], s => { s.rect(2, 3, 10, 9, 2); s.rect(2, 3, 10, 2, 1); s.rect(3, 4, 3, 2, 4); });
   A.drive.store = propCanvas(240, 140, (x, R) => { R(0, 30, 240, 110, '#14101e'); R(0, 30, 240, 6, '#4fe0ff'); R(10, 0, 220, 30, '#14101e'); R(12, 2, 216, 26, '#4fe0ff'); R(16, 6, 208, 18, '#14101e'); drawText(x, 'THE ICE BOX', 78, 12, '#ffffff'); R(20, 50, 200, 70, '#2a3a5a'); for (let k = 0; k < 20; k++) R(24 + (k * 37) % 190, 56 + (k * 13) % 60, 2, 2, '#ffffff'); R(100, 90, 40, 50, '#0a0a14'); });
+}
+// a real-looking SUV from behind, painted pixel by pixel with gradients
+function escaladeRear(brake) {
+  const W = 132, H = 80, c = mkC(W, H), x = c.getContext('2d');
+  const R = (a, b, w, h, col) => { x.fillStyle = col; x.fillRect(a, b, w, h); };
+  const grad = (a, b, w, h, c1, c2) => { for (let i = 0; i < h; i++) R(a, b + i, w, 1, css(mixRGB(rgb(c1), rgb(c2), i / Math.max(1, h - 1)))); };
+  // shadow + tires
+  x.globalAlpha = .45; R(4, 74, 124, 5, '#000'); x.globalAlpha = 1;
+  for (const tx of [8, 104]) { R(tx, 58, 20, 20, '#0c0c10'); R(tx + 1, 59, 18, 18, '#1a1a20'); for (let k = 0; k < 18; k += 3) R(tx + 2, 60 + k, 16, 1, '#26262e'); R(tx + 1, 59, 2, 18, '#30303a'); }
+  // body silhouette: roof, D-pillars, tailgate, bumper
+  R(14, 4, 104, 6, '#0a0b10'); grad(16, 5, 100, 4, '#3a3f50', '#1a1d26');
+  R(10, 9, 112, 3, '#0a0b10');
+  R(6, 12, 120, 50, '#0a0b10');
+  grad(8, 13, 116, 46, '#2e3342', '#0e1016');
+  // rear glass with neon reflections
+  R(20, 13, 92, 22, '#06070a'); grad(21, 14, 90, 20, '#1a2236', '#080a12');
+  x.globalAlpha = .55; for (let i = 0; i < 14; i++) { R(30 + i * 2, 14 + i, 3, 1, '#ff4fa0'); R(66 + i * 2, 14 + i, 2, 1, '#4fe0ff'); } x.globalAlpha = .25; R(21, 14, 90, 2, '#ffffff'); x.globalAlpha = 1;
+  R(60, 31, 14, 1, '#2a2a34'); R(64, 30, 1, 3, '#2a2a34');
+  // spoiler + third brake light
+  R(30, 9, 72, 2, brake ? '#ff3a30' : '#7a1a18');
+  // tall vertical taillights up the D-pillars
+  for (const lx of [7, 117]) { R(lx, 13, 8, 42, '#2a0808'); grad(lx + 1, 14, 6, 40, brake ? '#ff6a5a' : '#e0302a', brake ? '#ff2a20' : '#801010'); for (let k = 0; k < 40; k += 4) R(lx + 2, 15 + k, 4, 1, brake ? '#fff0e0' : '#ff8a7a'); }
+  // tailgate: body-color sheen, chrome bar, crest, plate
+  grad(18, 37, 96, 18, '#262a38', '#0c0e14');
+  x.globalAlpha = .18; for (let i = 0; i < 18; i++) R(30 + i * 3, 37 + i, 18, 1, '#ffffff'); x.globalAlpha = 1;
+  grad(22, 41, 88, 3, '#f0f4f8', '#7a808a'); R(22, 44, 88, 1, '#2a2e36');
+  R(62, 36, 8, 5, '#c8ced8'); R(63, 37, 6, 3, '#8a2a3a'); R(64, 37, 1, 1, '#f6c645'); R(67, 37, 1, 1, '#f6c645');
+  R(50, 47, 32, 10, '#1a1a1a'); R(51, 48, 30, 8, '#f4f0e8'); R(51, 48, 30, 1, '#c8302a'); drawText(x, 'BUNS', 55, 49, '#1e2a5a');
+  // bumper, step pad, exhaust tips
+  grad(6, 58, 120, 8, '#3a3e48', '#14161c'); R(6, 58, 120, 1, '#9aa2ae'); R(40, 60, 52, 4, '#08080a');
+  for (const ex of [26, 98]) { R(ex, 63, 9, 6, '#0a0a0c'); R(ex + 1, 64, 7, 4, '#c8ced8'); R(ex + 2, 65, 5, 2, '#30343c'); }
+  R(6, 12, 1, 50, '#4a5060'); R(125, 12, 1, 50, '#1a1c22');
+  return c;
+}
+function sedanRear(col) {
+  const W = 92, H = 56, c = mkC(W, H), x = c.getContext('2d');
+  const R = (a, b, w, h, cc) => { x.fillStyle = cc; x.fillRect(a, b, w, h); };
+  const grad = (a, b, w, h, c1, c2) => { for (let i = 0; i < h; i++) R(a, b + i, w, 1, css(mixRGB(rgb(c1), rgb(c2), i / Math.max(1, h - 1)))); };
+  x.globalAlpha = .45; R(4, 51, 84, 4, '#000'); x.globalAlpha = 1;
+  for (const tx of [8, 70]) { R(tx, 40, 14, 14, '#0c0c10'); for (let k = 0; k < 12; k += 3) R(tx + 1, 41 + k, 12, 1, '#22222a'); }
+  R(18, 4, 56, 4, '#0a0b10'); R(8, 8, 76, 36, '#0a0b10');
+  grad(20, 5, 52, 3, col[1], col[0]); grad(10, 9, 72, 33, col[1], col[2]);
+  R(20, 9, 52, 14, '#080a12'); grad(21, 10, 50, 12, '#22304a', '#0a0e18'); x.globalAlpha = .3; R(21, 10, 50, 1, '#ffffff'); x.globalAlpha = 1;
+  for (const lx of [10, 66]) { R(lx, 26, 16, 7, '#300808'); grad(lx + 1, 27, 14, 5, '#ff5a4a', '#a01818'); }
+  R(36, 30, 20, 7, '#1a1a1a'); R(37, 31, 18, 5, '#f4f0e8');
+  grad(8, 38, 76, 6, '#3a3e48', '#14161c'); R(8, 38, 76, 1, '#8a929e');
+  return c;
 }
 function buildTrack() {
   const segs = [], add = (n, curve, hill) => { const y0 = segs.length ? segs[segs.length - 1].y2 : 0; for (let i = 0; i < n; i++) { const k = i / n, e = curve * (k < .25 ? k * 4 : k > .75 ? (1 - k) * 4 : 1); segs.push({ i: segs.length, curve: e, y1: 0, y2: 0, sprites: [], cars: [] }); } return y0; };
@@ -128,13 +170,13 @@ function drawDrive() {
     for (const it of D.items) if (!it.got && it.z >= z1 && it.z < z1 + DRV.SEG) drawAt(n, (it.z - z1) / DRV.SEG, it.x, it.k === 'gem' ? A.drive.gem[(S.t >> 3) & 3] : A.drive.cube, .7, 10);
     for (const gc of D.golds) if (!gc.got && gc.z >= z1 && gc.z < z1 + DRV.SEG) drawAt(n, (gc.z - z1) / DRV.SEG, gc.x, A.gold[(S.t >> 2) & 7], .9, 40);
     for (const tk of D.toks) if (!tk.got && tk.z >= z1 && tk.z < z1 + DRV.SEG) { const [c] = cameoIcon(tk.k, 40); drawAt(n, (tk.z - z1) / DRV.SEG, tk.x, c, .9, 8); }
-    for (const c of D.cars) { const cz = ((c.z - z1) % D.L + D.L) % D.L; if (cz < DRV.SEG) drawAt(n, cz / DRV.SEG, c.x, A.drive.cars[c.spr], 1); }
+    for (const c of D.cars) { const cz = ((c.z - z1) % D.L + D.L) % D.L; if (cz < DRV.SEG) drawAt(n, cz / DRV.SEG, c.x, A.drive.cars[c.spr], .75); }
   }
   // the Escalade
-  const ew = A.drive.esc.width, eh = A.drive.esc.height, sc = Math.max(1, Math.floor(NW / 300)), bob = (D.sp > 10 && (S.t & 4)) ? 1 : 0;
+  const ew = A.drive.esc.width, eh = A.drive.esc.height, sc = 1, bob = (D.sp > 10 && (S.t & 4)) ? 1 : 0;
   const tilt = IN.ix * 3;
   g.globalAlpha = .4; g.fillStyle = '#000'; g.fillRect(Math.round(NW / 2 - ew * sc / 2 + 4), NH - 14, Math.round(ew * sc - 8), 4); g.globalAlpha = 1;
-  g.drawImage(A.drive.esc, Math.round(NW / 2 - ew * sc / 2 + tilt), Math.round(NH - eh * sc - 10 - bob - D.hop * .6), ew * sc, eh * sc);
+  g.drawImage(D.bump > 0 || IN.ix === 0 && D.sp < D.max * .6 ? A.drive.escB : A.drive.esc, Math.round(NW / 2 - ew * sc / 2 + tilt), Math.round(NH - eh * sc - 10 - bob - D.hop * .6), ew * sc, eh * sc);
   if (D.bump > 20 && (S.t & 2)) { g.fillStyle = '#f6c645'; for (let k = 0; k < 6; k++) g.fillRect(NW / 2 + (Math.random() - .5) * 90, NH - 40 + (Math.random() - .5) * 20, 2, 2); }
   // HUD
   const mid = NW / 2; g.drawImage(A.drive.gem[0], mid - 120, 4); drawTextO(g, String(D.ice), mid - 102, 8, '#bfe8ff', 1, '#0a0a14');

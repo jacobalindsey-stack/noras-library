@@ -70,6 +70,32 @@ class Spr {
     g.putImageData(id, 0, 0); return c;
   }
 }
+/* ---------- lit volumes: spheres, cylinders and cones with dithered shading ---------- */
+const BAY4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+function rampIdx(ramp, l, x, y) { const t = clamp(l, 0, .999) * ramp.length, i = Math.floor(t), f = t - i, th = (BAY4[(y & 3) * 4 + (x & 3)] + .5) / 16; return ramp[Math.min(ramp.length - 1, f > th ? i + 1 : i)]; }
+Spr.prototype.sphere = function (cx, cy, rx, ry, ramp, bias = 0) {
+  const R = Math.max(rx, ry) + 1;
+  for (let y = Math.floor(cy - R); y <= cy + R; y++) for (let x = Math.floor(cx - R); x <= cx + R; x++) {
+    const u = (x + .5 - cx) / rx, v = (y + .5 - cy) / ry, d = u * u + v * v; if (d > 1) continue;
+    const nz = Math.sqrt(1 - d), l = (-u * .5 - v * .62 + nz * .62 + .3) / 1.5 + bias;
+    this.set(x, y, rampIdx(ramp, l, x, y));
+  }
+};
+Spr.prototype.cyl = function (x0, y0, w, h, ramp, grooves) {
+  for (let i = 0; i < w; i++) { const u = (i + .5) / w * 2 - 1, nz = Math.sqrt(Math.max(0, 1 - u * u)), l = (-u * .6 + nz * .7 + .2) / 1.5;
+    for (let j = 0; j < h; j++) { const X = Math.floor(x0 + i), Y = Math.floor(y0 + j); let L = l; if (grooves && hash(Math.floor((X - x0) / 3), Y >> 3) < .22) L -= .22; this.set(X, Y, rampIdx(ramp, L, X, Y)); } }
+};
+Spr.prototype.cone = function (cx, top, bot, hw, ramp) {
+  for (let y = Math.floor(top); y < bot; y++) { const k = (y - top) / (bot - top), w = Math.max(1, hw * k);
+    for (let x = Math.floor(cx - w); x <= cx + w; x++) { const u = (x + .5 - cx) / w, l = (-u * .62 + .62 - k * .18 + (hash(x >> 1, y >> 1) - .5) * .12) / 1.15; this.set(x, y, rampIdx(ramp, l, x, y)); } }
+};
+// a round broadleaf canopy built from lit clumps, back to front
+Spr.prototype.canopy = function (cx, cy, rw, rh, n, ramp, seed) {
+  srand(seed || 3); const pts = [];
+  for (let i = 0; i < n; i++) { const a = rnd() * 6.283, r = Math.sqrt(rnd()); pts.push([cx + Math.cos(a) * r * rw, cy + Math.sin(a) * r * rh, 7 + rnd() * (rw * .28)]); }
+  pts.sort((p, q) => (p[1] - q[1]) + (q[0] - p[0]) * .2);
+  for (const [x, y, r] of pts) this.sphere(x, y, r, r * .86, ramp, (y - cy) / rh * -.12);
+};
 function palette(list) { return [null].concat(list.map(h => h ? rgb(h) : null)); }
 
 /* ---------- bitmap font 5x7 ---------- */
@@ -259,14 +285,15 @@ function springSpr(squash) {
   for (let i = 0; i < 46; i++) { const x = 4 + rnd() * 28, y = 16 - rnd() * h, a = rnd() * 3; s.line(x, y, x + Math.cos(a) * 4, y + Math.sin(a) * 2, rnd() < .5 ? G.psD : G.psL); }
   return s.outline(G.o).canvas(PAL_GEN);
 }
+const PAL_ROCK = palette(['#20140e', '#3e4248', '#565b62', '#70767e', '#8c939a', '#b0b7bd', '#d4d9dc', '#24501e', '#3a7a2c', '#5cae44', '#8ad860']);
 function boulderSpr(r) {
   const d = r * 2 + 4, s = new Spr(d, d), c = r + 2;
-  s.ell(c, c, r, r * 0.92, [G.bo, G.boD, G.stL]);
-  s.ell(c - r * .2, c - r * .6, r * .7, r * .32, [G.moss, G.mossD, G.grL]);
+  s.sphere(c, c + 1, r, r * 0.9, [2, 3, 4, 5, 6, 7]);
   srand(r * 7);
-  for (let i = 0; i < r / 3; i++) { const a = rnd() * 6.28, rr = rnd() * r * .7; s.set(c + Math.cos(a) * rr, c + Math.sin(a) * rr * .9 + 2, G.boD); }
-  s.line(c + r * .2, c, c + r * .5, c + r * .4, G.boD);
-  return s.outline(G.o).canvas(PAL_GEN);
+  for (let i = 0; i < r / 2; i++) { const a = rnd() * 6.28, rr = rnd() * r * .75, x = c + Math.cos(a) * rr, y = c + Math.sin(a) * rr * .9 + 2; if (s.get(x, y) > 1 && s.get(x, y) < 6) { s.set(x, y, 2); s.set(x + 1, y, 5); } }
+  s.line(c + r * .15, c - r * .1, c + r * .45, c + r * .35, 2); s.line(c + r * .17, c - r * .1, c + r * .47, c + r * .35, 5);
+  s.sphere(c - r * .25, c - r * .62, r * .62, r * .26, [8, 9, 10, 11]);
+  return s.outline(1).canvas(PAL_ROCK);
 }
 function acornSpr() { const s = new Spr(9, 11); s.ell(4.5, 7, 3.3, 3.6, [G.bc, G.bcD, G.bcL]); s.ell(4.5, 3.6, 4, 2, [G.wdD, G.wdD, G.wd]); s.set(4, 0, G.wdD); s.set(4, 1, G.wdD); return s.outline(G.o).canvas(PAL_GEN); }
 function phoneSpr(f) {
@@ -392,19 +419,25 @@ function foxFrames() {
 
 /* ---------- the Escalade ---------- */
 function escaladeSpr(lights) {
-  const pal = palette(['#08070a', '#1b1c24', '#2d3040', '#4a5068', '#c8ced8', '#ffffff', '#7a8090', '#d4a828', '#2a3a58', '#5a7ab0', '#fff2a0', '#e02828', '#3a3a3a']);
-  const s = new Spr(112, 50);
-  s.rect(6, 22, 100, 16, 2); s.rect(6, 22, 100, 3, 3); s.rect(6, 34, 100, 3, 1);
-  s.rect(16, 8, 76, 15, 2); s.rect(18, 6, 72, 3, 3);
-  s.rect(22, 10, 20, 11, 9); s.rect(45, 10, 20, 11, 9); s.rect(68, 10, 20, 11, 9); s.rect(23, 11, 6, 3, 10); s.rect(46, 11, 6, 3, 10); s.rect(69, 11, 6, 3, 10);
-  s.rect(43, 10, 2, 13, 1); s.rect(66, 10, 2, 13, 1);
-  s.rect(20, 4, 68, 2, 5); s.rect(24, 3, 2, 2, 5); s.rect(82, 3, 2, 2, 5);
-  s.rect(6, 29, 100, 1, 5); s.rect(100, 22, 7, 12, 5); for (let y = 23; y < 33; y += 2) s.rect(100, y, 7, 1, 7);
-  s.rect(103, 18, 5, 4, lights ? 11 : 6); s.rect(4, 24, 3, 6, 12);
-  s.rect(46, 26, 6, 1, 6); s.rect(70, 26, 6, 1, 6);
-  for (const wx of [26, 86]) {
-    s.ell(wx, 39, 11, 11, 1); s.ell(wx, 39, 7.5, 7.5, [5, 7, 6]); s.ell(wx, 39, 4, 4, 8); s.ell(wx, 39, 1.8, 1.8, 5);
-    for (let a = 0; a < 6.28; a += 1.05) s.line(wx, 39, wx + Math.cos(a) * 6.5, 39 + Math.sin(a) * 6.5, 8);
-  }
-  return s.outline(1).canvas(pal);
+  const W = 112, H = 50, c = mkC(W, H), x = c.getContext('2d');
+  const R = (a, b, w, h, col) => { x.fillStyle = col; x.fillRect(a, b, w, h); };
+  const grad = (a, b, w, h, c1, c2) => { for (let i = 0; i < h; i++) R(a, b + i, w, 1, css(mixRGB(rgb(c1), rgb(c2), i / Math.max(1, h - 1)))); };
+  // body
+  R(15, 4, 80, 2, '#08080c'); R(13, 6, 84, 18, '#08080c'); R(4, 20, 104, 20, '#08080c');
+  grad(15, 6, 80, 17, '#3a3f50', '#1c1f2a'); grad(5, 21, 102, 18, '#343a4a', '#0c0e14');
+  x.globalAlpha = .22; for (let i = 0; i < 16; i++) R(20 + i * 5, 21 + (i % 3), 3, 16, '#ffffff'); x.globalAlpha = 1;
+  R(5, 28, 102, 1, '#c8ced8'); R(5, 29, 102, 1, '#4a505c');
+  // windows with reflection
+  for (const [wx, ww] of [[19, 22], [44, 22], [69, 22]]) { R(wx, 8, ww, 12, '#06070c'); grad(wx + 1, 9, ww - 2, 10, '#3a4a70', '#0e1422'); x.globalAlpha = .4; R(wx + 2, 9, 5, 2, '#ffffff'); R(wx + 3, 11, 3, 1, '#ffffff'); x.globalAlpha = 1; }
+  R(42, 8, 2, 14, '#08080c'); R(67, 8, 2, 14, '#08080c'); R(17, 3, 76, 2, '#c8ced8'); R(22, 2, 2, 2, '#9aa2ae'); R(86, 2, 2, 2, '#9aa2ae');
+  // grille, lights, handles
+  R(100, 20, 8, 14, '#9aa2ae'); for (let y = 21; y < 33; y += 2) R(101, y, 6, 1, '#4a505c'); R(98, 17, 10, 3, lights ? '#fff6c0' : '#c8ced8');
+  if (lights) { x.globalAlpha = .25; R(104, 14, 8, 10, '#fff6c0'); x.globalAlpha = 1; }
+  R(4, 18, 4, 16, '#2a0808'); R(5, 19, 2, 14, lights ? '#ff4a3a' : '#a01818');
+  R(46, 24, 6, 1, '#c8ced8'); R(71, 24, 6, 1, '#c8ced8');
+  // wheels: chrome rims, gold centers
+  for (const wx of [26, 86]) { pixRing(x, wx, 39, 11, '#08080c'); pixRing(x, wx, 39, 10, '#1a1a20'); pixRing(x, wx, 39, 7, '#c8ced8'); pixRing(x, wx, 39, 5, '#7a808a');
+    for (let a = 0; a < 6.28; a += 1.047) for (let r = 2; r < 7; r++) R(Math.round(wx + Math.cos(a) * r), Math.round(39 + Math.sin(a) * r), 1, 1, '#e8eef4'); R(wx - 1, 38, 3, 3, '#f6c645'); }
+  return c;
 }
+function pixRing(x, cx, cy, r, col) { x.fillStyle = col; for (let y = -r; y <= r; y++) { const w = Math.floor(Math.sqrt(r * r - y * y)); x.fillRect(cx - w, cy + y, w * 2 + 1, 1); } }

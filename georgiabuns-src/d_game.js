@@ -467,8 +467,8 @@ function introPos() {
   const t = S.intro;
   if (!LV.burrow) { const ex = Math.min(LV.start - 70, LV.start - 400 + t * 4); return [ex + 60, groundY(LV.start) - (t > 110 ? 10 : 0)]; }
   if (t < 60) return [262, 391];
-  if (t < 105) return [lerp(262, 418, (t - 60) / 45), 391];
-  const k = Math.min(1, (t - 105) / 45); return [lerp(418, 500, k), lerp(388, 302, k)];
+  if (t < 105) return [lerp(262, 372, (t - 60) / 45), 391];
+  const k = Math.min(1, (t - 105) / 45); return [lerp(372, 500, k), lerp(389, 302, k)];
 }
 
 /* ---------- generic day finale: reach the goal, celebrate, cookout ---------- */

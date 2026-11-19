@@ -109,7 +109,7 @@ const BANK = ['#c9a878', '#b08c5c', '#9a7848', '#86663c', '#735632', '#634a2a', 
 const BED = ['#7a8478', '#5e6a64', '#94a092', '#4c5854'].map(rgb);
 const CHAMBER = rgb('#3b1d10'), CHAMBER_L = rgb('#5a2c18'), CHAMBER_GLOW = rgb('#7a4022');
 const TERR = { chunks: [], CW: 256 };
-function inChamber(x, y) { const dx = (x - 300) / 122, dy = (y - 362) / 34; if (dx * dx + dy * dy < 1 && y < 392) return 1; const tx = (x - 420) / 80; if (tx >= 0 && tx <= 1) { const cy = lerp(370, 302, tx); if (Math.abs(y - cy) < 9) return 2; } return 0; }
+function inChamber(x, y) { const dx = (x - 300) / 122, dy = (y - 362) / 34; if (dx * dx + dy * dy < 1 && y < 392) return 1; const tx = (x - 372) / 128; if (tx >= 0 && tx <= 1 && y < 389) { const cy = lerp(380, 302, tx); if (Math.abs(y - cy) < 9) return 2; } return 0; }
 function buildTerrain() {
   const CW = TERR.CW; TERR.chunks = []; const isCreek = LV.id === 'creek' || LV.id === 'garden';
   for (let cx = 0; cx < WW; cx += CW) {
@@ -129,14 +129,17 @@ function buildTerrain() {
           const q = y + Math.sin(x * .05) * 2; const hb = hash(x >> 2, q >> 2);
           col = dd < 2 ? BED[2] : BED[hb < .3 ? 1 : hb < .55 ? 2 : hb < .7 ? 3 : 0];
           if (hash(x, y) < .04) col = BED[2];
-        } else if (dd < 7) {
-          col = GR[Math.min(6, dd + (hash(x, y) < .2 ? 1 : 0))];
+        } else if (dd < 7 + ((Math.sin(x * .33) + Math.sin(x * .13)) * 1.2 | 0)) {
+          const gd = 7 + ((Math.sin(x * .33) + Math.sin(x * .13)) * 1.2 | 0), last = dd === gd - 1;
+          col = last ? GR[6] : GR[Math.min(5, Math.floor(dd * 6 / gd) + (hash(x, y) < .15 ? 1 : 0))];
+          if (dd === 0 && hash(x, 3) < .5) col = GR[0];
           if (zone === 1 && dd < 4 && hash(x * 3, y) < .09) col = rgb('#c8913a');
           if (zone === 0 && dd < 3 && hash(x, y * 5) < .03) col = rgb('#fff2a8');
-        } else if (dd < 9) col = dd === 7 ? rgb('#5a2414') : rgb('#7a2e1a');
+        } else if (dd < 13 + ((Math.sin(x * .33) + Math.sin(x * .13)) * 1.2 | 0)) col = mixRGB(CLAY[3], [40, 12, 6], .45 - (dd - 7) * .06);
         else {
-          const q = y + Math.sin(x * .021) * 3 + Math.sin(x * .0061) * 7;
-          col = CLAY[((Math.floor(q / 7) % 5) + 5) % 5];
+          const q = y + Math.sin(x * .021) * 3 + Math.sin(x * .0061) * 7, band = Math.floor(q / 8), pos = ((Math.floor(q) % 8) + 8) % 8;
+          col = CLAY[((band % 5) + 5) % 5];
+          if (pos === 0) col = mixRGB(col, [236, 150, 100], .28); else if (pos === 1) col = mixRGB(col, [236, 150, 100], .12); else if (pos === 7) col = mixRGB(col, [50, 14, 6], .3);
           const hh = hash(x, y);
           if (hh < .018) col = rgb('#d97a4c'); else if (hh < .03) col = rgb('#6e2814');
           if (hash(x >> 1, y >> 1) < .004) col = rgb('#e8a070');
@@ -192,27 +195,28 @@ function buildLayers(theme) {
     for (let y = 110; y < 140; y++) for (let x = 0; x < 640; x++) s.set(x, y, (y === 110) ? 6 : (hash(x >> 3, y) < .08 ? 7 : 5));
     g.drawImage(s.canvas(palette(['#5f9e8c', '#4a8775', '#78b8a2', '#5c9c86', '#7cc0dc', '#b8e4f2', '#a4d8ec'])), 0, 0);
     LAYERS.push({ c, fx: .2, fy: .1, base: 30, fill: '#7cc0dc', lake: true }); }
-  // far pines
+  // far pines: shaded cones, tier on tier
   { const c = mkC(480, 170), s = new Spr(480, 170); srand(47);
-    for (let i = 0; i < 26; i++) { const x = rnd() * 480, h = 70 + rnd() * 80, w = 14 + rnd() * 10;
-      for (let k = 0; k < 6; k++) { const yy = 170 - h + k * h / 7, ww = w * (0.35 + k * .13); s.tri(x - ww, yy + h / 6, x, yy - 4, x + ww, yy + h / 6, k % 2 ? 1 : 2); }
-      s.rect(x - 1, 160, 3, 10, 3); }
-    s.rect(0, 160, 480, 10, 1);
-    c.getContext('2d').drawImage(s.canvas(palette(['#2f6a4c', '#3c7c58', '#3b2c24'])), 0, 0);
-    LAYERS.push({ c, fx: .35, fy: .2, base: 60, fill: '#2f6a4c', forest: true }); }
-  // azaleas and dogwoods: a Georgia spring hedge line
+    const trees = []; for (let i = 0; i < 24; i++) trees.push([rnd() * 480, 70 + rnd() * 80, 13 + rnd() * 9]); trees.sort((a, b) => a[1] - b[1]);
+    for (const [x, h, w] of trees) { s.cyl(x - 1.5, 150, 4, 20, [6, 7]); for (let k = 0; k < 6; k++) { const yy = 170 - h + k * h / 7; s.cone(x, yy - 6, yy + h / 5, w * (0.38 + k * .13), [1, 2, 3, 4, 5]); } }
+    s.rect(0, 162, 480, 8, 1);
+    c.getContext('2d').drawImage(s.canvas(palette(['#1c4632', '#26583e', '#2f6a4c', '#3c7c58', '#5a9c6e', '#2a1e18', '#4a3424'])), 0, 0);
+    LAYERS.push({ c, fx: .35, fy: .2, base: 60, fill: '#1c4632', forest: true }); }
+  // azaleas and dogwoods: a Georgia spring hedge line, in round lit clumps
   { const c = mkC(600, 64), s = new Spr(600, 64); srand(59);
-    for (let i = 0; i < 34; i++) { const x = rnd() * 600, r = 9 + rnd() * 12; s.ell(x, 64 - r * .55, r * 1.3, r * .9, [1, 2, 3]); }
-    for (let i = 0; i < 420; i++) { const x = rnd() * 600, y = 30 + rnd() * 34; if (s.get(x, y)) { const k = rnd(); s.set(x, y, k < .45 ? 4 : k < .7 ? 5 : k < .85 ? 6 : 3); if (k < .45) s.set(x + 1, y, 4); } }
-    for (let i = 0; i < 6; i++) { const x = 30 + rnd() * 540; for (let y = 22; y < 50; y++) s.set(x, y, 7); for (let k = 0; k < 26; k++) { const a = rnd() * 6.28, r = rnd() * 11; s.set(x + Math.cos(a) * r * 1.3, 22 + Math.sin(a) * r * .6, rnd() < .7 ? 6 : 3); } }
-    c.getContext('2d').drawImage(s.canvas(palette(['#3e7e3a', '#2c6230', '#56a04a', '#ff5fa2', '#c8307a', '#ffffff', '#5a3a26'])), 0, 0);
-    LAYERS.push({ c, fx: .48, fy: .3, base: -4, fill: '#2c6230' }); }
-  // near trunks with kudzu
+    const cl = []; for (let i = 0; i < 46; i++) { const r = 8 + rnd() * 11; cl.push([rnd() * 600, 64 - r * .5, r]); } cl.sort((a, b) => a[1] - b[1]);
+    for (const [x, y, r] of cl) s.sphere(x, y, r * 1.25, r * .9, [1, 2, 3, 4]);
+    for (let i = 0; i < 520; i++) { const x = rnd() * 600, y = 24 + rnd() * 40, v = s.get(x, y); if (v >= 2 && v <= 4) { const k = rnd(); const col = v >= 3 ? (k < .55 ? 6 : 8) : (k < .5 ? 7 : 5); s.set(x, y, col); if (k < .5) s.set(x + 1, y, col); } }
+    for (let i = 0; i < 6; i++) { const x = 30 + rnd() * 540; s.cyl(x - 1, 20, 3, 34, [9, 10]); for (let k = 0; k < 34; k++) { const a = rnd() * 6.28, r = rnd() * 12; s.set(x + Math.cos(a) * r * 1.3, 20 + Math.sin(a) * r * .6, rnd() < .7 ? 8 : 5); } }
+    c.getContext('2d').drawImage(s.canvas(palette(['#1e4a1e', '#2c6230', '#3e7e3a', '#5aa04c', '#c8307a', '#ff5fa2', '#ffb0d0', '#ffffff', '#3a2618', '#6a4a32'])), 0, 0);
+    LAYERS.push({ c, fx: .48, fy: .3, base: -4, fill: '#1e4a1e' }); }
+  // near trunks: round, barked, draped in lit kudzu, a canopy band overhead
   { const c = mkC(760, 420), s = new Spr(760, 420); srand(53);
     for (let i = 0; i < 7; i++) { const x = 40 + i * 105 + rnd() * 40, w = 16 + rnd() * 12;
-      for (let y = 0; y < 420; y++) for (let k = 0; k < w; k++) { const t = k / w; s.set(x + k, y, t < .2 ? 3 : t > .75 ? 2 : (hash(x + k, y >> 2) < .12 ? 2 : 1)); }
-      for (let j = 0; j < 4; j++) { const ky = 40 + rnd() * 200, kx = x + (rnd() - .5) * w; for (let m = 0; m < 6; m++) s.ell(kx + (rnd() - .5) * 22, ky + m * 6, 5 + rnd() * 3, 4, [4, 5, 6]); } }
-    c.getContext('2d').drawImage(s.canvas(palette(['#4e3424', '#36231a', '#6a4a32', '#3f8a32', '#2c6a24', '#58a640'])), 0, 0);
+      s.cyl(x, 0, w, 420, [1, 2, 3, 4, 5], true);
+      for (let j = 0; j < 4; j++) { const ky = 50 + rnd() * 200, kx = x + w / 2 + (rnd() - .5) * w; for (let m = 0; m < 6; m++) s.sphere(kx + (rnd() - .5) * 20, ky + m * 7, 5 + rnd() * 3, 4.2, [6, 7, 8, 9, 10]); } }
+    for (let i = 0; i < 70; i++) s.sphere(rnd() * 760, rnd() * 34, 12 + rnd() * 10, 9 + rnd() * 6, [6, 7, 8, 9, 10], -.1);
+    c.getContext('2d').drawImage(s.canvas(palette(['#24160e', '#3a2618', '#563a26', '#755034', '#94704a', '#173a16', '#245a20', '#357c2c', '#52a440', '#86d062'])), 0, 0);
     LAYERS.push({ c, fx: .6, fy: .45, base: 30, fill: null, forest: true, alpha: true }); }
   return LAYERS;
 }
@@ -221,8 +225,8 @@ function buildLayers(theme) {
 function buildLevelProps() {
   PROPS.loop = null; PROPS.logs = [];
   if (LOOP) { const R = LOOP.R, T = 13, sz = (R + T) * 2 + 4, s = new Spr(sz, sz), c0 = sz / 2;
-    for (let y = 0; y < sz; y++) for (let x = 0; x < sz; x++) { const dx = x + .5 - c0, dy = y + .5 - c0, r = Math.hypot(dx, dy); if (r >= R && r < R + T) { const a = Math.atan2(dy, dx); const lit = Math.cos(a + 2.3); let col = r < R + 2 ? 3 : r > R + T - 3 ? 2 : 1; if (lit > .5 && col === 1) col = 3; if (hash(Math.round(a * 60), Math.round(r)) < .12) col = 2; if (dy < -R * .6 && r > R + T - 5 && hash(x, y) < .5) col = 4; s.set(x, y, col); } }
-    PROPS.loop = { c: s.outline(5).canvas(palette(['#7a5236', '#4e3220', '#a07450', '#5cae44', '#2a140c'])), x: LOOP.cx - c0, y: LOOP.cy - c0 }; }
+    for (let y = 0; y < sz; y++) for (let x = 0; x < sz; x++) { const dx = x + .5 - c0, dy = y + .5 - c0, r = Math.hypot(dx, dy); if (r >= R && r < R + T) { const t = ((r - R) / T) * 2 - 1, nz = Math.sqrt(1 - t * t), ux = dx / r * t, uy = dy / r * t; let l = (-ux * .55 - uy * .65 + nz * .6 + .3) / 1.5; if (hash(Math.round(Math.atan2(dy, dx) * 40), Math.round(r)) < .1) l -= .2; let col = rampIdx([1, 2, 3, 4, 5], l, x, y); if (dy < -R * .5 && t > .2 && hash(x >> 1, y >> 1) < .45) col = rampIdx([6, 7, 8], l + .2, x, y); s.set(x, y, col); } }
+    PROPS.loop = { c: s.outline(9).canvas(palette(['#3a2416', '#563620', '#7a5236', '#9a6e48', '#c09468', '#2f7a2a', '#4ea23a', '#7ccf4a', '#1e100a'])), x: LOOP.cx - c0, y: LOOP.cy - c0 }; }
   PROPS.logs = PLATS.filter(p => p.kind === 'log').map(p => { const x0 = p.pts[0][0], x1 = p.pts[p.pts.length - 1][0], w = x1 - x0 + 8, s = new Spr(w, 16);
     const y0 = p.pts[0][1], y1 = p.pts[p.pts.length - 1][1];
     for (let x = 0; x < w; x++) { const off = Math.round((y1 - y0) * x / w); for (let k = 0; k < 11; k++) s.set(x, k + off + 1, k < 3 ? 3 : k > 8 ? 2 : (hash(x >> 2, k) < .15 ? 2 : 1)); }
@@ -253,20 +257,19 @@ function buildProps() {
     R(360, 150, 18, 34, '#a0503a'); for (let y = 152; y < 184; y += 4) R(360, y, 18, 1, '#7a3a2a'); R(357, 146, 24, 5, '#5a4a4a');
     for (let i = 0; i < 26; i++) { const x = 120 + hash(i, 1) * 300, top = x < 270 ? lerp(212, 152, (x - 92) / 178) : lerp(152, 212, (x - 270) / 178); R(x, top + 3 + hash(i, 2) * 6, 3, 2, '#5c8a3a'); }
     PROPS.house = { c, x: ox, y: oy }; }
-  // Sunny's oak
+  // Sunny's oak: round trunk, a lit branch, a canopy of clumps
   { const c = mkC(260, 300), s = new Spr(260, 300), ox = 640, oy = 2;
-    for (let y = 150; y < 300; y++) { const w = 38 + Math.max(0, y - 270) * 1.2; for (let k = 0; k < w; k++) { const t = k / w; s.set(130 - w / 2 + k, y, t < .2 ? 3 : t > .7 ? 2 : (hash(k, y >> 2) < .1 ? 2 : 1)); } }
-    for (let x = 60; x < 120; x++) { const y = 176 + (120 - x) * .12; for (let k = -3; k <= 3; k++) s.set(x, y + k, k < -1 ? 3 : k > 1 ? 2 : 1); }
-    srand(61); for (let i = 0; i < 60; i++) { const a = rnd() * 6.28, r = rnd() * 92; s.ell(130 + Math.cos(a) * r, 100 + Math.sin(a) * r * .62, 16 + rnd() * 10, 13 + rnd() * 8, [4, 5, 6]); }
-    for (let i = 0; i < 90; i++) { const a = rnd() * 6.28, r = rnd() * 96; const x = 130 + Math.cos(a) * r, y = 100 + Math.sin(a) * r * .62; if (s.get(x, y)) s.set(x, y, rnd() < .5 ? 6 : 5); }
-    c.getContext('2d').drawImage(s.outline(7).canvas(palette(['#6a4630', '#4a2e1e', '#8a6044', '#5cae44', '#3f8a32', '#7cc85a', '#22401a'])), 0, 0);
+    for (let y = 140; y < 300; y++) { const w = 36 + Math.max(0, y - 266) * 1.3; s.cyl(130 - w / 2, y, w, 1, [1, 2, 3, 4, 5], true); }
+    for (let x = 58; x < 122; x++) { const y = 172 + (122 - x) * .12; for (let k = -4; k <= 4; k++) { const l = (-k / 4 * .7 + .6); s.set(x, y + k, rampIdx([1, 2, 3, 4, 5], l, x, y + k)); } }
+    s.canopy(130, 96, 98, 62, 64, [6, 7, 8, 9, 10], 61);
+    c.getContext('2d').drawImage(s.outline(11).canvas(palette(['#3a2416', '#563620', '#755034', '#94704a', '#b8906a', '#1e4a1a', '#2f6e26', '#47922f', '#69b844', '#9ade6a', '#14260e'])), 0, 0);
     PROPS.oak = { c, x: ox, y: oy }; }
   // the bobcat's pine
   { const c = mkC(200, 300), s = new Spr(200, 300), ox = 5050, oy = 0;
-    for (let y = 30; y < 300; y++) for (let k = 0; k < 26; k++) { const t = k / 26; s.set(87 + k, y, t < .2 ? 3 : t > .72 ? 2 : (hash(k, y >> 2) < .12 ? 2 : 1)); }
-    for (let x = 6; x < 92; x++) { const y = 224 + (92 - x) * .03; for (let k = -3; k <= 3; k++) s.set(x, y + k, k < -1 ? 3 : k > 1 ? 2 : 1); }
-    srand(71); for (let k = 0; k < 8; k++) { const yy = 20 + k * 22, ww = 26 + k * 6; s.tri(100 - ww, yy + 26, 100, yy - 10, 100 + ww, yy + 26, k % 2 ? 4 : 5); }
-    c.getContext('2d').drawImage(s.outline(7).canvas(palette(['#6a4630', '#4a2e1e', '#8a6044', '#2f6a44', '#3c7c52', '#58a050', '#1a3020'])), 0, 0);
+    s.cyl(87, 30, 26, 270, [1, 2, 3, 4, 5], true);
+    for (let x = 6; x < 92; x++) { const y = 224 + (92 - x) * .03; for (let k = -4; k <= 4; k++) s.set(x, y + k, rampIdx([1, 2, 3, 4, 5], -k / 4 * .6 + .55, x, y + k)); }
+    for (let k = 0; k < 8; k++) { const yy = 18 + k * 22; s.cone(100, yy - 12, yy + 28, 26 + k * 6, [6, 7, 8, 9, 10]); }
+    c.getContext('2d').drawImage(s.outline(11).canvas(palette(['#3a2416', '#563620', '#755034', '#94704a', '#b8906a', '#173c26', '#22583a', '#2f704a', '#4a9060', '#76b880', '#0e2016'])), 0, 0);
     PROPS.pine = { c, x: ox, y: oy }; }
   // signs
   PROPS.sign = (() => { const c = mkC(44, 40), g = c.getContext('2d'); g.fillStyle = '#4e3220'; g.fillRect(19, 16, 5, 24); g.fillStyle = '#2a140c'; g.fillRect(1, 1, 42, 17); g.fillStyle = '#a07450'; g.fillRect(2, 2, 40, 15); g.fillStyle = '#c89a6a'; g.fillRect(2, 2, 40, 2); drawText(g, 'CREEK', 4, 6, '#3a1e10'); g.fillStyle = '#3a1e10'; g.fillRect(34, 9, 5, 1); g.fillRect(37, 8, 1, 3); g.fillRect(38, 9, 1, 1); return c; })();
