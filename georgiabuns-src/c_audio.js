@@ -26,9 +26,10 @@ function auGraph(c) {
   const nb = c.createBuffer(1, c.sampleRate, c.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; AU.noise = nb;
   const sh = c.createWaveShaper(), cu = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; cu[i] = Math.tanh(x * 2.4); } sh.curve = cu; const sg = c.createGain(); sg.gain.value = .9; sh.connect(sg); sg.connect(AU.mus); AU.shaper = sh;
 }
-function auUnlock() {
+function auUnlock() { try { auUnlock2(); } catch (e) {} }
+function auUnlock2() {
   auInit(); const c = AU.ctx; if (!c) return;
-  if (c.state !== 'running') c.resume();
+  if (c.state !== 'running') { const pr = c.resume(); if (pr && pr.catch) pr.catch(() => {}); }
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
   if (!AU.el && /iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document) {
     const a = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAAAA'); a.loop = true; a.volume = 0.01; AU.el = a;
@@ -295,6 +296,9 @@ function sfx(name, p) {
   const nz = (fType, freq, dur, v, delay = 0) => { const f = c.createBiquadFilter(), g = c.createGain(); f.type = fType; f.frequency.value = freq; env(g, t + delay, .004, v, dur); const n = noiseSrc(t + delay, dur + .05); n.connect(f); f.connect(g); g.connect(AU.sfx); };
   switch (name) {
     case 'jump': tone('square', 300, 720, .13, .12); break;
+    case 'tick': tone('square', 1760, 0, .03, .05); break;
+    case 'ding': tone('sine', 1568, 0, .3, .2); tone('sine', 2093, 0, .4, .14, .08); tone('triangle', 3136, 0, .25, .05, .12); break;
+    case 'card': nz('highpass', 1800, .22, .12); tone('square', 220, 880, .16, .06, .02); break;
     case 'carrot': { const hi = p ? 1568 : 1319; tone('sine', hi, 0, .16, .22); tone('triangle', hi * 1.5, 0, .1, .08, .03); break; }
     case 'spring': tone('sine', 180, 900, .22, .3); tone('triangle', 900, 300, .2, .1, .12); break;
     case 'hurt': for (let i = 0; i < 5; i++) tone('square', 900 - i * 120, 0, .06, .08, i * .04); nz('bandpass', 2000, .25, .2); break;

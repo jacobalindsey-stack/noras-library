@@ -132,7 +132,7 @@ function drawDrive() {
   pixCircle(NW * .8, NH * .12, 9, '#f4f0d0');
   const bx = ((D.bg * 40) % NW + NW) % NW;
   g.fillStyle = '#2a2040'; g.beginPath(); g.ellipse(((bx * .3) % NW) + 60, hz + 4, 70, 26, 0, Math.PI, 0); g.fill();
-  const city = LAYERSETS.forest.find(l => l.city).c;
+  const city = forestBase().find(l => l.city).c;
   for (let x = -bx * .6 % city.width - city.width; x < NW; x += city.width) g.drawImage(city, Math.round(x), hz - city.height + 6);
   g.globalAlpha = .55; g.fillStyle = '#140a28'; g.fillRect(0, 0, NW, hz + 6); g.globalAlpha = 1;
   for (let i = 0; i < 26; i++) { const wx = ((i * 53 - bx * .6) % NW + NW) % NW; if ((S.t + i * 7) % 60 < 40) { g.fillStyle = ['#ff4fa0', '#4fe0ff', '#f6c645'][i % 3]; g.fillRect(Math.round(wx), hz - 10 - (i * 17) % 50, 1, 2); } }

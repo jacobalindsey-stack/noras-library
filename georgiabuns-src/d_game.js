@@ -40,7 +40,7 @@ function newGame(mode, day) {
     mode: mode || 'title', day, t: 0, L, golds: 0, found: [], carrots: 0, rocks: [false, false, false], woke: 0, crew: 0, shake: 0,
     pl: { x: LV.start, y: groundY(LV.start), prevX: LV.start, prevY: groundY(LV.start), vx: 0, vy: 0, gsp: 0, ground: true, surf: 'g', ang: 0, face: 1, roll: false, ball: false, jumping: false, crouch: false, charge: 0,
       tumble: 0, inv: 0, spring: 0, springCD: 0, skid: 0, animPh: 0, lt: 0, inWater: false, look: 0, throwT: 0, idleT: 0 },
-    cam: { x: 330 - NW / 2, y: 330 - NH * .55 }, lead: 0, parts: [], scat: [], bubbles: [], acorns: [], hist: [],
+    cam: { x: 330 - NW / 2, y: 330 - NH * .55 }, lead: 0, parts: [], scat: [], bubbles: [], sayQ: [], card: null, acorns: [], hist: [],
     bob: { state: 'sleep', x: 5112, y: 222, v: 0, vx: 0, vy: 0, t: 0, face: 1, tx: 7620 },
     jam: { open: false, tries: 0, wait: 0, nib: 0, said: 0 },
     otter: { x: 8200, t: 0, gave: false, said: false, sq: 0, cool: 0 },
@@ -52,13 +52,23 @@ function newGame(mode, day) {
 }
 
 /* ---------- helpers ---------- */
-function say(who, text, dur) { S.bubbles = S.bubbles.filter(b => b.who !== who); S.bubbles.push({ who, text, t: 0, dur: dur || 150 }); }
+// lines stay up long enough to read (about 3.4 frames a letter after the typing finishes) and wait their turn
+function readTime(text, dur) { return Math.max(dur || 150, 90 + text.length * 3.6); }
+function say(who, text, dur) {
+  const d = readTime(text, dur), busy = S.bubbles.find(b => b.who === who && b.t < b.dur * .75);
+  if (busy || S.bubbles.length >= 2) { if (!S.sayQ.some(q => q.text === text)) S.sayQ.push({ who, text, dur: d, at: S.t }); return; }
+  S.bubbles = S.bubbles.filter(b => b.who !== who); S.bubbles.push({ who, text, t: 0, dur: d });
+}
+function stepSay() {
+  S.sayQ = S.sayQ.filter(q => S.t - q.at < 600);
+  for (let i = 0; i < S.sayQ.length; i++) { const q = S.sayQ[i]; if (S.bubbles.length >= 2 || S.bubbles.some(b => b.who === q.who && b.t < b.dur * .75)) continue; S.sayQ.splice(i, 1); S.bubbles = S.bubbles.filter(b => b.who !== q.who); S.bubbles.push({ who: q.who, text: q.text, t: 0, dur: q.dur }); break; }
+}
 function part(o) { S.parts.push(Object.assign({ life: 30, t: 0, vx: 0, vy: 0, g: 0 }, o)); }
 function dust(x, y, n, sp) { for (let i = 0; i < n; i++) part({ type: 'dust', x: x + (Math.random() - .5) * 8, y: y - 2, vx: (Math.random() - .5) * (sp || 2), vy: -Math.random() * 1.2, life: 18 + Math.random() * 10 }); }
 function sparkle(x, y) { part({ type: 'spark', x, y, life: 16 }); }
 function chips(x, y, n, col) { for (let i = 0; i < n; i++) part({ type: 'chip', x, y, vx: (Math.random() - .5) * 6, vy: -Math.random() * 5 - 1, g: .25, life: 40, col }); }
 function splash(x, y, n) { for (let i = 0; i < n; i++) part({ type: 'drop', x: x + (Math.random() - .5) * 10, y, vx: (Math.random() - .5) * 3, vy: -Math.random() * 4 - 1, g: .22, life: 40 }); part({ type: 'ring', x, y, life: 30 }); }
-function popText(x, y, s, col) { part({ type: 'text', x, y, s, col: col || '#fff3b0', vy: -.6, life: 50 }); }
+function popText(x, y, s, col) { part({ type: 'text', x, y, s, col: col || '#fff3b0', vy: -.35, life: 90 }); }
 function surfAt(s, x) { return s === 'g' ? groundY(x) : platY(s, x); }
 function slopeAng(s, x) { const a = surfAt(s, x - 3), b = surfAt(s, x + 3); if (a == null || b == null) return 0; return Math.atan2(b - a, 6); }
 function bodyC(p) { const a = p.ang; return [p.x + Math.sin(a) * 11, p.y - Math.cos(a) * 11]; }
@@ -422,7 +432,7 @@ function startCook() {
   const best = SAVE.best, nb = { skips: skips > best.skips, carrots: S.carrots > best.carrots, cousins: roster.length > best.cousins };
   if (S.day === 'creek') best.skips = Math.max(best.skips, skips); best.carrots = Math.max(best.carrots, S.carrots); best.cousins = Math.max(best.cousins, roster.length);
   SAVE.runs++; writeSave();
-  S.mode = 'cook'; S.cook = { t: 0, roster, res, nb, scene: LV.cook || 'home', credits: LV.credits ? 1 : 0 }; S.bubbles = []; S.parts = [];
+  S.mode = 'cook'; S.cook = { t: 0, roster, res, nb, scene: LV.cook || 'home', credits: LV.credits ? 1 : 0 }; S.bubbles = []; S.sayQ = []; S.parts = [];
   auMode(LV.cookSong || 'cookout');
   if (window.onCookout) window.onCookout();
 }
@@ -436,18 +446,18 @@ function update() {
   else if (S.mode === 'hub') stepHub();
   else if (S.mode === 'drive') stepDrive();
   else if (S.mode === 'goal') { stepGoal(); camFollow(); }
-  else if (S.mode === 'intro') { S.intro++; if (IN.press || IN.jumpP) { IN.press = IN.jumpP = false; if (S.intro < 150) S.intro = 150; } if (S.intro >= (LV.burrow ? 150 : 130)) beginPlay(); camFollow(); }
+  else if (S.mode === 'intro') { S.intro++; if (IN.press || IN.jumpP) { IN.press = IN.jumpP = false; if (S.intro < 175) S.intro = 175; if (S.card && S.card.t < 150) S.card.t = 150; } if (S.intro >= 175) beginPlay(); camFollow(); }
   else if (S.mode === 'play') { easyAssist(); stepPlayer(); stepWorld(); camFollow(); }
   else if (S.mode === 'throw') { stepThrow(); stepOtter(); camFollow(); }
-  else if (S.mode === 'cook') { S.cook.t++; if (S.cook.t % 6 === 0) part({ type: 'smoke', x: 296 + Math.random() * 4, y: NH - 86, vx: .2 + Math.random() * .2, vy: -.5, life: 90 }); if (S.cook.credits) S.cook.credits++; }
-  for (const b of S.bubbles) b.t++;
+  else if (S.mode === 'cook') { S.cook.t++; { const t = S.cook.t; for (let i = 0; i < 4; i++) { const t0 = 70 + i * 34; if (t >= t0 && t < t0 + 26 && t % 3 === 0) sfx('tick'); if (t === t0 + 26) sfx(i === 3 ? 'ding' : 'carrot', i === 3 ? 0 : 1); } } if (S.cook.t % 6 === 0) part({ type: 'smoke', x: 296 + Math.random() * 4, y: NH - 86, vx: .2 + Math.random() * .2, vy: -.5, life: 90 }); if (S.cook.credits) S.cook.credits++; }
+  for (const b of S.bubbles) b.t++; stepSay(); if (S.card) { S.card.t++; if (S.card.t > 200) S.card = null; }
   S.bubbles = S.bubbles.filter(b => b.t < b.dur);
   for (const q of S.parts) { q.t++; q.vy += q.g; q.x += q.vx; q.y += q.vy; if (q.type === 'leaf') q.x += Math.sin(q.t * .05 + q.ph) * .6; }
   S.parts = S.parts.filter(q => q.t < q.life);
   IN.press = false; IN.jumpP = false; IN.tapX = null;
 }
 function zoneMusic() { return LV.music(S.pl.x); }
-function startIntro() { S.mode = 'intro'; S.intro = 0; auMode(LV.music(LV.start)); if (LV.burrow) { S.cam.x = 340 - NW / 2; S.cam.y = 345 - NH * .55; } else { S.cam.x = LV.start - NW * .55; S.cam.y = groundY(LV.start) - NH * .6; } }
+function startIntro() { S.mode = 'intro'; S.intro = 0; S.card = { t: 0 }; sfx('card'); auMode(LV.music(LV.start)); if (LV.burrow) { S.cam.x = 340 - NW / 2; S.cam.y = 345 - NH * .55; } else { S.cam.x = LV.start - NW * .55; S.cam.y = groundY(LV.start) - NH * .6; } }
 function beginPlay() {
   const p = S.pl; S.mode = 'play'; p.x = LV.start; p.y = groundY(LV.start) - 1; airborne(p, 1.5, -6.2); p.spring = 30; p.face = 1;
   dust(p.x, p.y + 1, 8, 3); sfx('spring'); say('hero', LV.want, 190); S.easyHint = SAVE.easy ? 200 : 0;
@@ -467,7 +477,7 @@ function camFollow() {
   else {
     const [vx] = curVel(p); S.lead = lerp(S.lead, clamp(vx * 17, -NW * .23, NW * .23), .06);
     tx = p.x - NW * .5 + S.lead;
-    ty = p.y - NH * .6 - p.look + (p.crouch ? 30 : 0);
+    ty = p.y - NH * .63 - p.look + (p.crouch ? 30 : 0);
     if (p.surf === 'loop') ty = LOOP.cy - NH * .5;
     if (LV.camY) ty = LV.camY(ty, p);
   }

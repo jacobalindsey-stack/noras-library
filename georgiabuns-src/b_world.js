@@ -160,10 +160,10 @@ function buildTerrain() {
 
 /* ---------- parallax layers ---------- */
 let LAYERS = []; const LAYERSETS = {};
-function buildLayers(theme) {
-  if (LAYERSETS[theme]) return LAYERSETS[theme];
-  if (theme !== 'forest') return (LAYERSETS[theme] = THEME_LAYERS[theme]());
-  const LAYERS = []; LAYERSETS.forest = LAYERS;
+let FOREST_BASE = null;
+function forestBase() {
+  if (FOREST_BASE) return FOREST_BASE;
+  const LAYERS = []; FOREST_BASE = LAYERS;
   // far, faint cloud deck
   { const c = mkC(640, 70), g = c.getContext('2d'); srand(13);
     for (let i = 0; i < 9; i++) { const x = rnd() * 580, y = 6 + rnd() * 44, w = 24 + rnd() * 30; const s = new Spr(Math.ceil(w) + 12, 16);

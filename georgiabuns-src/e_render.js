@@ -28,11 +28,17 @@ function drawBackdrop(cx, cy, pr) {
   g.globalAlpha = .25; pixCircle(sx, sy, r + 5, css(sc)); g.globalAlpha = 1; pixCircle(sx, sy, r, css(sc));
   const forestK = LV.forestFrom != null ? clamp((cx - LV.forestFrom) / 400, 0, 1) : 1;
   for (const L of LAYERS) {
-    const w = L.c.width, h = L.c.height;
-    let ox = -((cx * L.fx + (L.drift ? S.t * L.drift : 0)) % w); if (ox > 0) ox -= w;
+    const C = L.frames ? L.frames[(S.t >> 4) % L.frames.length] : L.c, w = C.width, h = C.height;
+    const dr = L.drift ? S.t * L.drift : 0;
+    let ox = -((cx * L.fx + dr) % w); if (ox > 0) ox -= w;
     const y = Math.round(NH * .5 + L.base - (cy - 140) * L.fy - h * .5);
+    if (y > NH || y + h < 0) { if (L.fill && y + h < NH) { g.fillStyle = L.fill; g.fillRect(0, Math.max(0, y + h), NW, NH - Math.max(0, y + h)); } continue; }
     if (L.alpha) { if (forestK <= 0) continue; g.globalAlpha = forestK; }
-    for (let x = Math.round(ox); x < NW; x += w) g.drawImage(L.c, x, y);
+    if (L.rows) {
+      // line scroll: each row slides at its own speed, far rows slow, near rows fast
+      for (let r = 0; r < h; r++) { const yy = y + r; if (yy < 0 || yy >= NH) continue; const k = r / (h - 1), f = L.rows[0] + (L.rows[1] - L.rows[0]) * k * k;
+        let o = -((cx * f + dr) % w); if (o > 0) o -= w; for (let x = Math.round(o); x < NW; x += w) g.drawImage(C, 0, r, w, 1, x, yy, w, 1); }
+    } else for (let x = Math.round(ox); x < NW; x += w) g.drawImage(C, x, y);
     if (L.fill && y + h < NH) { g.fillStyle = L.fill; g.fillRect(0, y + h, NW, NH - y - h); }
     if (L.lake) { g.fillStyle = '#ffffff'; for (let i = 0; i < 16; i++) { const lx = (i * 53 + S.t * (.2 + (i % 3) * .1) - cx * L.fx) % NW, ly = y + 113 + (i * 7) % 24; if ((S.t + i * 17) % 50 < 26) g.fillRect(Math.round((lx + NW) % NW), ly, 2 + (i % 2), 1); } }
     if (L.city) { const bt = S.t % 1400; if (bt < 700) { g.fillStyle = '#3a3048'; for (let i = 0; i < 4; i++) { const bx = Math.round(NW + 20 - bt * .7 + i * 9 - (i % 2) * 4), by = Math.round(NH * .18 + i * 4 - (i % 2) * 3 + Math.sin((S.t + i * 9) * .2) * 1.5), w = (S.t + i * 5) % 16 < 8; g.fillRect(bx, by, 1, 1); g.fillRect(bx - 1, by - (w ? 1 : 0), 1, 1); g.fillRect(bx + 1, by - (w ? 1 : 0), 1, 1); g.fillRect(bx - 2, by - (w ? 2 : -1), 1, 1); g.fillRect(bx + 2, by - (w ? 2 : -1), 1, 1); } } }
@@ -229,14 +235,15 @@ function drawBubbles(cx, cy) {
     const off = sx < -10 || sx > NW + 10 || sy < -40 || sy > NH + 40;
     if (off) continue;
     let bx = Math.round(clamp(sx - w / 2, 3, NW - w - 3)), by = Math.round(clamp(sy - h - 4, 18, NH - h - 6));
-    const pop = Math.min(1, b.t / 5);
+    const pop = Math.min(1, b.t / 6);
     if (pop < 1) { by += Math.round((1 - pop) * 4); }
     g.fillStyle = '#2a140c'; g.fillRect(bx - 1, by, w + 2, h); g.fillRect(bx, by - 1, w, h + 2);
     g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; g.fillRect(bx, by, w, h);
     const tx = clamp(Math.round(sx), bx + 4, bx + w - 6);
     g.fillStyle = '#2a140c'; g.fillRect(tx - 1, by + h, 5, 1); g.fillRect(tx, by + h + 1, 3, 1); g.fillRect(tx + 1, by + h + 2, 1, 1);
     g.fillStyle = g.fillStyle; g.fillStyle = b.who === 'bob' ? '#ffe9c8' : '#ffffff'; g.fillRect(tx, by + h - 1, 3, 1); g.fillRect(tx + 1, by + h, 1, 1);
-    lines.forEach((l, i) => drawText(g, l, bx + 4, by + 3 + i * 9, '#2a140c'));
+    let left = Math.floor(b.t * .95); // typed out, about 57 letters a second
+    lines.forEach((l, i) => { if (left <= 0) return; drawText(g, l.slice(0, left), bx + 4, by + 3 + i * 9, '#2a140c'); left -= l.length + 1; });
   }
 }
 function drawHUD() {
@@ -294,7 +301,7 @@ function drawCook() {
   for (let i = 0; i < 30; i++) if ((t + i * 17) % 120 < 100) { g.fillStyle = '#fff6d0'; g.fillRect((i * 137) % NW, (i * 53) % (gy * .45), 1, 1); }
   pixCircle(60, gy - 6, 18, '#ff7a3a');
   if (C.scene !== 'home' && C.scene !== 'garden') COOKSCENES[C.scene](t, gy); else {
-  g.globalAlpha = .9; { const city = LAYERSETS.forest.find(l => l.city).c; g.drawImage(city, -40, gy - 120); g.drawImage(city, 520, gy - 120); } g.globalAlpha = 1;
+  g.globalAlpha = .9; { const city = forestBase().find(l => l.city).c; g.drawImage(city, -40, gy - 120); g.drawImage(city, 520, gy - 120); } g.globalAlpha = 1;
   g.fillStyle = '#2a1830'; g.globalAlpha = .55; g.fillRect(0, 0, NW, gy); g.globalAlpha = 1;
   // ground
   for (let x = 0; x < NW; x++) { g.fillStyle = '#3f7a2a'; g.fillRect(x, gy, 1, 6); g.fillStyle = (hash(x, 1) < .4) ? '#5aa03a' : '#3f7a2a'; g.fillRect(x, gy - (hash(x, 2) < .4 ? 1 : 0), 1, 1); g.fillStyle = '#9a3a22'; g.fillRect(x, gy + 6, 1, NH - gy); }
@@ -341,10 +348,60 @@ function drawCook() {
     const w = 160, h = 87, bx = Math.round(NW / 2 - w / 2), by = 8 + Math.round(Math.max(0, 40 - (t - 30) * 2));
     g.fillStyle = '#2a140c'; g.fillRect(bx - 2, by - 2, w + 4, h + 4); g.fillStyle = '#7a5236'; g.fillRect(bx, by, w, h); g.fillStyle = '#a07450'; g.fillRect(bx, by, w, 3); g.fillStyle = '#4e3220'; g.fillRect(bx, by + h - 3, w, 3);
     const head = 'DAY ' + LV.day + ' DONE'; drawTextO(g, head, NW / 2 - textW(head) / 2, by + 7, '#f6c645', 1, '#2a140c');
-    rows.forEach(([k, v, nb], i) => { const y = by + 22 + i * 13; drawText(g, k, bx + 12, y, '#f4e2bd', 1, '#2a140c'); const vs = String(v); drawText(g, vs, bx + w - 12 - textW(vs), y, '#ffffff', 1, '#2a140c'); if (nb && SAVE.runs > 1 && S.day === 'creek') drawText(g, 'BEST!', bx + 70, y, (t & 8) ? '#7ad050' : '#f6c645', 1, '#2a140c'); });
+    rows.forEach(([k, v, nb], i) => { const y = by + 22 + i * 13, t0 = 70 + i * 34; if (t < t0) return; const kk = Math.min(1, (t - t0) / 26); drawText(g, k, bx + 12, y, '#f4e2bd', 1, '#2a140c'); let vs = String(v); if (typeof v === 'number' && kk < 1) vs = String(Math.round(v * kk)); else if (typeof v === 'string' && kk < 1) vs = '0/3'; drawText(g, vs, bx + w - 12 - textW(vs), y, '#ffffff', 1, '#2a140c'); if (nb && SAVE.runs > 1 && S.day === 'creek') drawText(g, 'BEST!', bx + 70, y, (t & 8) ? '#7ad050' : '#f6c645', 1, '#2a140c'); });
     drawText(g, LV.title, NW / 2 - textW(LV.title) / 2, by + h - 13, '#d8b080');
   }
   if (C.credits && t > 420) drawCredits(t - 420);
+}
+const TUFT = { 0: ['#2f8a26', '#5cb83e', '#8ad860'], 1: ['#2a6a1e', '#3e8a2c', '#6aae44'], 9: ['#2f7a26', '#4c9c38', '#7cc458'], 15: ['#8a7440', '#b8a060', '#d8c080'], 4: ['#8a8a40', '#b8b060', '#d8d088'] };
+let FGSET = null, FGKEY = '';
+function drawForeground(cx, cy) {
+  if (S.mode === 'title' || !LV) return;
+  // grass blades on the ground lip, in front of the bunny's feet
+  for (let wx = Math.floor(cx / 7) * 7; wx < cx + NW; wx += 7) {
+    const h0 = hash(wx, 5); if (h0 > .55) continue; const T = TUFT[LV.zone(wx)]; if (!T) continue;
+    const gy = Math.round(groundY(wx)) - cy, sx = wx - cx; if (gy < -8 || gy > NH + 8) continue;
+    const sway = Math.round(Math.sin(S.t * .05 + wx * .07) * .6);
+    for (let b = 0; b < 3; b++) { const bx = sx + b * 2 - 2, bh = 2 + ((hash(wx + b, 6) * 4) | 0); g.fillStyle = T[0]; g.fillRect(bx, gy - bh + 2, 1, bh); g.fillStyle = T[b === 1 ? 2 : 1]; g.fillRect(bx + (b === 1 ? sway : 0), gy - bh + 1, 1, 2); }
+  }
+  // the foreground layer: closer than the bunny, so it slides by faster
+  const key = LV.id; if (FGKEY !== key) { FGKEY = key; FGSET = buildFG(LV.id === 'garden' ? 'garden' : LV.theme); }
+  const F = FGSET, fx = 1.45, P = 150, x0 = cx * fx, p = S.pl, psx = p.x - cx;
+  const forestOK = LV.forestFrom == null || cx > LV.forestFrom - 200;
+  for (let i = Math.floor((x0 - 260) / P); i <= Math.floor((x0 + NW + 120) / P); i++) {
+    const sx = Math.round(i * P + hash(i, 77) * 110 - x0), r = hash(i, 78);
+    const wx = clamp(cx + sx / fx, 0, WW - 1), gsy = groundY(wx) - cy, bottom = Math.max(NH + 6, Math.round(gsy + 64));
+    let spr = null, tall = false;
+    if (F.tall.length && r < .14 && forestOK) { spr = F.tall[i % F.tall.length | 0]; tall = true; }
+    else if (F.hang.length && r < .32) { const hs = F.hang[0]; g.globalAlpha = .92; g.drawImage(hs, sx, Math.round(-8 - Math.max(0, cy - p.y + NH) * 0)); g.globalAlpha = 1; continue; }
+    else if (F.low.length && r < .85) spr = F.low[Math.floor(hash(i, 79) * F.low.length)];
+    if (!spr) continue;
+    const y = bottom - spr.height; if (y > NH) continue;
+    const near = Math.abs(sx + spr.width / 2 - psx) < spr.width / 2 + 14;
+    g.globalAlpha = tall ? (near ? .4 : .95) : (near && p.y - cy > y ? .7 : 1);
+    g.drawImage(spr, sx, y); g.globalAlpha = 1;
+  }
+}
+const CARDCOL = { creek: ['#2a7a3a', '#f6c645'], farm: ['#b8302a', '#ffe08a'], marsh: ['#2a78a8', '#ffe9b0'], paris: ['#34307a', '#f6c645'], garden: ['#d8661a', '#fff3b0'], boulder: ['#6a4a8a', '#bfe8ff'], icebox: ['#2a2058', '#9ae8ff'] };
+// Sonic-style act card: a colour bar drops in, the day's name slides across, then it all whips away
+function drawCard() {
+  const C = S.card; if (!C) return; const t = C.t, [col, hi] = CARDCOL[LV.id] || ['#2a7a3a', '#f6c645'];
+  const inK = k => Math.min(1, Math.max(0, k)), ease = k => 1 - Math.pow(1 - inK(k), 3);
+  const out = ease((t - 150) / 24), a = ease(t / 16) * (1 - out), b = ease((t - 6) / 18) * (1 - out), c = ease((t - 14) / 18) * (1 - out);
+  // the bar down the left
+  const bw = 54, bh = NH; g.fillStyle = col; g.fillRect(30, Math.round(-bh + bh * a), bw, bh); g.fillStyle = hi; g.fillRect(30 + bw - 4, Math.round(-bh + bh * a), 4, bh);
+  g.fillStyle = '#2a140c'; g.fillRect(30 + bw, Math.round(-bh + bh * a), 2, bh);
+  for (let i = 0; i < 6; i++) { const yy = Math.round(-bh + bh * a + 30 + i * 46); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(30, yy, bw - 4, 18); }
+  // the name banner from the right
+  const name = LV.title, sc = textW(name) * 2 > NW - 110 ? 1 : 2, tw = textW(name) * sc, bnW = tw + 40, by = Math.round(NH * .36);
+  const bx = Math.round(NW - bnW * b + (1 - b) * 40);
+  g.fillStyle = '#2a140c'; g.fillRect(bx - 2, by - 2, bnW + 60, 10 * sc + 16); g.fillStyle = '#fff6e0'; g.fillRect(bx, by, bnW + 60, 10 * sc + 12);
+  g.fillStyle = col; g.fillRect(bx, by + 10 * sc + 8, bnW + 60, 4);
+  drawTextO(g, name, bx + 18, by + 6, '#2a140c', sc, '#fff6e0', 1);
+  // the day tag from below
+  const dt = 'DAY ' + LV.day, dw = textW(dt) * 2 + 20, dx = Math.round(NW - dw - 26), dy = Math.round(by + 10 * sc + 22 + (1 - c) * (NH - by));
+  g.fillStyle = '#2a140c'; g.fillRect(dx - 2, dy - 2, dw + 4, 28); g.fillStyle = col; g.fillRect(dx, dy, dw, 24); g.fillStyle = hi; g.fillRect(dx, dy, dw, 2);
+  drawTextO(g, dt, dx + 10, dy + 5, hi, 2, '#2a140c', 1);
 }
 function render() {
   if (!S) return;
@@ -356,9 +413,10 @@ function render() {
   const pr = progress();
   drawBackdrop(cx, cy, pr);
   drawWorld(cx, cy);
+  drawForeground(cx, cy);
   const tint = skyAt(pr)[2]; g.globalCompositeOperation = 'multiply'; g.fillStyle = css(tint); g.fillRect(0, 0, NW, NH); g.globalCompositeOperation = 'source-over';
   if (pr > .85 && S.mode !== 'title') for (let i = 0; i < 10; i++) { if ((S.t + i * 9) % 60 < 34) { g.fillStyle = '#e8ff8a'; g.fillRect((i * 97 + Math.sin(S.t * .02 + i) * 30 + 424) % 424 | 0, (NH * .3 + (i * 41) % (NH * .5)) | 0, 1, 1); } }
   if (S.mode === 'title') drawTitle();
-  else { drawBubbles(cx, cy); drawHUD(); drawThrowUI(); }
+  else { drawBubbles(cx, cy); drawHUD(); drawThrowUI(); drawCard(); }
   if (S.fade > 0) { g.globalAlpha = S.fade; g.fillStyle = '#000'; g.fillRect(0, 0, NW, NH); g.globalAlpha = 1; }
 }

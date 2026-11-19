@@ -77,6 +77,13 @@ function openMenu() { if (!S || S.mode === 'title' || S.mode === 'hub') return; 
 function closeMenu() { paused = false; $('menu').hidden = true; PTR.clear(); }
 
 /* ---------- layout ---------- */
+// the iPhone notch, rounded corners and home bar: keep thumbs' buttons out of them
+function safeInsets() {
+  let el = document.getElementById('safeProbe');
+  if (!el) { el = document.createElement('div'); el.id = 'safeProbe'; el.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(el); }
+  const cs = getComputedStyle(el), f = v => parseFloat(v) || 0;
+  return { t: f(cs.paddingTop), r: f(cs.paddingRight), b: f(cs.paddingBottom), l: f(cs.paddingLeft) };
+}
 function layout() {
   const vv = window.visualViewport, W = Math.round(vv ? vv.width : innerWidth), H = Math.round(vv ? vv.height : innerHeight);
   UI.W = W; UI.H = H; UI.portrait = H > W * 1.08;
@@ -93,11 +100,12 @@ function layout() {
   const sz = { S: .8, M: 1, L: 1.22 }[SAVE.size] || 1, short = Math.min(W, H);
   const jd = Math.round(clamp(short * (UI.portrait ? .26 : .19), 96, 190) * sz);
   const jb = $('jump'); jb.style.width = jb.style.height = jd + 'px';
-  if (UI.portrait) { jb.style.left = Math.round(W * .75 - jd / 2) + 'px'; jb.style.top = Math.round(playH + deckH / 2 - jd / 2) + 'px'; }
-  else { jb.style.left = (W - jd - Math.round(W * .03)) + 'px'; jb.style.top = (H - jd - Math.round(H * .05)) + 'px'; }
+  const SI = safeInsets(); UI.si = SI;
+  if (UI.portrait) { jb.style.left = Math.round(W * .75 - jd / 2) + 'px'; jb.style.top = Math.round(playH + (deckH - SI.b) / 2 - jd / 2) + 'px'; }
+  else { jb.style.left = (W - jd - Math.round(W * .03) - SI.r) + 'px'; jb.style.top = (H - jd - Math.max(Math.round(H * .05), SI.b + 6)) + 'px'; }
   UI.jd = jd; UI.stickR = Math.round(jd * .48);
   const sb = $('stickBase'), kn = $('stickKnob'); sb.style.width = sb.style.height = UI.stickR * 2 + 'px'; kn.style.width = kn.style.height = Math.round(UI.stickR * 1.1) + 'px';
-  UI.ghost = UI.portrait ? [W * .25, playH + deckH / 2] : [Math.round(W * .03) + UI.stickR + 10, H - Math.round(H * .05) - UI.stickR - 10];
+  UI.ghost = UI.portrait ? [W * .25, playH + (deckH - SI.b) / 2] : [Math.round(W * .03) + SI.l + UI.stickR + 10, H - Math.max(Math.round(H * .05), SI.b + 6) - UI.stickR - 10];
   placeStick(null);
   const showCtl = S && (S.mode === 'play' || S.mode === 'throw' || S.mode === 'intro' || S.mode === 'drive' || S.mode === 'goal');
   jb.hidden = !showCtl; sb.hidden = !showCtl || SAVE.easy; kn.hidden = sb.hidden;
@@ -108,7 +116,7 @@ function layout() {
   const eb = $('easy'), pb = $('pause'), pad = hs === 2 ? 2 : 4;
   let bt = pad; if (UI.portrait) bt = ctlMode ? playH + 4 + pad : Math.round((H - playH) / 2) + pad;
   eb.style.top = pb.style.top = bt + 'px';
-  if (UI.portrait && ctlMode) { const top = playH + 4 + pad + 15 * hs + 16, rest = H - top; jb.style.top = Math.round(top + rest * .45 - jd / 2) + 'px'; UI.ghost = [W * .25, top + rest * .45]; placeStick(null); const hn = $('hint'); hn.style.top = top + 'px'; hn.style.height = rest + 'px'; hn.style.bottom = 'auto'; }
+  if (UI.portrait && ctlMode) { const top = playH + 4 + pad + 15 * hs + 16, rest = H - top - SI.b; jb.style.top = Math.round(top + rest * .45 - jd / 2) + 'px'; UI.ghost = [W * .25, top + rest * .45]; placeStick(null); const hn = $('hint'); hn.style.top = top + 'px'; hn.style.height = rest + 'px'; hn.style.bottom = 'auto'; }
   UI.lastMode = S && S.mode;
 }
 function placeStick(pt) {
@@ -156,14 +164,18 @@ function onMove(e) {
     const kd = Math.min(d, R); pt.kx = pt.ox + (d ? dx / d * kd : 0); pt.ky = pt.oy + (d ? dy / d * kd : 0); placeStick(pt);
   }
 }
+function endPointer(pt) {
+  // a quick tap in EASY mode is a jump; this runs whether pointerup or iOS's touchend arrives first
+  if (pt.kind === 'follow' && performance.now() - pt.t0 < 260 && pt.moved < 16) IN.jumpP = true;
+  if (pt.kind === 'stick') placeStick(null);
+}
 function onUp(e) {
   const pt = PTR.get(e.pointerId); if (!pt) return; PTR.delete(e.pointerId);
-  if (pt.kind === 'follow' && performance.now() - pt.t0 < 240 && pt.moved < 14) IN.jumpP = true;
-  if (pt.kind === 'stick') placeStick(null);
+  endPointer(pt);
   if (pt.kind === 'jump' && ![...PTR.values()].some(p => p.kind === 'jump')) $('jump').style.backgroundImage = 'url(' + ART.jump + ')';
   auUnlock();
 }
-function releaseAll() { PTR.clear(); placeStick(null); $('jump').style.backgroundImage = 'url(' + ART.jump + ')'; for (const k in KEY) KEY[k] = false; }
+function releaseAll() { for (const pt of PTR.values()) endPointer(pt); PTR.clear(); placeStick(null); $('jump').style.backgroundImage = 'url(' + ART.jump + ')'; for (const k in KEY) KEY[k] = false; }
 
 function readInput() {
   let ix = 0, iy = 0, jump = false;
