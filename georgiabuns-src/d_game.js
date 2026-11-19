@@ -94,6 +94,12 @@ function stepPlayer() {
   else if (p.ground) groundStep(p, ix, iy, ACC, TOP);
   else airStep(p, ix, iy, TOP);
   if (p.surf !== 'loop' && !p.climb) collide(p);
+  // sprite states: a quick three-quarter turn, a squash on hard landings, a wobble at ledges, the spring corkscrew clock
+  if (p.turnT > 0) p.turnT--; if (p.landT > 0) p.landT--;
+  if (p.pf !== undefined && p.face !== p.pf && p.ground && Math.abs(p.gsp) < 4.5 && !p.roll && !p.skid) p.turnT = 6;
+  p.pf = p.face;
+  if (p.spring > (p.lastSpring || 0)) p.springAt = S.t; p.lastSpring = p.spring;
+  p.edge = false; if (p.ground && Math.abs(p.gsp) < .2 && p.surf !== 'loop') { const a2 = surfAt(p.surf, p.x + p.face * 10); p.edge = a2 == null || a2 - p.y > 16; }
   // water
   const wasW = p.inWater;
   p.inWater = p.x > WATER.x0 && p.x < WATER.x1 && p.y > WATER.y - 4;
@@ -183,6 +189,7 @@ function airStep(p, ix, iy, TOP) {
   if (Math.abs(p.gsp) < Math.abs(p.vx) * .6 && Math.abs(p.vx) > 2) p.gsp = p.vx * .8; // keep the run going on rough landings
   p.roll = IN.iy > .55 && Math.abs(p.gsp) > 1.2;
   if (p.vy > 4) { dust(p.x, ly, 5, 2.5); sfx('land'); }
+  if (p.vy > 6.5 && Math.abs(p.gsp) < 6) p.landT = 7;
 }
 function loopStep(p, ix, ACC, TOP) {
   const L = LOOP;

@@ -32,7 +32,13 @@ class Spr {
       const u = (px * ca + py * sa) / rx, v = (-px * sa + py * ca) / ry;
       if (u * u + v * v <= 1) {
         let col = c;
-        if (Array.isArray(c)) {
+        if (Array.isArray(c) && c.length >= 4) {
+          // a rounded volume lit from the upper left: [deep, shadow, base, light, (shine)]
+          const nx = u * ca - v * sa, ny = u * sa + v * ca, nz = Math.sqrt(Math.max(0, 1 - u * u - v * v));
+          const l = -0.5 * nx - 0.62 * ny + 0.6 * nz;
+          if (c.length >= 5) col = l < -0.42 ? c[0] : l < -0.02 ? c[1] : l < 0.6 ? c[2] : l < 0.76 ? c[3] : c[4];
+          else col = l < -0.38 ? c[0] : l < 0.02 ? c[1] : l < 0.66 ? c[2] : c[3];
+        } else if (Array.isArray(c)) {
           const d = (px / R) * 0.55 + (py / R) * 0.85;
           col = d > 0.4 ? c[1] : (d < -0.52 && c[2]) ? c[2] : c[0];
         }
@@ -156,11 +162,12 @@ const BUN_FURS = {
 let beanieCol = null, accCol = null;
 function bunPal(fur) {
   const f = BUN_FURS[fur] || BUN_FURS.hero, a = accCol || ['#c8302a', '#8a1a14', '#ff6a5a'];
-  return palette(['#2a140c', f[0], f[1], f[2], '#f4e2bd', '#d4b88c', '#ef8e94', '#ffffff', '#1a0e0a', '#d95a72', '#f6c645', '#b8860b', '#fff3b0', '#ff8a1c', '#3fb04a', '#121018', beanieCol || '#c8302a', '#ffffff', a[0], a[1], a[2]]);
+  const hx = v => '#' + v.map(n => n.toString(16).padStart(2, '0')).join(''), deep = hx(mixRGB(rgb(f[1]), [30, 14, 10], .4)), shine = hx(mixRGB(rgb(f[2]), [255, 255, 255], .38));
+  return palette(['#2a140c', f[0], f[1], f[2], '#f4e2bd', '#d4b88c', '#ef8e94', '#ffffff', '#1a0e0a', '#d95a72', '#f6c645', '#b8860b', '#fff3b0', '#ff8a1c', '#3fb04a', '#121018', beanieCol || '#c8302a', '#ffffff', a[0], a[1], a[2], deep, shine, '#b49468', '#fff8e8', '#c4606c', '#fffbe0']);
 }
 // cousin accessories, drawn relative to the head (hx, hy); slots 19-21 are the accessory's colors
 function bunHat(s, o, hx, hy) {
-  const A3 = [19, 20, 21];
+  const A3 = [20, 20, 19, 21];
   switch (o.hat) {
     case 'cap': s.ell(hx - .5, hy - 4.2, 6.4, 3.3, A3); s.rect(hx - 6.6, hy - 3.6, 13, 1.4, 20); s.rect(hx - 11, hy - 3.2, 5, 1.6, 19); s.set(hx - 1, hy - 7.2, 21); break;
     case 'bucket': s.ell(hx, hy - 4.8, 5.4, 3.2, A3); s.rect(hx - 8, hy - 2.8, 16, 1.6, 20); s.rect(hx - 7, hy - 3.2, 14, 1, 19); break;
@@ -175,10 +182,12 @@ function bunHat(s, o, hx, hy) {
   }
 }
 const BW = 40, BH = 46, BAX = 19, BAY = 44; // sprite size and feet anchor
+// lit ramps: fur [deep, shadow, base, light, shine], cream, far-side fur, beanie
+const BF = [22, 3, 2, 4, 23], BC = [24, 6, 5, 25], BFD = [22, 22, 3, 2];
 function bunSpr(o) {
   if (o.fat && !o.ball) o = Object.assign({}, o, { brx: o.brx + 2, bry: o.bry + 1, e1x: o.hx - 5, e1y: o.hy - 1, e1a: 1.2, el1: 7, e2x: o.hx - 8, e2y: o.hy - 2, e2a: 1.4, el2: 6.5 });
   const s = new Spr(BW, BH), Y = v => v + 3;
-  const F = [2, 3, 4], C = [5, 6, 5], FD = [3, 3, 2];
+  const F = BF, C = BC, FD = BFD;
   const hx = o.hx, hy = Y(o.hy);
   if (!o.ball) {
     s.ell(o.e2x, Y(o.e2y), 2.4, o.el2 || 7, FD, o.e2a);
@@ -257,12 +266,88 @@ const POSES = {
   chomp: [P({ teeth: 1 }), P({ teeth: 1, mouth: 1, hy: 19 })],
   cheer: [P({ by: 30, ax: 25, ay: 18, aa: -0.4, mouth: 1, e1a: 0.1, e2a: -0.25 }), P({ by: 28, hy: 16, ax: 26, ay: 16, aa: -0.2, mouth: 1, e1y: 4, e2y: 5, e1a: 0.15, e2a: -0.2, bfy: 37, ffy: 37 })],
   throw: [P({ ax: 28, ay: 25, aa: -1.4, hx: 22 }), P({ ax: 15, ay: 22, aa: 0.9, bx: 16, ba: -0.15 })],
+  balance: [P({ bx: 19, by: 31, ba: 0.42, hx: 27, hy: 21, e1x: 21, e1y: 8, e1a: 0.35, e2x: 17, e2y: 9, e2a: 0.1, eye: 'up', mouth: 1, ffx: 21, ffy: 40, bfx: 15, bfy: 40, ax: 30, ay: 18, aa: -2.2, tx: 11, ty: 31 }),
+    P({ bx: 19, by: 31, ba: 0.38, hx: 27, hy: 21, e1x: 22, e1y: 8, e1a: 0.55, e2x: 18, e2y: 9, e2a: 0.3, eye: 'up', mouth: 1, ffx: 21, ffy: 40, bfx: 15, bfy: 40, ax: 29, ay: 26, aa: -0.4, tx: 11, ty: 31 })],
+  land: [P({ bx: 18, by: 33, brx: 9.2, bry: 7.4, hx: 23, hy: 23, e1x: 17, e1y: 13, e1a: -0.9, el1: 7.4, e2x: 14, e2y: 15, e2a: -1.1, ffx: 26, ffy: 40, bfx: 12, bfy: 40, ax: 25, ay: 33, tx: 9, ty: 34 })],
   catsit: [P({ by: 29, brx: 6.5, bry: 10, hx: 20, hy: 15, ffx: 22, ffy: 40, bfx: 16, bfy: 40, ax: 21.5, ay: 31, aa: 0.1, e1x: 20, e1y: 3, e1a: -0.05, e2x: 17, e2y: 4, e2a: -0.25 }), P({ by: 29, brx: 6.5, bry: 10, hx: 20, hy: 15, ffx: 22, ffy: 40, bfx: 16, bfy: 40, ax: 21.5, ay: 31, aa: 0.1, e1x: 20, e1y: 3, e1a: -0.05, e2x: 17, e2y: 4, e2a: -0.25, eye: 'closed' })]
 };
+/* ---------- the other angles: front, three-quarter, back (for turns, spring flips, idling, cheering) ---------- */
+// view: 'front' faces the camera; 'q' is three-quarter toward the camera, facing right; 'back' and 'qb' turn away
+function bunView(view, o) {
+  const s = new Spr(BW, BH), Y = v => v + 3, F = BF, C = BC, FD = BFD, A3 = [20, 20, 19, 21];
+  const fat = !!o.fat, back = view === 'back' || view === 'qb', q = view === 'q', qb = view === 'qb';
+  const cx = 19.5 + (q ? .5 : qb ? -.5 : 0), bw = fat ? 10 : 8.2, hx = cx + (q ? 2 : qb ? 1.4 : 0), hy = Y(o.cheer === 2 ? 16 : 17), up = o.cheer === 2 ? -1 : 0;
+  // ears, behind the head
+  const ear = (x, y, a, near) => { if (fat) { s.ell(x + (x < hx ? -4.4 : 4.4), hy + 1, 2.8, 7, near ? F : FD, x < hx ? 1.15 : -1.15); return; }
+    s.ell(x, Y(5.5) + up, 2.7, 7.8, near ? F : FD, a); if (!back) s.ell(x + Math.sin(a) * .4, Y(6.3) + up, 1.1, 5.2, 7, a); if (o.stud && near) { s.set(x + .5, Y(9) + up, 8); s.set(x + 1.5, Y(9) + up, 13); } };
+  if (q) { ear(hx - 2.8, 0, -0.42, false); ear(hx + 2.6, 0, 0.12, true); }
+  else if (qb) { ear(hx + 2.6, 0, 0.36, false); ear(hx - 2.4, 0, -0.1, true); }
+  else { ear(hx - 3.6, 0, -0.2, true); ear(hx + 3.6, 0, 0.2, true); }
+  // feet and body
+  const fy = Y(39.6), lift = k => (o.tap === k ? 1.6 : 0);
+  if (q) { s.ell(cx - 3.6, fy, 3, 2.1, FD); s.ell(cx + 4.4, fy - lift(2), 3.8, 2.4, F); s.ell(cx + 5.4, fy + .6 - lift(2), 2, 1, C); }
+  else if (qb) { s.ell(cx + 4, fy, 3, 2.1, FD); s.ell(cx - 3.6, fy, 3.4, 2.3, F); }
+  else { s.ell(cx - 4.3, fy - lift(1), 3.5, 2.4, F); s.ell(cx + 4.3, fy - lift(2), 3.5, 2.4, F); if (!back) { s.ell(cx - 4.3, fy + .7 - lift(1), 2.1, 1, C); s.ell(cx + 4.3, fy + .7 - lift(2), 2.1, 1, C); } }
+  if (back || qb) s.ell(cx - (qb ? 2.4 : 0), Y(35), 3.4, 3.2, C);
+  s.ell(cx, Y(31) + up * .5, bw, 8.8, F);
+  if (back || qb) s.ell(cx - (qb ? 2.4 : 0), Y(35.2), 3.4, 3.2, C);
+  if (!back) s.ell(cx + (q ? 2.6 : 0), Y(32.6), q ? 4.4 : (fat ? 6.6 : 5.2), 6.4, C);
+  if (o.hat === 'apron' && !back) { s.ell(cx + (q ? 2.6 : 0), Y(33), q ? 4.8 : 5.8, 6.8, A3); s.line(cx + (q ? 1 : -2), Y(25), cx + (q ? 4 : 2), Y(25), 20); }
+  // arms
+  const arm = (x, y, a, near) => s.ell(x, y, 1.9, 3.5, near ? F : FD, a);
+  if (o.cheer) { const r = o.cheer === 2 ? 1.5 : 0; arm(cx - 8, Y(21 - r), -0.55, !qb); arm(cx + 8.4, Y(21 - r), 0.55, !back || qb); }
+  else if (q) { arm(cx - 6.6, Y(30), 0.3, false); arm(cx + 7.6, Y(30), -0.2, true); }
+  else if (qb) { arm(cx + 6.8, Y(30), -0.3, false); arm(cx - 7.4, Y(30), 0.25, true); }
+  else { arm(cx - 7.6, Y(30), 0.28, true); arm(cx + 7.6, Y(30), -0.28, true); }
+  // head
+  s.ell(hx, hy, fat ? 8 : 7.4, 6.7, F);
+  if (back) { s.ell(hx + (qb ? 5.4 : 0), hy + 3, qb ? 1.6 : 0, qb ? 2 : 0, C); }
+  else {
+    const mx = hx + (q ? 3.2 : 0); s.ell(mx, hy + 3.2, q ? 3.4 : 3.9, 2.6, C);
+    s.set(mx - .5 + (q ? 1.4 : 0), hy + 1.8, 10); s.set(mx + .5 + (q ? 1.4 : 0), hy + 1.8, 10); s.set(mx + (q ? 1.4 : 0), hy + 2.6, 10);
+    if (o.cheer || o.mouth) s.ell(mx + (q ? 1 : 0), hy + 4.4, 1.4, 1.2, 9);
+    else { s.set(mx - 1 + (q ? 1 : 0), hy + 4, 9); s.set(mx + (q ? 1 : 0), hy + 4.4, 9); s.set(mx + 1 + (q ? 1 : 0), hy + 4, 9); }
+    if (o.teeth) { s.set(mx - .5 + (q ? 1 : 0), hy + 5, 8); s.set(mx + .5 + (q ? 1 : 0), hy + 5, 8); s.set(mx - .5 + (q ? 1 : 0), hy + 6, 8); s.set(mx + .5 + (q ? 1 : 0), hy + 6, 8); }
+    const eye = (ex, w) => { if (o.blink) { s.line(ex - 1, hy - 1.4, ex + 1, hy - 1.4, 9); return; } s.ell(ex, hy - 1.7, w, 2.6, 8); s.set(ex + .2, hy - 1.6, 9); s.set(ex + .2, hy - .6, 9); s.set(ex - .7, hy - 2.8, 8); };
+    if (q) { eye(hx - 1.6, 1.05); eye(hx + 3.9, 1.75); } else { eye(hx - 3.1, 1.75); eye(hx + 3.1, 1.75); }
+    if (o.shades) { if (q) { s.rect(hx - 3, hy - 3.2, 8.4, 2.6, 16); } else s.rect(hx - 6, hy - 3.2, 12, 2.6, 16); s.set(hx + (q ? 3 : 2), hy - 3, 8); }
+  }
+  // hats and neckwear
+  hatView(s, o, hx, hy, view, A3);
+  // the chain: everybody wears gold
+  if (o.chain !== false) {
+    const x0 = back ? hx - 3.5 : hx - 5 + (q ? 2 : 0), n = back ? 7 : 10, y0 = Y(23.8);
+    for (let i = 0; i <= n; i++) s.set(x0 + i, y0 + (back ? 0 : Math.sin(i / n * Math.PI) * 2), (i % 2) ? 13 : 11);
+    if (o.pendant && !back) { const px = x0 + n / 2, py = y0 + 2.6;
+      if (o.pendant === 'ice') { s.set(px, py, 8); s.set(px - 1, py + 1, 8); s.set(px + 1, py + 1, 13); s.set(px, py + 1, 8); s.set(px, py + 2, 8); }
+      else if (o.pendant === 'rope') { for (let i = 0; i <= n; i++) s.set(x0 + i, y0 + 1 + Math.sin(i / n * Math.PI) * 2.4, 12); s.set(px, py, 11); s.set(px + 1, py, 13); }
+      else { s.set(px, py, 15); s.set(px, py + 1, 14); s.set(px, py + 2, 14); s.set(px + 1, py + 1, 14); } }
+  }
+  return s.outline(1);
+}
+function hatView(s, o, hx, hy, view, A3) {
+  const back = view === 'back' || view === 'qb', q = view === 'q', sh = q ? 1 : view === 'qb' ? -1 : 0;
+  if (o.beanie) { s.ell(hx, hy - 4.4, 7.6, 3.9, 17); s.rect(hx - 7.4, hy - 2.8, 14.8, 2.2, 17); for (let x = -6; x <= 6; x += 2) s.set(hx + x, hy - 2, 18); s.ell(hx - sh, hy - 8.8, 2, 1.9, 18); }
+  switch (o.hat) {
+    case 'cap': s.ell(hx, hy - 4.6, 7.3, 3.5, A3); s.rect(hx - 7.2, hy - 3, 14.4, 1.4, 20); if (back) s.ell(hx - sh * 2, hy - 2.2, 5, 1.5, 19); else s.rect(hx - 1 + sh * 2, hy - 3.4, 2, 1.4, 2); s.set(hx, hy - 7.8, 21); break;
+    case 'bucket': s.ell(hx, hy - 2.6, 9.6, 1.9, 20); s.ell(hx, hy - 5, 6, 3.4, A3); s.rect(hx - 5.8, hy - 3.6, 11.6, 1, 20); break;
+    case 'straw': s.ell(hx, hy - 3, 11.6, 2.1, 19); s.ell(hx, hy - 3.4, 11, 1.2, 21); s.ell(hx, hy - 5.6, 4.8, 2.9, A3); s.rect(hx - 4.6, hy - 4.4, 9.2, 1, 16); break;
+    case 'hard': s.ell(hx, hy - 4.8, 7.4, 4.1, A3); if (!back) s.ell(hx + sh * 2, hy - 2.4, 7.4, 1.4, 19); s.rect(hx - .6, hy - 8.8, 1.2, 4.6, 21); break;
+    case 'band': s.rect(hx - 7.3, hy - 5, 14.6, 2.2, 19); s.rect(hx - 7.3, hy - 5, 14.6, 1, 21); break;
+    case 'mask': s.rect(hx - 7.3, hy - 5.8, 14.6, 1.3, 20); if (!back) { s.ell(hx - 3.2 + sh, hy - 5.4, 2.4, 1.6, A3); s.ell(hx + 3.2 + sh, hy - 5.4, 2.4, 1.6, A3); } break;
+    case 'phones': for (let a = 3.25; a < 6.2; a += .1) s.set(hx + Math.cos(a) * 8, hy - .6 + Math.sin(a) * 8.4, 20); s.ell(hx - 7.6 + sh, hy + .6, 2.2, 3, A3); s.ell(hx + 7.6 + sh, hy + .6, 2.2, 3, A3); break;
+    case 'specs': if (!back) { const ring = (ex, w) => { for (let a = 0; a < 6.3; a += .3) s.set(ex + Math.cos(a) * w, hy - 1.6 + Math.sin(a) * 3, 19); };
+      if (q) { ring(hx - 1.4, 1.9); ring(hx + 3.6, 2.6); s.line(hx + .5, hy - 2, hx + 1, hy - 2, 19); } else { ring(hx - 3.1, 2.6); ring(hx + 3.1, 2.6); s.line(hx - .5, hy - 2, hx + .5, hy - 2, 19); } } break;
+    case 'bandana': if (!back) { s.tri(hx - 4.4 + sh, hy + 5.2, hx + 4.4 + sh, hy + 5.2, hx + sh, hy + 10.4, 19); s.rect(hx - 4.4 + sh, hy + 4.8, 8.8, 1.2, 20); s.set(hx - 1 + sh, hy + 6.6, 8); s.set(hx + 1 + sh, hy + 6.6, 8); s.set(hx + sh, hy + 8.2, 8); } else s.ell(hx, hy + 5.4, 2, 1.4, 19); break;
+    case 'scarf': s.rect(hx - 6.2, hy + 4.6, 12.4, 2.6, 19); for (let x = -5; x < 6; x += 3) s.rect(hx + x, hy + 4.6, 1, 2.6, 21); s.rect(hx + (back ? -5 : 3) + sh, hy + 6.6, 2.4, 5.4, 19); s.rect(hx + (back ? -5 : 3) + sh, hy + 10.6, 2.4, 1, 21); break;
+  }
+}
+const VIEWS = { front: [['front', {}], ['front', { blink: 1 }]], tap: [['front', { tap: 1 }], ['front', { tap: 2 }]], q: [['q', {}]], back: [['back', {}]], qb: [['qb', {}]], fcheer: [['front', { cheer: 1, mouth: 1 }], ['front', { cheer: 2, mouth: 1 }]] };
 // build every pose for a fur/accessory combo
 function buildBun(fur, extra) {
   beanieCol = extra && extra.beanie; accCol = extra && extra.acc; const pal = bunPal(fur), out = {}; beanieCol = null; accCol = null;
   for (const k in POSES) out[k] = POSES[k].map(o => bunSpr(Object.assign({}, o, extra || {})).canvas(pal));
+  for (const k in VIEWS) out[k] = VIEWS[k].map(([v, o]) => bunView(v, Object.assign({}, extra || {}, o)).canvas(pal));
   return out;
 }
 

@@ -166,6 +166,8 @@ Side Wants (no names, but friends for the big cookout): Sunny's birthday (the Ro
 
 Small daily Wants fill the list each morning (haul a watermelon, 60 carrots "don't ask what for," find a dropped pebble phone, cruise Peachtree), so there's always something to do after the story.
 
+**Look** *(game)*. Mania-grade pixel art, now with five lit tones on every bun and Sonic-style 3D states: front, three-quarter and back views for every cousin, a corkscrew flip on springs, a turnaround frame, a ledge wobble, a landing squash, and an idle where he looks at you and taps a foot. What you buy shows up in the burrow.
+
 **Saves.** The saga lives in the same save (`georgiabuns.save.v1`, under `saga`). Old saves keep every day, golden carrot and sticker; returning players get 20 carrots per golden carrot as a head start, and the drip they picked goes in the stash. The original days are in the scrapbook on the burrow wall.
 
 ## Soundtrack

@@ -51,7 +51,11 @@ function drawBackdrop(cx, cy, pr) {
     g.globalAlpha = 1;
   }
 }
+// the spring corkscrew: a full turn around the bun's own axis, profile to front to back and round again
+const SPIN = [['jump', 1], ['q', 1], ['front', 1], ['q', -1], ['jump', -1], ['qb', -1], ['back', 1], ['qb', 1]];
+let BFLIP = 1;
 function bunFrame(set, p) {
+  BFLIP = 1;
   const sp = Math.abs(p.gsp), ph = Math.floor(p.animPh) & 3;
   if (p.climb) return (S.t >> 3) & 1 ? set.jump[0] : set.fall[0];
   if (p.throwT > 0) return set.throw[p.throwT > 12 ? 0 : 1];
@@ -60,13 +64,22 @@ function bunFrame(set, p) {
   if (!p.ground) {
     if (p.tumble > 0 && p.inv > 90) return set.hurt[0];
     if (p.ball) return set.ball[(S.t >> 1) & 3];
+    if (p.spring > 0 && set.front) { const [k, f] = SPIN[Math.floor((S.t - (p.springAt || 0)) / 3) % 8]; BFLIP = f; return set[k][0]; }
     if (p.spring > 0) return set.jump[0];
     return p.vy < 0 ? set.jump[0] : set.fall[0];
   }
   if (p.roll) return set.ball[Math.floor(p.animPh * 1.5) & 3];
   if (p.crouch) return p.charge > .5 ? set.ball[(S.t) & 3] : set.crouch[0];
   if (p.skid > 0) return set.skid[0];
-  if (sp < .15) { if (p.look > 10) return set.up[0]; return set.idle[(p.idleT % 220 > 210) ? 1 : 0]; }
+  if (p.landT > 0 && set.land && sp < 6) return set.land[0];
+  if (p.turnT > 0 && set.q) return set.q[0];
+  if (sp < .15) {
+    if (p.look > 10) return set.up[0];
+    if (p.edge && set.balance) return set.balance[(S.t >> 3) & 1];
+    // waiting around: turns to look at you, then taps a foot
+    if (set.front && p.idleT > 200 && S.mode === 'play') { if (p.idleT < 212) return set.q[0]; if (p.idleT > 340) return set.tap[(p.idleT >> 3) & 1]; return set.front[(p.idleT % 140 > 132) ? 1 : 0]; }
+    return set.idle[(p.idleT % 220 > 210) ? 1 : 0];
+  }
   if (sp < 3.4) return set.walk[ph];
   if (sp < 8.5) return set.run[ph];
   return set.dash[ph];
@@ -155,7 +168,7 @@ function drawWorld(cx, cy) {
     const hgt = sy - p.y; if (hgt < 140) { const k = 1 - hgt / 140, w = Math.round(6 + 6 * k); g.globalAlpha = .28 * k; g.fillStyle = '#1a0a04'; g.fillRect(Math.round(p.x - w), Math.round(sy - 1), w * 2, 2); g.fillRect(Math.round(p.x - w + 2), Math.round(sy - 2), w * 2 - 4, 1); g.globalAlpha = 1; }
   }
   if (S.mode === 'play' && (plSpeed(p) > 8.5 || S.crew > 0) && S.hist.length > 8) {
-    const fr = bunFrame(heroSet(), p); [[3, .3], [6, .14]].forEach(([b, al]) => { const h = S.hist[S.hist.length - 1 - b]; if (!h) return; g.globalAlpha = al; drawSpr(fr, h[0], h[1], (p.ground || p.surf === 'loop') && Math.abs(h[2]) > .3 ? h[2] : 0, h[3], BAX, BAY); }); g.globalAlpha = 1;
+    const fr = bunFrame(heroSet(), p), bf = BFLIP; [[3, .3], [6, .14]].forEach(([b, al]) => { const h = S.hist[S.hist.length - 1 - b]; if (!h) return; g.globalAlpha = al; drawSpr(fr, h[0], h[1], (p.ground || p.surf === 'loop') && Math.abs(h[2]) > .3 ? h[2] : 0, h[3] * bf, BAX, BAY); }); g.globalAlpha = 1;
   }
   missionDrawBack(vis);
   // the hero
@@ -171,14 +184,21 @@ function drawWorld(cx, cy) {
     if (t < 50 && t % 30 === 0) part({ type: 'z', x: ix + 8, y: iy - 16, vx: .2, vy: -.4, life: 60 });
     if (t === 52) popText(ix + 4, iy - 44, '!', '#fff3b0');
   } else if (S.mode !== 'title' && !(p.inv > 0 && p.inv < 100 && (S.t & 2))) {
-    const fr = (S.mode === 'goal' && p.catsit) ? heroSet().catsit[0] : bunFrame(heroSet(), p);
+    const fr = (S.mode === 'goal' && p.catsit) ? (BFLIP = 1, heroSet().catsit[0]) : bunFrame(heroSet(), p);
     const onG = p.ground || p.surf === 'loop';
     let ang = onG && !p.roll && !p.crouch ? p.ang : 0; if (onG && Math.abs(ang) < .3 && p.surf !== 'loop') ang = 0;
     if (S.ride) drawSpr(heroSet().cheer[(S.t >> 3) & 1], p.x - 4 + Math.sin(ang) * 26, p.y - 24 * Math.cos(ang) - ((S.t >> 2) & 1), ang, 1, BAX, BAY);
-    else drawSpr(fr, p.x, p.y + (p.inWater && p.ground ? 1 : 0), ang, p.face, BAX, BAY);
+    else drawSpr(fr, p.x, p.y + (p.inWater && p.ground ? 1 : 0), ang, p.face * BFLIP, BAX, BAY);
   }
   if (S.mode === 'play' || S.mode === 'goal') missionDrawFront();
-  if (S.mode === 'title') drawSpr(A.hero.idle[(S.t % 200 > 192) ? 1 : 0], 540, 300, 0, -1, BAX, BAY);
+  if (S.mode === 'title') {
+    // a few of the family out on the lawn: one waves you in, one taps a foot, one is already facing the creek
+    const t = S.t, st = [famSet(12), famSet(4), famSet(9)];
+    drawSpr(st[0].fcheer[(t >> 4) & 1], 486, 300, 0, 1, BAX, BAY);
+    drawSpr(st[1].tap[(t >> 3) & 1], 604, 300, 0, -1, BAX, BAY);
+    drawSpr((t % 300 < 150 ? st[2].q : st[2].back)[0], 458, 300, 0, -1, BAX, BAY);
+    drawSpr(A.hero.idle[(S.t % 200 > 192) ? 1 : 0], 540, 300, 0, -1, BAX, BAY);
+  }
   // easy-mode hint: a finger pressing ahead of the bun
   if (S.easyHint > 0 && S.mode === 'play') {
     const k = S.t % 80, fx = Math.round(p.x + p.face * (70 + Math.min(40, k)) ), fy = Math.round(p.y - 24), press = k > 30 && k < 70;
@@ -339,7 +359,7 @@ function drawCookScene(C) {
   if (C.extra) C.extra(t, gy);
   for (let i = 0; i < R.length; i++) {
     const k = R[i], set = typeof k === 'number' ? famSet(k) : k === 'hero' ? heroSet() : k === 'nib' ? A.nib : (A[k] && A[k].idle) ? A[k] : A.cuz[k];
-    const x = 26 + i * Math.min(40, (C.wide || 230) / Math.max(1, R.length - 1)), y = gy + 1, fr = (k === 'pontoon' ? set.catsit : set.cheer)[((t >> 3) + i) & 1];
+    const x = 26 + i * Math.min(40, (C.wide || 230) / Math.max(1, R.length - 1)), y = gy + 1, fr = (k === 'pontoon' ? set.catsit : (set.fcheer && (i % 3 === 1 || ((t >> 6) + i) % 5 === 0)) ? set.fcheer : set.cheer)[((t >> 3) + i) & 1];
     drawSpr(fr, x, y, 0, 1, BAX, BAY);
   }
   for (const q of S.parts) drawPart(q);

@@ -61,15 +61,66 @@ function drawToast() {
 
 /* ---------- boxes and buttons ---------- */
 function ubox(x, y, w, h, fill, hi, lo) { R_(x - 2, y - 2, w + 4, h + 4, '#2a140c'); R_(x, y, w, h, fill); if (hi) R_(x, y, w, 2, hi); if (lo) R_(x, y + h - 2, w, 2, lo); }
-function woodPanel(x, y, w, h) { ubox(x, y, w, h, '#7a5236', '#a07450', '#4e3220'); }
-function paper(x, y, w, h) { ubox(x, y, w, h, '#f4ead0', '#fffaf0', '#d8c8a0'); }
+/* ---------- textures: wood grain, paper, the burrow wall ---------- */
+const TEX = {};
+function tile(tex, x, y, w, h) { g.save(); g.beginPath(); g.rect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); g.clip(); for (let ty = Math.round(y); ty < y + h; ty += tex.height) for (let tx2 = Math.round(x); tx2 < x + w; tx2 += tex.width) g.drawImage(tex, tx2, ty); g.restore(); }
+function woodTex() {
+  if (TEX.wood) return TEX.wood; const W = 128, H = 48, c = mkC(W, H), x = c.getContext('2d'), base = rgb('#7a5236'); srand(19);
+  for (let yy = 0; yy < H; yy++) { const band = Math.sin(yy * .9) * .5 + Math.sin(yy * .23 + 1) * .5; for (let xx = 0; xx < W; xx++) { const gr = Math.sin(xx * .045 + yy * .6 + Math.sin(xx * .02) * 2) * .5 + band * .5 + (hash(xx >> 2, yy) - .5) * .25; const k = gr * .09; x.fillStyle = css(k < 0 ? mixRGB(base, [40, 20, 10], -k * 2) : mixRGB(base, [200, 150, 100], k)); x.fillRect(xx, yy, 1, 1); } }
+  for (let i = 0; i < 2; i++) { const kx = 20 + rnd() * 90, ky = 8 + rnd() * 32; for (let r = 5; r > 0; r--) { x.fillStyle = r % 2 ? '#5a3a22' : '#6e4a2e'; x.beginPath(); x.ellipse(kx, ky, r * 1.6, r * .6, 0, 0, 7); x.fill(); } }
+  x.fillStyle = 'rgba(30,14,6,.35)'; x.fillRect(0, 23, W, 1); x.fillStyle = 'rgba(255,220,170,.12)'; x.fillRect(0, 24, W, 1);
+  return (TEX.wood = c);
+}
+function paperTex() {
+  if (TEX.paper) return TEX.paper; const W = 64, H = 64, c = mkC(W, H), x = c.getContext('2d'); x.fillStyle = '#f4ead0'; x.fillRect(0, 0, W, H); srand(29);
+  for (let i = 0; i < 260; i++) { x.fillStyle = rnd() < .5 ? 'rgba(160,120,70,.10)' : 'rgba(255,255,255,.35)'; x.fillRect(rnd() * W | 0, rnd() * H | 0, 1 + (rnd() < .2), 1); }
+  for (let i = 0; i < 10; i++) { x.fillStyle = 'rgba(150,110,60,.08)'; const fx = rnd() * W, fy = rnd() * H; for (let k = 0; k < 6; k++) x.fillRect((fx + k) % W | 0, (fy + k * .4) % H | 0, 1, 1); }
+  return (TEX.paper = c);
+}
+function nail(x, y) { R_(x - 1, y - 1, 3, 3, '#3a2416'); R_(x, y - 1, 1, 1, '#d8c8b0'); R_(x - 1, y, 1, 1, '#8a7a6a'); }
+function woodPanel(x, y, w, h) {
+  x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+  g.globalAlpha = .35; R_(x + 1, y + 3, w + 4, h + 3, '#000000'); g.globalAlpha = 1;
+  R_(x - 2, y - 2, w + 4, h + 4, '#2a140c'); tile(woodTex(), x, y, w, h);
+  R_(x, y, w, 2, 'rgba(255,214,160,.32)'); R_(x, y, 1, h, 'rgba(255,214,160,.22)'); R_(x, y + h - 2, w, 2, 'rgba(20,8,2,.45)'); R_(x + w - 1, y, 1, h, 'rgba(20,8,2,.35)');
+  R_(x + 2, y + 2, w - 4, 1, 'rgba(20,8,2,.18)');
+  if (w > 40 && h > 24) { nail(x + 4, y + 4); nail(x + w - 5, y + 4); nail(x + 4, y + h - 5); nail(x + w - 5, y + h - 5); }
+}
+function paper(x, y, w, h) {
+  x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+  g.globalAlpha = .3; R_(x + 2, y + 3, w + 2, h + 2, '#000000'); g.globalAlpha = 1;
+  R_(x - 1, y - 1, w + 2, h + 2, '#8a6a4a'); tile(paperTex(), x, y, w, h);
+  R_(x, y, w, 1, '#fffaf0'); R_(x, y + h - 2, w, 2, '#e2d2ac'); R_(x + w - 1, y, 1, h, '#e8dcbc');
+  if (w > 120 && h > 40) { g.globalAlpha = .7; R_(x + w / 2 - 18, y - 4, 36, 8, '#e8dca0'); g.globalAlpha = 1; R_(x + w / 2 - 18, y - 4, 36, 1, '#f6eec0'); }
+}
+// the backdrop for menu screens: a carved burrow wall, clay strata, roots, a lamp's glow and dark corners
+function menuBG() {
+  const key = NW + 'x' + NH; if (TEX.bg && TEX.bgk === key) { g.drawImage(TEX.bg, 0, 0); return; }
+  const c = mkC(NW, NH), x = c.getContext('2d'), id = x.createImageData(NW, NH), d = id.data; srand(37);
+  const strata = ['#3b1d10', '#42210f', '#381a0d', '#4a2614', '#3e1e10'].map(rgb), cx = NW / 2, cy = NH * .28;
+  for (let yy = 0; yy < NH; yy++) for (let xx = 0; xx < NW; xx++) {
+    const q = Math.floor((yy + Math.sin(xx * .03) * 4 + Math.sin(xx * .011 + 2) * 6) / 11); let col = strata[(q % 5 + 5) % 5];
+    if (hash(xx >> 1, yy >> 1) < .03) col = mixRGB(col, [120, 70, 40], .5);
+    const dx = (xx - cx) / NW, dy = (yy - cy) / NH, dist = Math.sqrt(dx * dx * 1.3 + dy * dy), th = (BAY4[(yy & 3) * 4 + (xx & 3)] + .5) / 16;
+    const lit = Math.max(0, .5 - dist) * .55, dark = Math.max(0, dist - .38) * 1.1;
+    if (lit > th * .6) col = mixRGB(col, [150, 80, 40], Math.min(.35, lit));
+    if (dark > th) col = mixRGB(col, [10, 4, 2], .55);
+    const o = (yy * NW + xx) * 4; d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255; }
+  x.putImageData(id, 0, 0);
+  for (let i = 0; i < 18; i++) { const sx = rnd() * NW, sy = rnd() * NH, r = 2 + rnd() * 4; x.fillStyle = '#5a4438'; x.beginPath(); x.ellipse(sx, sy, r, r * .7, 0, 0, 7); x.fill(); x.fillStyle = '#7a6458'; x.fillRect(sx - r * .5, sy - r * .4, Math.max(1, r * .6), 1); }
+  x.strokeStyle = '#24120a'; x.lineWidth = 1; for (let i = 0; i < 9; i++) { let rx = rnd() * NW, ry = 0; x.beginPath(); x.moveTo(rx, ry); const len = 20 + rnd() * 50; for (let k = 0; k < len; k += 3) { rx += (rnd() - .5) * 3; ry += 3; x.lineTo(rx, ry); } x.stroke(); }
+  TEX.bg = c; TEX.bgk = key; g.drawImage(c, 0, 0);
+}
 // btn(x, y, w, h, label, fn, {gold, off, why, sc, icon, small})
 function btn(x, y, w, h, label, fn, o) {
   o = o || {}; o.label = label; x = Math.round(x); y = Math.round(y);
   const f = hot(x - 2, y - 2, w + 4, h + 4, fn, o), gold = o.gold && !o.off, pulse = gold && o.pulse && (S.t & 32);
+  g.globalAlpha = .35; R_(x - 1, y + 1, w + 4, h + 3, '#000000'); g.globalAlpha = 1;
   R_(x - 2, y - 2, w + 4, h + 4, f ? '#ffffff' : '#2a140c');
   R_(x, y, w, h, o.off ? '#5a4a3e' : gold ? (pulse ? '#ffd860' : '#f6c645') : o.col || '#4e3220');
   R_(x, y, w, 2, o.off ? '#6e5a4c' : gold ? '#fff3b0' : '#7a5236'); R_(x, y + h - 2, w, 2, o.off ? '#4a3c32' : gold ? '#b8860b' : '#3a2416');
+  if (!o.off) { R_(x, y + 2, 1, h - 4, gold ? '#ffe890' : '#6a4630'); R_(x + w - 1, y + 2, 1, h - 4, gold ? '#d8a020' : '#3a2416'); }
+  if (gold) { const gp = (S.t * 2 + x) % (w + 160) - 20; if (gp > 0 && gp < w - 6) { g.globalAlpha = .45; for (let k = 0; k < h - 4; k++) R_(x + gp + k * .5, y + 2 + k, 3, 1, '#ffffff'); g.globalAlpha = 1; } }
   let lx = x + w / 2; const sc = o.sc || 1;
   if (o.icon) { const ic = o.icon, iw = ic.width; const tw = label ? textW(String(label).toUpperCase(), sc) : 0; const tot = iw + (label ? 4 + tw : 0); g.drawImage(ic, Math.round(x + w / 2 - tot / 2), Math.round(y + h / 2 - ic.height / 2)); lx = x + w / 2 - tot / 2 + iw + 4 + tw / 2; }
   if (label) tx(label, Math.round(lx), Math.round(y + h / 2 - 3.5 * sc), o.off ? '#a89888' : gold ? '#2a140c' : '#ffffff', { al: 'c', sc, oc: gold || o.off ? null : '#2a140c' });
