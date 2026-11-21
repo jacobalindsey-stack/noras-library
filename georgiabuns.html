@@ -41,6 +41,7 @@ button{font:inherit;cursor:pointer}
 <div id="hint" hidden>Hold the screen where you want to go</div>
 <button id="easy" class="hud" aria-label="Easy mode"></button>
 <button id="pause" class="hud" aria-label="Pause"></button>
+<button id="fs" class="hud" aria-label="Full screen" hidden></button>
 <div id="jump" hidden></div>
 <div id="stickBase" hidden></div><div id="stickKnob" hidden></div>
 <button id="again" hidden aria-label="Play again"></button>
@@ -4857,6 +4858,9 @@ function buildUI() {
   const btn = (id, fn) => { const el = $(id); let down = null; el.addEventListener('pointerdown', e => { e.stopPropagation(); down = e.pointerId; }); el.addEventListener('pointerup', e => { e.stopPropagation(); if (down === e.pointerId) { down = null; fn(); } }); el.addEventListener('pointercancel', () => { down = null; }); el.addEventListener('click', e => { if (e.detail === 0) fn(); }); };
   btn('easy', () => { auUnlock(); SAVE.easy = !SAVE.easy; SAVE.easySeen = true; writeSave(); refreshEasy(); layout(); sfx('tap'); easyExplain(); });
   btn('pause', () => { auUnlock(); openMenu(); });
+  btn('fs', () => { auUnlock(); toggleFull(); });
+  refreshFs();
+  for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) document.addEventListener(ev, () => { refreshFs(); setTimeout(layout, 60); if (!paused) buildMenu(); });
   btn('again', () => { auUnlock(); $('again').hidden = true; enterHub(); });
   setLabel($('again'), 'BACK TO THE BURROW', hudScale());
   setLabel($('menuTitle'), 'PAUSED', hudScale() + 1, '#f6c645');
@@ -4869,6 +4873,20 @@ function easyExplain() {
   else { S.easyHint = 0; say('hero', 'STICK MODE: LEFT THUMB RUNS. JUMP BUTTON JUMPS.', 220); }
 }
 function hudScale() { const W = innerWidth, H = innerHeight; return Math.min(W, H) < 520 ? 2 : 3; }
+// full screen: the whole page, where the browser allows it (iPad Safari and desktops do; iPhone doesn't)
+const FS = { el: () => document.fullscreenElement || document.webkitFullscreenElement, ok: () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled) };
+function toggleFull() {
+  const d = document.documentElement;
+  try { if (FS.el()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else { const r = (d.requestFullscreen || d.webkitRequestFullscreen); if (r) { const p = r.call(d, { navigationUI: 'hide' }); if (p && p.catch) p.catch(() => {}); } } } catch (e) {}
+}
+function fsArt(on) {
+  const c = mkC(15, 15), g2 = c.getContext('2d'); g2.fillStyle = '#2a140c'; g2.fillRect(0, 0, 15, 15); g2.fillStyle = '#4e3220'; g2.fillRect(1, 1, 13, 13); g2.fillStyle = '#ffffff';
+  const corner = (x, y, dx, dy) => { g2.fillRect(x, y, 4 * dx || 1, 1); g2.fillRect(x, y, 1, 4 * dy || 1); };
+  if (!on) { g2.fillRect(3, 3, 4, 1); g2.fillRect(3, 3, 1, 4); g2.fillRect(8, 3, 4, 1); g2.fillRect(11, 3, 1, 4); g2.fillRect(3, 11, 4, 1); g2.fillRect(3, 8, 1, 4); g2.fillRect(8, 11, 4, 1); g2.fillRect(11, 8, 1, 4); }
+  else { g2.fillRect(3, 6, 4, 1); g2.fillRect(6, 3, 1, 4); g2.fillRect(8, 6, 4, 1); g2.fillRect(8, 3, 1, 4); g2.fillRect(3, 8, 4, 1); g2.fillRect(6, 8, 1, 4); g2.fillRect(8, 8, 4, 1); g2.fillRect(8, 8, 1, 4); }
+  return c;
+}
+function refreshFs() { const e = $('fs'); e.textContent = ''; e.appendChild(pixImg(fsArt(!!FS.el()), hudScale())); }
 function refreshPause() { const e = $('pause'); e.textContent = ''; e.appendChild(pixImg(pauseArt(), hudScale())); }
 function refreshEasy() { const e = $('easy'); e.textContent = ''; e.appendChild(pixImg(easyArt(SAVE.easy), hudScale())); e.classList.toggle('on', SAVE.easy); e.classList.toggle('invite', !SAVE.easySeen); }
 
@@ -4881,6 +4899,7 @@ function buildMenu() {
   row('BUTTONS: ' + ({ S: 'SMALL', M: 'MEDIUM', L: 'LARGE' })[SAVE.size], () => { SAVE.size = SAVE.size === 'S' ? 'M' : SAVE.size === 'M' ? 'L' : 'S'; writeSave(); layout(); buildMenu(); }, 'Size of the jump button and stick.');
   const ids = [null].concat(Object.keys(SONG));
   row('MUSIC: ' + (AU.juke ? SONG[AU.juke].name : 'AUTO'), () => { const i = ids.indexOf(AU.juke); auJuke(ids[(i + 1) % ids.length]); buildMenu(); }, 'Auto plays each song in its place. Tap to pick any song on the album.');
+  if (FS.ok()) row('FULL SCREEN: ' + (FS.el() ? 'ON' : 'OFF'), () => { toggleFull(); });
   row('SOUND: ' + (SAVE.sound ? 'ON' : 'OFF'), () => { SAVE.sound = !SAVE.sound; auSetOn(SAVE.sound); writeSave(); buildMenu(); });
   if (S && S.mode !== 'saga') {
     if (MISSION) {
@@ -4936,11 +4955,13 @@ function layout() {
   $('easy').hidden = !S || S.mode === 'title' || S.mode === 'cook' || S.mode === 'hub' || S.mode === 'saga' || !UI.touch; $('pause').hidden = !S || S.mode === 'title' || S.mode === 'hub';
   $('hint').hidden = !(UI.portrait && SAVE.easy && showCtl && UI.touch);
   // EASY and pause: smaller on phones; in portrait they sit at the top of the control deck, below the game
-  const hs = hudScale(); if (UI.hs !== hs) { UI.hs = hs; refreshEasy(); refreshPause(); }
-  UI.pauseV = Math.ceil((15 * hs + 18) * NW / W) + 2;
+  const hs = hudScale(); if (UI.hs !== hs) { UI.hs = hs; refreshEasy(); refreshPause(); refreshFs(); }
+  const fsb = $('fs'), fsOn = FS.ok() && !!S && S.mode !== 'hub'; fsb.hidden = !fsOn;
+  UI.pauseV = Math.ceil((15 * hs + 18) * (fsOn ? 2 : 1) * NW / W) + 2;
   const eb = $('easy'), pb = $('pause'), pad = hs === 2 ? 2 : 4;
   let bt = pad; if (UI.portrait) bt = deckOn ? playH + 4 + pad : Math.round((H - playH) / 2) + pad;
-  eb.style.top = pb.style.top = bt + 'px';
+  eb.style.top = pb.style.top = fsb.style.top = bt + 'px';
+  { const pr = parseFloat(getComputedStyle(pb).right) || 2; fsb.style.right = (pr + 15 * hs + 16 + 2) + 'px'; }
   if (deckOn) { const top = playH + 4 + pad + 15 * hs + 16, rest = H - top - SI.b; jb.style.top = Math.round(top + rest * .45 - jd / 2) + 'px'; UI.ghost = [W * .25, top + rest * .45]; placeStick(null); const hn = $('hint'); hn.style.top = top + 'px'; hn.style.height = rest + 'px'; hn.style.bottom = 'auto'; }
   UI.lastMode = S && S.mode;
 }
