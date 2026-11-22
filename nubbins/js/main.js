@@ -6,7 +6,7 @@ import { UnrealBloomPass } from '../lib/UnrealBloomPass.js';
 import { ShaderPass } from '../lib/ShaderPass.js';
 import { OutputPass } from '../lib/OutputPass.js';
 import { ROSTER, BY_KEY, PLAYABLE } from './roster.js';
-import { buildStage, STAGES } from './stages.js';
+import { buildStage, STAGES, SECRET_STAGES, ARCADE_STAGES, STAGE_BY_KEY } from './stages.js';
 import { FX } from './fx.js';
 import { Match, getBear } from './match.js';
 import { Input, pads } from './input.js';
@@ -72,6 +72,7 @@ class Game {
     const r = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false });
     r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.0;
     r.outputColorSpace = THREE.SRGBColorSpace;
+    r.shadowMap.enabled = true; r.shadowMap.type = this.save.settings.quality === 'high' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; r.shadowMap.autoUpdate = false;
     this.view.appendChild(r.domElement);
     this.renderer = r;
     r.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); this.lost = true; });
@@ -98,6 +99,7 @@ class Game {
     this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.36, 0.42, 0.92);
     this.bloom.enabled = q.bloom;
     c.addPass(this.bloom);
+    if (this.stage && this.stage.look) { this.bloom.threshold = this.stage.look.bloomT ?? 0.92; this.bloom.strength = this.stage.look.bloomS ?? 0.36; }
     this.grade = new ShaderPass(GRADE);
     c.addPass(this.grade);
     c.addPass(new OutputPass());
@@ -112,7 +114,11 @@ class Game {
     return { pr: this.autoPR ?? Math.min(dpr, 1.5), bloom: this.autoBloom ?? true, msaa: true, auto: true };
   }
   applyQuality(rebuild) {
-    if (rebuild) { this.autoPR = undefined; this.autoBloom = undefined; this.makeComposer(); }
+    if (rebuild) {
+      this.autoPR = undefined; this.autoBloom = undefined; this.makeComposer();
+      const want = this.save.settings.quality === 'high' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+      if (this.renderer.shadowMap.type !== want) { this.renderer.shadowMap.type = want; this.world.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { m.needsUpdate = true; }); }); this.shadowFrames = 3; }
+    }
     this.resize();
   }
 
@@ -149,8 +155,13 @@ class Game {
     if (this.stage && this.stage.key === key && !force) return;
     if (this.stage) { this.world.remove(this.stage.group); this.stage.dispose(); }
     this.stage = buildStage(key, this.renderer);
+    this.stage.fx = this.fx;
     this.world.add(this.stage.group);
+    this.shadowFrames = 3;
     this.world.environment = this.stage.envRT.texture;
+    const look = this.stage.look || {};
+    this.renderer.toneMappingExposure = look.exposure ?? 1;
+    this.bloom.threshold = look.bloomT ?? 0.92; this.bloom.strength = look.bloomS ?? 0.36;
     const f = this.stage.fog; this.world.fog = f ? new THREE.Fog(f[0], f[1], f[2]) : null;
     this.fx.ambient = this.stage.ambient;
   }
@@ -171,7 +182,7 @@ class Game {
     for (const ev of ['gesturestart', 'gesturechange', 'dblclick']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
     this.input.onTouchSeen = () => this.resize();
     this.resize();
-    this.loadStage('temple');
+    this.loadStage('cake');
     try { await Promise.race([document.fonts.load('150px "Lilita One"'), new Promise(r => setTimeout(r, 2500))]); } catch (e) {}
     // grow every bear and take its portrait
     const n = ROSTER.length;
@@ -312,7 +323,11 @@ class Game {
     if (this.match) { this.match.update(dt); fxdt = this.match.paused ? 0 : dt * (this.match.slow > 0 ? this.match.slowK : 1); }
     else this.menuUpdate(dt);
     this.fx.update(fxdt);
-    if (this.stage) this.stage.update(this.time, dt);
+    if (this.stage) {
+      this.stage.update(this.time, dt, this.match && !this.match.paused ? this.match : null);
+      if (this.stage.envDarkRT) { const want = this.stage.envBlend > 0.5 ? this.stage.envDarkRT.texture : this.stage.envRT.texture; if (this.world.environment !== want) this.world.environment = want; }
+      if (this.stage.shadowDirty || this.shadowFrames > 0) { this.renderer.shadowMap.needsUpdate = true; this.stage.shadowDirty = false; if (this.shadowFrames > 0) this.shadowFrames--; }
+    }
     // post: a little colour fringe on big hits
     const shake = this.match ? this.match.shakeAmt : 0;
     this.grade.uniforms.uAb.value = Math.min(0.02, shake * 0.06);
@@ -355,7 +370,7 @@ class Game {
 
   toTitle() {
     this.endFight();
-    this.loadStage('temple');
+    this.loadStage('cake');
     const n = this.camera.aspect < 1 ? 3 : 6;
     const keys = ['cherry', 'razz', 'sour', 'tango', 'ghost', 'duke'];
     this.showMenuScene('title', n === 3 ? ['cherry', 'razz', 'duke'] : keys);
@@ -364,7 +379,7 @@ class Game {
   }
 
   pickChar(o) {
-    this.loadStage('temple');
+    this.loadStage('sill');
     const keys = [null, null];
     this.showMenuScene('select', keys);
     const show = (k, i) => { keys[i] = k; this.showMenuScene('select', keys.slice()); };
@@ -386,16 +401,16 @@ class Game {
       onBack: () => this.toTitle(),
       onPick: k => {
         const others = PLAYABLE.filter(x => x !== k).sort(() => Math.random() - 0.5).slice(0, 5);
-        this.arcade = { player: k, list: [...others, 'gummoth'], at: 0, stages: ['temple', 'bridge', 'jar', 'swamp', 'bridge', 'hall'] };
+        this.arcade = { player: k, list: [...others, 'gummoth'], at: 0, stages: ARCADE_STAGES.slice() };
         this.showLadder();
       },
     });
   }
   showLadder() {
     const A = this.arcade;
-    this.loadStage('temple');
+    this.loadStage('sill');
     this.showMenuScene('ladder', [A.player]);
-    this.ui.ladder(A.player, A.list, A.at, () => this.arcadeFight(), () => this.toTitle());
+    this.ui.ladder(A.player, A.list, A.at, () => this.arcadeFight(), () => this.toTitle(), A.stages.map(k => STAGE_BY_KEY[k].name));
     playMusic('ladder');
   }
   async arcadeFight() {
@@ -405,7 +420,7 @@ class Game {
     const lvl = this.save.settings.difficulty;
     const boss = BY_KEY[opp].boss;
     this.startFight({
-      p1: A.player, p2: opp, humans: [true, false], mode: 'arcade', stage: A.stages[A.at] || 'temple',
+      p1: A.player, p2: opp, humans: [true, false], mode: 'arcade', stage: A.stages[A.at] || 'couch',
       level: boss ? lvl : Math.max(0, Math.min(2, lvl - (A.at < 2 ? 1 : 0))), bossHp: boss ? 1.12 : 1,
       onEnd: res => {
         this.recordResult(res, [true, false]);
@@ -414,7 +429,7 @@ class Game {
           if (A.at >= A.list.length) {
             const first = !this.save.unlocked.gummoth;
             this.save.unlocked.gummoth = true; this.save.cleared[A.player] = true; this.save.stats.arcadeClears++; this.persist();
-            this.endFight(); this.loadStage('hall'); this.showMenuScene('ladder', [A.player]);
+            this.endFight(); this.loadStage('fridgetop'); this.showMenuScene('ladder', [A.player]);
             this.ui.ending(A.player, first, () => this.toTitle());
             playMusic('title');
           } else { this.endFight(); this.showLadder(); }
@@ -437,7 +452,7 @@ class Game {
       heading: st.p2human ? 'PLAYER 2, PICK!' : 'PICK THE COMPUTER', picker: 1, other: st.a, toggleP2: true, p2human: st.p2human,
       onToggleP2: () => { st.p2human = !st.p2human; pick2(); },
       onBack: pick1,
-      onPick: b => { st.b = b; this.ui.stageSelect(s => { st.stage = s; go(); }, pick2); },
+      onPick: b => { st.b = b; this.ui.stageSelect(this.save.unlocked.gummoth ? [...STAGES, ...SECRET_STAGES] : STAGES, s => { st.stage = s; go(); }, pick2); },
     });
     const go = async () => {
       this.showMenuScene(null, null);
@@ -459,7 +474,7 @@ class Game {
     const pick1 = () => this.pickChar({ heading: 'PRACTICE AS…', picker: 0, onBack: () => this.toTitle(), onPick: a => { st.a = a; pick2(); } });
     const pick2 = () => this.pickChar({
       heading: 'PRACTICE PARTNER', picker: 1, other: st.a, onBack: pick1,
-      onPick: b => { st.b = b; this.startFight({ p1: st.a, p2: b, humans: [true, false], mode: 'practice', stage: 'temple', level: this.save.settings.difficulty, dummy: 'none', onEnd: () => this.toTitle() }); },
+      onPick: b => { st.b = b; this.startFight({ p1: st.a, p2: b, humans: [true, false], mode: 'practice', stage: 'sill', level: this.save.settings.difficulty, dummy: 'none', onEnd: () => this.toTitle() }); },
     });
     pick1();
   }
@@ -475,7 +490,7 @@ class Game {
     this.endFight();
     this.showMenuScene(null, null);
     this.ui.clear();
-    this.loadStage(cfg.stage || 'temple');
+    this.loadStage(cfg.stage || 'couch');
     cfg.p1def = BY_KEY[cfg.p1]; cfg.p2def = BY_KEY[cfg.p2];
     if (this.testAuto) cfg.humans = [false, false];
     cfg.music = this.stage.music;

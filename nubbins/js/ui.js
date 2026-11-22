@@ -1,6 +1,6 @@
 // NUBBINS — menus, HUD, announcer text and comic words (all plain DOM).
 import { ROSTER, BY_KEY, PLAYABLE } from './roster.js';
-import { STAGES } from './stages.js';
+
 import { sfx } from './audio.js';
 import * as THREE from '../lib/three.module.min.js';
 
@@ -147,13 +147,13 @@ export class UI {
     paint();
   }
 
-  stageSelect(onPick, onBack) {
+  stageSelect(list, onPick, onBack) {
     const s = this.screen(`<div class="panel"><h2 class="candy">PICK AN ARENA</h2>
-      <div class="stages">${STAGES.map(st => `<button class="stg" data-k="${st.key}" style="background:linear-gradient(180deg,${st.thumb[0]},${st.thumb[1]} 60%,${st.thumb[2]})">${esc(st.name)}</button>`).join('')}
+      <div class="stages">${list.map(st => `<button class="stg" data-k="${st.key}" style="background:linear-gradient(160deg,${st.thumb[0]},${st.thumb[1]} 60%,${st.thumb[2]})"><span>${esc(st.name)}</span><small>${esc(st.blurb || '')}</small></button>`).join('')}
       <button class="stg" data-k="random" style="background:linear-gradient(135deg,#ff4f7a,#ffd34f,#5ad1ff,#9cff6a)">RANDOM</button></div>
       <div class="row" style="margin-top:14px"><button class="btn small alt" id="stBack">◀ BACK</button></div></div>`);
     const items = [...s.querySelectorAll('.stg')];
-    items.forEach(b => this.btn(b, () => onPick(b.dataset.k === 'random' ? STAGES[Math.random() * STAGES.length | 0].key : b.dataset.k)));
+    items.forEach(b => this.btn(b, () => onPick(b.dataset.k === 'random' ? list[Math.random() * list.length | 0].key : b.dataset.k)));
     this.btn($('#stBack', s), onBack);
     this.setNav([...items, $('#stBack', s)], 1, onBack);
   }
@@ -168,11 +168,11 @@ export class UI {
     return new Promise(r => setTimeout(r, ms));
   }
 
-  ladder(player, list, at, onGo, onQuit) {
+  ladder(player, list, at, onGo, onQuit, stageNames = []) {
     const G = this.G;
-    const s = this.screen(`<div class="panel" style="max-width:520px"><h2 class="candy">THE TOWER</h2>
+    const s = this.screen(`<div class="panel" style="max-width:520px"><h2 class="candy">THE CLIMB</h2>
       <div class="ladder">${list.map((k, i) => `<div class="rung ${i < at ? 'done' : ''} ${i === at ? 'now' : ''} ${BY_KEY[k].boss ? 'boss' : ''}"><img src="${G.portraits[k]}" alt=""><span class="n">${i + 1}. ${esc(BY_KEY[k].name)}</span></div>`).join('')}</div>
-      <p style="text-align:center;font-weight:900;margin:14px 0 6px">${at === list.length - 1 ? 'The King of the Jar is waiting.' : `Fight ${at + 1} of ${list.length}`}</p>
+      <p style="text-align:center;font-weight:900;margin:14px 0 6px">${at === list.length - 1 ? 'The King of the Jar is waiting on top of the fridge.' : `Fight ${at + 1} of ${list.length}`}${stageNames[at] && at < list.length - 1 ? ` · <span style="color:var(--gold)">${esc(stageNames[at])}</span>` : ''}</p>
       <div class="row"><button class="btn small alt" id="lQuit">QUIT</button><button class="btn gold" id="lGo">FIGHT!</button></div></div>`);
     this.btn($('#lGo', s), onGo); this.btn($('#lQuit', s), onQuit);
     this.setNav([$('#lGo', s), $('#lQuit', s)], 1, onQuit);

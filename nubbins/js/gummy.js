@@ -365,6 +365,7 @@ export class GummyBear {
     this.group.add(this.body);
     this.mat = makeGummyMaterial(def.flavor);
     this.u = this.mat.userData.u;
+    this.glowBase = this.u.uGlow.value.clone(); this.rimBase = this.u.uRim.value.clone();
 
     const bones = {};
     for (const name of BONES) { bones[name] = new THREE.Bone(); bones[name].name = name; }

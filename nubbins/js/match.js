@@ -57,10 +57,12 @@ export class Match {
     this.cpus = [0, 1].map(i => (cfg.humans[i] ? null : new CPU(this.fighters[i], cfg.level, defs[i].boss && cfg.mode === 'arcade')));
     this.cam = { x: 0, y: 0.8, z: 5, lx: 0, ly: 0.6, fov: 30, override: null };
     this.roundStart();
+    if (this.G.stage && this.G.stage.name) setTimeout(() => this.G.ui.finisherName(this.G.stage.name), 150);
     playMusic(cfg.music || 'fight1');
   }
 
   bear(F) { return this.bears[F.side]; }
+  slowAt(x) { const s = this.G.stage; return s && s.slowAt ? s.slowAt(x) : 1; }
   onDowned() {}
   worldPt(F, h = 0.5) { return V(F.x, F.y + h * F.sc, 0.1); }
   sfx(n, F) { sfx(n); }
@@ -122,6 +124,14 @@ export class Match {
     if (this.rush) { this.rushStep(); return; }
     const [a, b] = this.fighters;
     for (const F of this.fighters) if (F.state !== 'dizzy' && F.state !== 'script') F.step();
+    // arena weather: the birthday wish blows everybody sideways
+    const wind = (this.G.stage && this.G.stage.wind) || 0;
+    if (wind && this.phase === 'fight') for (const F of this.fighters) {
+      if (['grabbed', 'script', 'throw', 'dizzy', 'ko'].includes(F.state)) continue;
+      F.x += wind * DT * (F.grounded ? 1 : 0.6) / Math.max(1, F.sc * 0.8);
+      const lim = STAGE_W - F.w; F.x = clamp(F.x, -lim, lim);
+    }
+    if (wind) for (const p of this.projectiles) if (!p.grounded) p.vx += wind * DT * 0.6;
     this.pushApart(a, b);
     this.collide(a, b); this.collide(b, a);
     this.stepProjectiles();
@@ -565,6 +575,8 @@ export class Match {
       const st = F.state;
       b.setExpression(st === 'ko' ? 'ko' : ['hit', 'airhit', 'down', 'stun', 'grabbed', 'frozen', 'dizzy', 'blockstun', 'getup'].includes(st) ? 'hurt' : st === 'win' ? 'happy' : 'idle');
       if (F.forceExpr) b.setExpression(F.forceExpr);
+      const lightsOut = (this.G.stage && this.G.stage.bearGlow) || 0;
+      if (lightsOut || b._lo) { b._lo = lightsOut; b.u.uGlow.value.copy(b.glowBase).multiplyScalar(1 + lightsOut * 4.5); b.u.uRim.value.copy(b.rimBase).multiplyScalar(1 + lightsOut * 1.2); }
       if (st !== 'frozen') b.update(dt, clamp(accel, -60, 60));
       // Ghostie's vanishing moves
       const m = F.move;
@@ -577,7 +589,7 @@ export class Match {
       const s = (0.62 * F.sc) * (1 / (1 + h * 0.8));
       v.sh.position.set(F.x, 0, 0.02); v.sh.scale.set(s * 1.25, 1, s);
       v.sh.userData.ca.material.uniforms.uT.value = this.time;
-      v.sh.userData.ca.material.uniforms.uA.value = 0.75 / (1 + h * 2);
+      v.sh.userData.ca.material.uniforms.uA.value = (0.75 + lightsOut * 1.6) / (1 + h * 2);
       v.sh.userData.sh.material.uniforms.uA.value = 0.5 / (1 + h * 1.5);
       v.sh.visible = b.group.visible && !faded && !F.hideShadow;
       // ice

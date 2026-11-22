@@ -149,8 +149,8 @@ export class Fighter {
         if (this.inp.u && !wantBlock) { this.go('jumpsquat'); break; }
         if (wantBlock) { const s = this.inp.d ? 'cblock' : 'block'; if (this.state !== s) this.go(s); this.vx = 0; break; }
         if (this.inp.d) { if (this.state !== 'crouch') this.go('crouch'); this.vx = 0; break; }
-        if (this.fwd) { if (this.state !== 'walk') this.go('walk'); this.vx = 2.1 * this.speed * this.f; this.walkDir = 1; }
-        else if (this.back) { if (this.state !== 'walk') this.go('walk'); this.vx = -1.7 * this.speed * this.f; this.walkDir = -1; }
+        if (this.fwd) { if (this.state !== 'walk') this.go('walk'); this.vx = 2.1 * this.speed * this.f * M.slowAt(this.x); this.walkDir = 1; }
+        else if (this.back) { if (this.state !== 'walk') this.go('walk'); this.vx = -1.7 * this.speed * this.f * M.slowAt(this.x); this.walkDir = -1; }
         else { if (this.state !== 'idle') this.go('idle'); this.vx = 0; }
         break;
       }

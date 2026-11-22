@@ -110,12 +110,55 @@ const SFX = {
   ding() { tone('sine', 1568, 1568, 0.8, 0.2); tone('sine', 2093, 2093, 0.8, 0.12, { delay: 0.12 }); },
   cheer() { for (let i = 0; i < 16; i++) tone('sine', R(600, 1400), R(800, 1800), R(0.2, 0.5), 0.03, { delay: R(0, 0.6), vib: R(4, 9), vibAmt: 30 }); noise(1.2, 'bandpass', 1200, 900, 0.12, { q: 0.6, att: 0.2 }); },
   select() { tone('square', 880, 880, 0.05, 0.07, { lp: 3000 }); },
+  vacuum(d = 14) {
+    const c = A.ctx, t = c.currentTime;
+    const s = c.createBufferSource(); s.buffer = A.noise; s.loop = true;
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 0.7;
+    const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 118; const of = c.createBiquadFilter(); of.type = 'lowpass'; of.frequency.value = 500;
+    const gg = c.createGain(); gg.gain.setValueAtTime(0.0001, t); gg.gain.exponentialRampToValueAtTime(0.16, t + d * 0.45); gg.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    const og = c.createGain(); og.gain.value = 0.25;
+    s.connect(f); f.connect(gg); o.connect(of); of.connect(og); og.connect(gg); gg.connect(A.sfx);
+    s.start(t); s.stop(t + d + 0.1); o.start(t); o.stop(t + d + 0.1);
+  },
+  squelch() { noise(0.12, 'bandpass', 700, 250, 0.22, { q: 5 }); tone('sine', 240, 120, 0.1, 0.12, { vib: 30, vibAmt: 40 }); },
+  tick() { tone('sine', 2400, 2200, 0.05, 0.18); tone('triangle', 1200, 900, 0.06, 0.08, { delay: 0.01 }); },
+  bubble() { tone('sine', R(500, 800), R(1200, 1800), 0.08, 0.1); },
+  chirp() { for (let i = 0; i < 2; i++) tone('sine', R(3200, 3800), R(4200, 5000), 0.07, 0.07, { delay: i * 0.1 }); },
+  poof() { noise(0.4, 'lowpass', 1200, 200, 0.25); },
+  blow() { noise(1.5, 'bandpass', 300, 1400, 0.55, { q: 0.7, att: 0.25 }); noise(1.2, 'highpass', 1500, 4000, 0.15, { att: 0.2 }); },
+  doorShut() { tone('sine', 90, 40, 0.3, 0.7); noise(0.18, 'lowpass', 900, 120, 0.4); tone('triangle', 520, 440, 0.12, 0.08, { delay: 0.05 }); },
+  doorOpen() { tone('square', 1200, 900, 0.03, 0.06, { lp: 2500 }); noise(0.45, 'bandpass', 500, 1600, 0.12, { q: 0.8, att: 0.05 }); tone('sine', 120, 120, 0.9, 0.06, { att: 0.2 }); },
+  meow() { tone('triangle', 520, 820, 0.22, 0.12, { vib: 6, vibAmt: 20, lp: 2600 }); tone('triangle', 820, 480, 0.35, 0.12, { delay: 0.2, vib: 6, vibAmt: 25, lp: 2400 }); },
   move() { tone('triangle', 660, 700, 0.04, 0.12); },
   confirm() { tone('square', 660, 660, 0.07, 0.08, { lp: 3500 }); tone('square', 990, 990, 0.12, 0.08, { lp: 3500, delay: 0.07 }); },
   back() { tone('square', 500, 330, 0.1, 0.07, { lp: 2500 }); },
   gong() { [110, 166, 220, 331, 441].forEach((f, i) => tone('sine', f * 1.01, f, 2.2, 0.2 / (i + 1), { att: 0.005 })); noise(0.3, 'bandpass', 800, 300, 0.2); },
   drumroll() { for (let i = 0; i < 24; i++) noise(0.05, 'bandpass', 1500, 900, 0.08 + i * 0.008, { delay: i * 0.045, q: 1.2 }); },
 };
+// a crowd singing Happy Birthday (the tune is in the public domain)
+export function sing() {
+  if (!A.ctx || !A.on.sfx) return 9;
+  const c = A.ctx, t0 = c.currentTime + 0.1, b = 0.34;
+  const notes = [['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['C5', 1], ['B4', 2],
+    ['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['D5', 1], ['C5', 2],
+    ['G4', .75], ['G4', .25], ['G5', 1], ['E5', 1], ['C5', 1], ['B4', 1], ['A4', 2],
+    ['F5', .75], ['F5', .25], ['E5', 1], ['C5', 1], ['D5', 1], ['C5', 3]];
+  let at = t0;
+  for (const [nn, len] of notes) {
+    const f = mtof(n(nn)), d = len * b;
+    for (let v = 0; v < 4; v++) {
+      const det = [0, 7, -9, 1205][v], late = v * 0.012;
+      tone(v === 3 ? 'triangle' : 'sawtooth', f, f, d * 0.92, v === 3 ? 0.03 : 0.045, { at: at + late, detune: det, lp: 1800, lp1: 1100, q: 3, vib: 5.2 + v * 0.4, vibAmt: f * 0.012, att: 0.05 });
+    }
+    at += d;
+  }
+  return (at - t0) + 0.1;
+}
+export function duck(sec) {
+  if (!A.mus || !A.ctx || !A.on.music) return;
+  const t = A.ctx.currentTime, gn = A.mus.gain;
+  gn.cancelScheduledValues(t); gn.setValueAtTime(gn.value, t); gn.linearRampToValueAtTime(0.08, t + 0.4); gn.setValueAtTime(0.08, t + sec); gn.linearRampToValueAtTime(0.34, t + sec + 1.2);
+}
 export function sfx(name, arg) { if (!A.ctx || !A.on.sfx) return; const f = SFX[name]; if (f) try { f(arg); } catch (e) {} }
 
 // ------------------------------------------------------------- announcer
@@ -158,6 +201,8 @@ const SONGS = {
   boss: { bpm: 96, chords: [['C3', 'm'], ['Ab2', ''], ['F2', 'm'], ['G2', '']], kick: 'x.........x.....', snare: '........x.......', hat: 'x...x...x...x...', tom: '............x.xx', bass: 'half', pad: true, organ: true,
     lead: mel('C5 - - - - - Eb5 - - - D5 - C5 - - - Ab4 - - - C5 - - - Eb5 - - - F5 - Eb5 - F5 - - - - - Ab5 - - - G5 - F5 - - - G5 - - - B4 - - - D5 - - - G5 - - - - - - -'), leadEvery: 1 },
   finish: { bpm: 80, chords: [['A2', 'm'], ['A2', 'm'], ['Bb2', ''], ['A2', 'm']], kick: 'x...x...........', snare: '................', hat: '................', bass: 'drone', pad: true },
+  party: { bpm: 126, chords: [['C4', ''], ['A3', 'm'], ['F3', ''], ['G3', '']], kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...xx', bass: 'bounce', arp: true, bell: true,
+    lead: mel('E5 - G5 - C6 - - - G5 - E5 - C5 - - - A5 - G5 - E5 - C5 - D5 - - - - - E5 - - - F5 - A5 - C6 - - - A5 - F5 - - - G5 - - - D5 - G5 - B5 - - - D6 - C6 - - - - - - -'), leadEvery: 2 },
   ladder: { bpm: 110, chords: [['D3', 'm'], ['A2', 'm'], ['Bb2', ''], ['C3', '']], kick: 'x.......x.......', snare: '....x.......x...', hat: '..x...x...x...x.', bass: 'half', pad: true, arp: true },
 };
 
