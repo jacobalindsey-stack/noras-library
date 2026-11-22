@@ -427,7 +427,7 @@ export class Match {
     const fx = this.G.fx, pos = V(p.x, Math.max(0.1, p.y), 0.05);
     fx.burst(pos, '#ff3050', 30, 4, 0.12, 0.6); fx.burst(pos, '#ffffff', 16, 3, 0.1, 0.4); fx.glow(pos, '#ff4060', 2.2, 0.3); fx.ring(pos, '#ffb0c0', 1.2, 0.35);
     for (const c of CONFETTI) fx.burst(pos, c, 4, 3, 0.08, 0.8);
-    fx.beadsAt(pos, '#ff1030', 10, 0, 1.2);
+    fx.beadsAt(pos, '#ffc8d8', 10, 0, 1.2);
     sfx('pop'); sfx('hit', 1); this.shake(0.12);
     const D = p.owner.opp, hb = D.hurtbox();
     if (hb && !p.didHit) {
@@ -480,7 +480,7 @@ export class Match {
       // ground
       if (p.g && p.y <= p.r * 0.6) {
         if (p.burst) { this.explode(p); continue; }
-        fx.splat(p.x, 0.05, u.trail || '#fff', 0.15); sfx('splat'); this.kill(p, true); continue;
+        fx.ring(V(p.x, 0.03, 0.05), u.trail || '#fff', 0.45, 0.3, true); sfx('splat'); this.kill(p, true); continue;
       }
       // fighters
       const hb = D.hurtbox();

@@ -65,7 +65,7 @@ function pop(M, W, L, done) {
       approach(M, W, L, t, 0.85, 26);
       L.scriptPose = t < 40 ? dizzyPose(t) : null;
       if (t < 40) S.cam(mid + 0.4, 1.0, 3.6, mid, 0.6);
-      if (t === 34) { sfx('inflate'); M.G.ui.flash('#ff3a52', 0.2); }
+      if (t === 34) { sfx('inflate'); M.G.ui.flash('#ffc0d4', 0.2); }
       if (t >= 34 && t < 130) {
         W.scriptPose = P({ lean: 0.35, turn: 0.4, aN: [0.1, 0.2, 1], aF: [0.15, 0.25, 1], aNs: 1.7, aFs: 1.7, head: [0.2, 0, 0], sq: 1 + Math.sin(t * 0.6) * 0.05, brow: 0.6 });
         const u = ease(seg(t, 34, 120));

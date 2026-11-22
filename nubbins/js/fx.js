@@ -1,4 +1,4 @@
-// NUBBINS — effects: sugar sparkles, jelly beads, puddles, rings, shadows,
+// NUBBINS — effects: sugar sparkles, sugar crystals, rings, shadows,
 // projectiles, ice blocks, dizzy stars and comic words.
 import * as THREE from '../lib/three.module.min.js';
 
@@ -92,12 +92,13 @@ export class FX {
     this.sparks = new Particles(this.root, TEX.star, 700, true);
     this.glows = new Particles(this.root, TEX.glow, 500, true);
     this.puffs = new Particles(this.root, TEX.glow, 260, false);
-    // jelly beads
-    const beadGeo = new THREE.SphereGeometry(1, 14, 10);
-    this.beadMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.05, transmission: 0.0, emissive: 0x000000 });
+    // sugar crystals: faceted sugar bits that fly off a hit, bounce and twinkle out.
+    // Nothing liquid and nothing left on the floor, so a red bear never looks like it is bleeding.
+    const beadGeo = new THREE.OctahedronGeometry(1, 0); beadGeo.scale(0.8, 1.15, 0.8);
+    this.beadMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.04, flatShading: true });
     this.beadMat.onBeforeCompile = sh => {
       sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        totalEmissiveRadiance += diffuseColor.rgb * 0.35 * pow(abs(dot(normal, normalize(vViewPosition))), 1.5);`);
+        totalEmissiveRadiance += diffuseColor.rgb * (0.3 + 0.5 * pow(abs(dot(normal, normalize(vViewPosition))), 6.0));`);
     };
     this.maxBeads = 180;
     this.beads = new THREE.InstancedMesh(beadGeo, this.beadMat, this.maxBeads);
@@ -106,17 +107,7 @@ export class FX {
     this.beads.frustumCulled = false; this.beads.count = 0;
     this.root.add(this.beads);
     this.beadList = [];
-    // puddles
-    const splatGeo = new THREE.CircleGeometry(1, 24); splatGeo.rotateX(-Math.PI / 2);
-    this.splatMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.22, metalness: 0, envMapIntensity: 0.35, transparent: true, opacity: 0.9, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-    this.splatMat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n totalEmissiveRadiance += diffuseColor.rgb * 0.22;'); };
-    this.maxSplats = 90;
-    this.splats = new THREE.InstancedMesh(splatGeo, this.splatMat, this.maxSplats);
-    this.splats.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    this.splats.setColorAt(0, new THREE.Color(1, 1, 1));
-    this.splats.frustumCulled = false; this.splats.count = 0; this.splats.renderOrder = 1;
-    this.root.add(this.splats);
-    this.splatList = [];
+    this.white = new THREE.Color(1, 1, 1); this.twinkle = new THREE.Color('#fffbe8');
     // rings
     this.rings = [];
     const ringGeo = new THREE.RingGeometry(0.82, 1, 48);
@@ -156,21 +147,17 @@ export class FX {
     for (let i = 0; i < n; i++) this.puffs.emit(x + rand(-0.2, 0.2), 0.05, rand(-0.15, 0.15), rand(-1, 1) * spread, rand(0.1, 0.6), rand(-0.3, 0.3), c, rand(0.25, 0.45), rand(0.4, 0.8), -0.2, 2.5, 1.4);
   }
 
-  // jelly beads flying off a hit
+  // sugar crystals flying off a hit (pastel, never drops of liquid)
   beadsAt(pos, color, n = 8, dir = 1, power = 1) {
     const c = new THREE.Color(color);
     for (let i = 0; i < n; i++) {
       if (this.beadList.length >= this.maxBeads) this.beadList.shift();
       this.beadList.push({
         p: pos.clone(), v: new THREE.Vector3((dir || (Math.random() < 0.5 ? -1 : 1)) * rand(0.5, 3.2) * power, rand(1.5, 5) * power, rand(-0.9, 0.9)),
-        r: rand(0.018, 0.045) * (0.8 + power * 0.3), c: c.clone().lerp(new THREE.Color(1, 1, 1), Math.random() * 0.25), age: 0, bounces: 0, sq: 1,
+        r: rand(0.016, 0.038) * (0.8 + power * 0.3), c: c.clone().lerp(this.white, rand(0.5, 0.75)), age: 0, bounces: 0, land: -1,
+        ax: new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize(), ang: rand(0, 6), w: rand(8, 18),
       });
     }
-  }
-
-  splat(x, z, color, size) {
-    if (this.splatList.length >= this.maxSplats) this.splatList.shift();
-    this.splatList.push({ x, z, c: new THREE.Color(color), s: size, age: 0, life: rand(5, 8), rot: Math.random() * 6 });
   }
 
   ring(pos, color, size = 1, life = 0.35, flat = false) {
@@ -199,40 +186,29 @@ export class FX {
   update(dt) {
     this.t += dt;
     this.sparks.update(dt); this.glows.update(dt); this.puffs.update(dt);
-    // beads
+    // sugar crystals
     let i = 0;
     for (const b of this.beadList) {
-      b.age += dt; b.v.y -= 16 * dt; b.p.addScaledVector(b.v, dt);
-      if (b.p.y < b.r) {
-        b.p.y = b.r; b.bounces++;
-        if (b.bounces > 1 || Math.abs(b.v.y) < 1.5) { b.dead = true; if (Math.random() < 0.7) this.splat(b.p.x, b.p.z, b.c, b.r * rand(2, 3.2)); continue; }
-        b.v.y *= -0.35; b.v.x *= 0.6; b.v.z *= 0.6; b.sq = 0.45;
-      }
-      b.sq += (1 - b.sq) * Math.min(1, dt * 12);
+      b.age += dt;
+      if (b.land < 0) {
+        b.v.y -= 16 * dt; b.p.addScaledVector(b.v, dt); b.ang += b.w * dt;
+        if (b.p.y < b.r) {
+          b.p.y = b.r; b.bounces++; b.w *= 0.6;
+          if (b.bounces > 2 || Math.abs(b.v.y) < 1.2) { b.land = b.age; if (Math.random() < 0.35) this.sparks.emit(b.p.x, b.p.y + 0.02, b.p.z, 0, 0.5, 0, this.twinkle, 0.05, 0.25, 0, 0); }
+          else { b.v.y *= -0.4; b.v.x *= 0.55; b.v.z *= 0.55; }
+        }
+      } else if (b.age - b.land > 0.35) b.dead = true;
       if (b.age > 3) b.dead = true;
     }
     this.beadList = this.beadList.filter(b => !b.dead);
     for (const b of this.beadList) {
-      const st = b.v.length() * 0.03;
-      this.tmpS.set(b.r * (1 + st * 0.3) / Math.sqrt(b.sq), b.r * b.sq * (1 + st), b.r / Math.sqrt(b.sq));
-      this.tmpQ.setFromUnitVectors(new THREE.Vector3(0, 1, 0), this.tmpP.copy(b.v).normalize());
-      if (b.sq < 0.95) this.tmpQ.identity();
+      const k = b.land < 0 ? 1 : Math.max(0, 1 - (b.age - b.land) / 0.35);
+      this.tmpQ.setFromAxisAngle(b.ax, b.ang); this.tmpS.setScalar(b.r * k);
       this.tmpM.compose(b.p, this.tmpQ, this.tmpS);
       this.beads.setMatrixAt(i, this.tmpM); this.beads.setColorAt(i, b.c); i++;
     }
     this.beads.count = i;
     this.beads.instanceMatrix.needsUpdate = true; if (this.beads.instanceColor) this.beads.instanceColor.needsUpdate = true;
-    // puddles
-    i = 0;
-    this.splatList = this.splatList.filter(s => (s.age += dt) < s.life);
-    for (const s of this.splatList) {
-      const grow = Math.min(1, s.age * 8), fade = Math.min(1, (s.life - s.age) / 1.5);
-      const sc = s.s * grow * (0.4 + 0.6 * fade);
-      this.tmpP.set(s.x, 0.004 + i * 0.00003, s.z); this.tmpQ.setFromAxisAngle(new THREE.Vector3(0, 1, 0), s.rot); this.tmpS.set(sc * 1.25, 1, sc);
-      this.tmpM.compose(this.tmpP, this.tmpQ, this.tmpS); this.splats.setMatrixAt(i, this.tmpM);
-      this.splats.setColorAt(i, this.tmpC.copy(s.c).multiplyScalar(0.55 + 0.45 * fade)); i++;
-    }
-    this.splats.count = i; this.splats.instanceMatrix.needsUpdate = true; if (this.splats.instanceColor) this.splats.instanceColor.needsUpdate = true;
     // rings
     for (const r of this.rings) {
       if (!r.m.visible) continue;
@@ -246,7 +222,7 @@ export class FX {
   }
 
   clear() {
-    this.sparks.clear(); this.glows.clear(); this.puffs.clear(); this.beadList = []; this.splatList = [];
+    this.sparks.clear(); this.glows.clear(); this.puffs.clear(); this.beadList = [];
     for (const r of this.rings) r.m.visible = false;
     this.update(0);
   }
