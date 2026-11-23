@@ -105,13 +105,14 @@ export class NubbinsRoom {
     if (other) other.send(msg);
   }
 
-  async webSocketClose(ws, code) {
+  async webSocketClose(ws, code, reason) {
     try { ws.close(code >= 1000 && code < 5000 && code !== 1005 && code !== 1006 ? code : 1000, 'bye'); } catch (e) {} // finish the goodbye so the browser notices at once
-    await this.left(ws);
+    await this.left(ws, code === 1000 && reason === 'bye');
   }
   async webSocketError(ws) { await this.left(ws); }
 
-  async left(ws) {
+  // on purpose: the player pressed LEAVE, so their seat is given up at once
+  async left(ws, onPurpose = false) {
     this.rate.delete(ws);
     const a = ws.deserializeAttachment();
     if (!a || (a.seat !== 0 && a.seat !== 1)) return;
@@ -119,9 +120,12 @@ export class NubbinsRoom {
     const still = this.ctx.getWebSockets('s' + a.seat).some(x => x !== ws && x.readyState === 1);
     if (still) return;
     const R = await this.ctx.storage.get('room');
-    if (R) { R.gone[a.seat] = Date.now(); await this.ctx.storage.put('room', R); }
+    if (R) {
+      if (onPurpose) { R.tokens[a.seat] = null; R.gone[a.seat] = 0; } else R.gone[a.seat] = Date.now();
+      await this.ctx.storage.put('room', R);
+    }
     const other = this.seatSocket(1 - a.seat);
-    if (other) other.send(JSON.stringify({ t: 'peer', on: false }));
+    if (other) other.send(JSON.stringify(onPurpose ? { t: 'peer', on: false, left: true } : { t: 'peer', on: false }));
     if (!other) await this.ctx.storage.setAlarm(Date.now() + IDLE_CLEANUP);
   }
 

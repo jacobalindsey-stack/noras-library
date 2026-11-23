@@ -78,7 +78,7 @@ export class Link {
         return;
       }
       if (o.t === 'err') { this._fail(String(o.why || 'bad')); return; }
-      if (o.t === 'peer') { this.peer = !!o.on; this.h.onPeer && this.h.onPeer(this.peer); return; }
+      if (o.t === 'peer') { this.peer = !!o.on; this.h.onPeer && this.h.onPeer(this.peer, !!o.left); return; }
       this.h.onMsg && this.h.onMsg(o);
     };
     ws.onclose = () => { if (this.ws === ws) this._dropped(); };

@@ -63,7 +63,7 @@ export class Online {
     this.closeLink();
     this.together = false; this.peerOn = false; this.picks = [null, null]; this.votes = [null, null]; this.rtt = [];
     const link = new Link(code, how, {
-      onPeer: on => { if (link === this.link) this.onPeer(on); },
+      onPeer: (on, left) => { if (link === this.link) this.onPeer(on, left); },
       onMsg: o => { if (link === this.link) this.onMsg(o); },
       onDrop: () => {},
       onBack: () => { if (link === this.link) this.resendState(); },
@@ -94,8 +94,9 @@ export class Online {
   }
 
   // ------------------------------------------------------- friend in and out
-  onPeer(on) {
+  onPeer(on, left) {
     this.peerOn = on; this.seat = this.link.seat;
+    if (!on && left && this.together) { this.friendLeft(); return; }
     if (!on) { this.peerOffT = 0; if (this.together && this.mode !== 'fight') this.G.ui.toast("Your friend's connection dropped. Waiting for them…", 4); return; }
     if (this.together) { if (this.mode !== 'fight') this.G.ui.toast('Your friend is back!'); this.resendState(); return; }
     if (!this.together) {
