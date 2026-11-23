@@ -786,6 +786,22 @@ function birthdayCake(g, R) {
   };
   R.dust = '#ffd6e2'; R.music = 'party';
   R.song = { state: 'idle', t: 0 };
+  // The wish itself runs on the fight's own clock (60 steps a second), so two
+  // players online feel the same gust on the same step. The song is 26 beats
+  // of 0.34 s plus a breath: 536 steps. Then the gust lasts 90 steps.
+  const SONG = 536, GUST = 90;
+  R.wish = { round: -1, start: -1, dir: 1 };
+  R.simStep = M => {
+    const W = R.wish;
+    if (M.mode === 'practice') { R.wind = 0; return; }
+    if (W.round !== M.round) { W.round = M.round; W.start = -1; R.wind = 0; }
+    if (W.start < 0 && M.phase === 'fight' && M.timer <= 21 && M.timer > 12) { W.start = M.frame; W.dir = (M.frame & 1) ? 1 : -1; }
+    if (W.start < 0) { R.wind = 0; return; }
+    const bt = M.frame - (W.start + SONG + 12);
+    if (bt < 0 || bt >= GUST) { R.wind = 0; return; }
+    const u = bt / GUST;
+    R.wind = W.dir * 3.0 * 4 * u * (1 - u);
+  };
   R.tick.push((t, dt, M) => {
     for (const f of R.flames) {
       f.f.material.uniforms.uT.value = t; f.f.material.uniforms.uOn.value = f.on;
@@ -795,25 +811,23 @@ function birthdayCake(g, R) {
     for (const p of R.L.points) p.intensity = p.userData.i0 * lit * (0.85 + 0.15 * Math.sin(t * 13 + p.position.x));
     for (const b of balloons) { b.b.position.y = b.base.y + Math.sin(t * 0.8 + b.ph) * 0.35 + R.wind * 0.05; b.b.rotation.z = Math.sin(t * 0.6 + b.ph) * 0.08 - R.wind * 0.03; b.b.position.x = b.base.x + R.wind * 0.12; }
     for (const p of R.pennants) p.m.rotation.x = Math.sin(t * 1.7 + p.ph) * 0.12 - R.wind * 0.06;
-    // the birthday song, then the big wish
-    const S = R.song;
-    if (M && M.phase === 'fight' && M.mode !== 'practice') {
-      if (M.timer >= 58 && S.state !== 'idle') { S.state = 'idle'; for (const f of R.flames) f.on = 1; }
-      if (S.state === 'idle' && M.timer <= 21 && M.timer > 12) { S.state = 'sing'; S.t = 0; S.dur = sing(); duck(S.dur + 2.5); M.G.ui.announce('MAKE A WISH!', 'small', 1.8); }
+    // the birthday song, then the big wish (sound and pictures; the push itself is in R.simStep)
+    const S = R.song, W = R.wish;
+    if (M && M.mode !== 'practice') {
+      if (W.start < 0 && S.state !== 'idle') { S.state = 'idle'; R.face.position.y = -9; for (const f of R.flames) f.on = 1; }
+      if (S.state === 'idle' && W.start >= 0 && M.frame - W.start < SONG) { S.state = 'sing'; S.dur = SONG / 60; sing(); duck(S.dur + 2.5); M.G.ui.announce('MAKE A WISH!', 'small', 1.8); }
     }
-    if (S.state === 'sing' || S.state === 'blow') {
-      S.t += dt;
+    if ((S.state === 'sing' || S.state === 'blow') && M && W.start >= 0) {
+      S.t = (M.frame - W.start) / 60;
       const rise = clamp((S.t - (S.dur - 2.2)) / 1.4, 0, 1), sink = S.state === 'blow' ? clamp((S.t - S.dur - 1.6) / 1.4, 0, 1) : 0;
       R.face.position.y = -9 + (rise - sink) * 12.6;
-      if (S.state === 'sing' && S.t >= S.dur + 0.2) { S.state = 'blow'; S.dir = Math.random() < 0.5 ? -1 : 1; sfx('blow'); if (M) { M.shake(0.15); M.G.ui.announce('WHOOOSH!', 'small', 1.2); } }
+      if (S.state === 'sing' && S.t >= S.dur + 0.2) { S.state = 'blow'; S.dir = W.dir; S.poofed = false; sfx('blow'); M.shake(0.15); M.G.ui.announce('WHOOOSH!', 'small', 1.2); }
       if (S.state === 'blow') {
         const bt = S.t - S.dur - 0.2;
-        R.wind = S.dir * 3.0 * Math.sin(clamp(bt / 1.5, 0, 1) * Math.PI);
         for (const f of R.flames) if (f.on > 0 && bt > 0.15) { f.on = Math.max(0, f.on - dt * 5); if (f.on === 0 && R.fx) { R.fx.puff(V3(f.x, f.y, f.z), '#d8d0d8', 5, 0.3, 1.4, 0.5); } }
         if (R.fx && bt < 1.5) for (let i = 0; i < 3; i++) R.fx.sparks.emit(S.dir > 0 ? -12 : 12, rand(0.2, 5), rand(-12, 2), S.dir * rand(14, 20), rand(-0.5, 0.5), 0, C('#ffffff'), rand(0.03, 0.06), 0.9, 0, 0);
-        if (bt > 1.5) R.wind = 0;
+        if (bt > 0.2 && !S.poofed) { S.poofed = true; sfx('poof'); }
         if (bt > 3.2) { S.state = 'done'; R.face.position.y = -9; }
-        if (Math.abs(bt - 0.2) < dt) sfx('poof');
       }
     }
   });

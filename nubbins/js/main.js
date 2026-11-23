@@ -12,6 +12,7 @@ import { Match, getBear } from './match.js';
 import { Input, pads } from './input.js';
 import { UI } from './ui.js';
 import { buildWord } from './letters.js';
+import { Online } from './online.js';
 import { P, resolve, POSES } from './anim.js';
 import { audioUnlock, audioSuspend, setAudioOptions, playMusic, sfx, say } from './audio.js';
 
@@ -176,7 +177,7 @@ class Game {
     const unlock = () => audioUnlock();
     for (const ev of ['pointerdown', 'pointerup', 'touchend', 'keydown']) addEventListener(ev, unlock, { passive: true });
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { audioSuspend(true); if (this.match && !this.match.paused && this.match.phase === 'fight') this.togglePause(); }
+      if (document.hidden) { audioSuspend(true); if (this.match && !this.match.net && !this.match.paused && this.match.phase === 'fight') this.togglePause(); }
       else audioSuspend(false);
     });
     for (const ev of ['gesturestart', 'gesturechange', 'dblclick']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
@@ -319,8 +320,10 @@ class Game {
     if (!this.match || this.match.paused) this.input.pollPadNav();
     else if (this.input.nav) this.pollPausePad();
     let fxdt = dt;
-    if (this.testSteps && this.match && !this.match.paused) for (let i = 0; i < this.testSteps && this.match; i++) this.match.step();
-    if (this.match) { this.match.update(dt); fxdt = this.match.paused ? 0 : dt * (this.match.slow > 0 ? this.match.slowK : 1); }
+    if (this.testSteps && this.match && !this.match.paused && !this.match.net) for (let i = 0; i < this.testSteps && this.match; i++) this.match.step();
+    if (this.online) this.online.tick(dt);
+    const M = this.match;
+    if (M) { M.update(dt); fxdt = M.paused ? 0 : dt * (M.slow > 0 ? M.slowK : 1); }
     else this.menuUpdate(dt);
     this.fx.update(fxdt);
     if (this.stage) {
@@ -342,6 +345,7 @@ class Game {
   }
 
   onNav(a, rep, code) {
+    if (this.match && this.match.net && this.netMenu) return this.ui.onNav(a, rep, code);
     if (this.match && !this.match.paused) {
       if (a === 'pause' || (a === 'back' && code === 'Escape')) { this.togglePause(); return true; }
       return false;
@@ -369,6 +373,7 @@ class Game {
   }
 
   toTitle() {
+    if (this.online) { this.online.close(); this.online = null; }
     this.endFight();
     this.loadStage('cake');
     const n = this.camera.aspect < 1 ? 3 : 6;
@@ -442,6 +447,12 @@ class Game {
     });
   }
 
+  flowOnline() {
+    if (this.online) this.online.close();
+    this.online = new Online(this);
+    this.online.menu();
+  }
+
   flowVersus() {
     const st = { p2human: true };
     const pick1 = () => this.pickChar({
@@ -492,7 +503,7 @@ class Game {
     this.ui.clear();
     this.loadStage(cfg.stage || 'couch');
     cfg.p1def = BY_KEY[cfg.p1]; cfg.p2def = BY_KEY[cfg.p2];
-    if (this.testAuto) cfg.humans = [false, false];
+    if (this.testAuto && !cfg.net) cfg.humans = [false, false];
     cfg.music = this.stage.music;
     document.body.classList.add('fighting');
     const duo = cfg.humans[0] && cfg.humans[1];
@@ -507,6 +518,7 @@ class Game {
 
   togglePause() {
     const M = this.match; if (!M) return;
+    if (M.net) { if (this.online) this.online.fightMenu(); return; }
     if (M.phase === 'matchEnd' || M.phase === 'finisher') return;
     M.paused = !M.paused;
     this.input.releaseTouch();

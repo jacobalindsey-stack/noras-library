@@ -19,7 +19,9 @@ export class Input {
     this.nav = null; // menu callback
     this.usedTouch = matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
     this.lastPads = [{}, {}];
+    this.typeHook = null; // a screen that takes typed letters (the room code)
     addEventListener('keydown', e => {
+      if (this.typeHook && !e.metaKey && !e.ctrlKey && this.typeHook(e)) { e.preventDefault(); return; }
       if (e.repeat && this.keys.has(e.code)) { this._menuKey(e, true); return; }
       this.keys.add(e.code);
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();

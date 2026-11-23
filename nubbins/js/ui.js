@@ -2,6 +2,7 @@
 import { ROSTER, BY_KEY, PLAYABLE } from './roster.js';
 
 import { sfx } from './audio.js';
+import { ALPHA } from './net.js';
 import * as THREE from '../lib/three.module.min.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -13,7 +14,7 @@ export class UI {
   constructor(G) {
     this.G = G;
     this.root = $('#ui');
-    this.root.innerHTML = `<div id="scr"></div><div id="fightLayer" hidden><div id="hud"></div><div id="words"></div><div id="ann"></div></div><div id="flash"></div><div id="over"></div>`;
+    this.root.innerHTML = `<div id="scr"></div><div id="fightLayer" hidden><div id="hud"></div><div id="words"></div><div id="ann"></div><div id="netb" hidden></div></div><div id="flash"></div><div id="over"></div><div id="toast" hidden></div>`;
     this.scr = $('#scr'); this.fight = $('#fightLayer'); this.words = $('#words'); this.ann = $('#ann'); this.flashEl = $('#flash'); this.over = $('#over');
     this.nav = { items: [], i: 0, cols: 1, back: null };
     this.tmpV = new THREE.Vector3();
@@ -44,13 +45,13 @@ export class UI {
   }
 
   screen(html, cls = '') {
-    this.customNav = null;
+    this.customNav = null; this.G.input.typeHook = null; this.G.netMenu = false;
     this.scr.innerHTML = `<div class="screen ${cls}">${html}</div>`;
     const s = this.scr.firstElementChild;
     for (const b of s.querySelectorAll('button')) b.addEventListener('pointerdown', () => { this.keyboardUsed = false; this.paintNav(); });
     return s;
   }
-  clear() { this.scr.innerHTML = ''; this.customNav = null; this.nav = { items: [], i: 0, cols: 1, back: null }; }
+  clear() { this.scr.innerHTML = ''; this.customNav = null; this.G.input.typeHook = null; this.G.netMenu = false; this.nav = { items: [], i: 0, cols: 1, back: null }; }
   btn(el, fn) { el.addEventListener('click', e => { e.preventDefault(); sfx('confirm'); fn(); }); return el; }
 
   // ------------------------------------------------------------ loading
@@ -70,6 +71,7 @@ export class UI {
         <button class="btn gold start" id="mArcade">ARCADE</button>
         <button class="btn mint" id="mVs">VERSUS</button>
         <button class="btn lime" id="mPractice">PRACTICE</button>
+        <button class="btn berry" id="mOnline">ONLINE</button>
       </div>
       <div class="menu two">
         <button class="btn alt small" id="mMoves">MOVES</button>
@@ -80,6 +82,7 @@ export class UI {
     this.btn($('#mArcade', s), () => G.flowArcade());
     this.btn($('#mVs', s), () => G.flowVersus());
     this.btn($('#mPractice', s), () => G.flowPractice());
+    this.btn($('#mOnline', s), () => G.flowOnline());
     this.btn($('#mMoves', s), () => this.moves(null, () => G.toTitle()));
     this.btn($('#mSettings', s), () => this.settings(() => G.toTitle()));
     this.setNav([...s.querySelectorAll('.btn')], 1, null);
@@ -118,7 +121,7 @@ export class UI {
     };
     const paint = () => {
       cards.forEach((c, i) => { c.classList.toggle(o.picker ? 'c2' : 'c1', i === cur); c.classList.toggle(o.picker ? 'c1' : 'c2', !!o.other && c.dataset.k === o.other); c.querySelector('.tag')?.remove(); });
-      const mine = cards[cur]; mine.insertAdjacentHTML('beforeend', `<span class="tag ${o.picker ? 't2' : 't1'}">${o.picker ? (o.p2human ? 'P2' : 'CPU') : 'P1'}</span>`);
+      const mine = cards[cur]; mine.insertAdjacentHTML('beforeend', `<span class="tag ${o.picker ? 't2' : 't1'}">${o.youTag ? 'YOU' : o.picker ? (o.p2human ? 'P2' : 'CPU') : 'P1'}</span>`);
       if (o.other) { const oc = cards.find(c => c.dataset.k === o.other); if (oc && oc !== mine) oc.insertAdjacentHTML('beforeend', `<span class="tag ${o.picker ? 't1' : 't2'}">${o.picker ? 'P1' : 'P2'}</span>`); }
       const k = keys[cur];
       fill(whoMine, k); fill(whoOther, o.other || null);
@@ -206,6 +209,106 @@ export class UI {
       <div class="row" style="flex-direction:column"><button class="btn gold" id="rAgain">REMATCH</button><button class="btn mint small" id="rSel">CHANGE BEARS</button><button class="btn alt small" id="rTitle">TITLE</button></div></div>`);
     this.btn($('#rAgain', s), onAgain); this.btn($('#rSel', s), onSelect); this.btn($('#rTitle', s), onTitle);
     this.setNav([$('#rAgain', s), $('#rSel', s), $('#rTitle', s)], 1, onTitle);
+  }
+
+  // ------------------------------------------------------------- online
+  onlineMenu(h) {
+    const s = this.screen(`<div class="panel online"><h2 class="candy">PLAY ONLINE</h2>
+      <p class="onote">Fight a friend on their own iPad or computer. One of you makes a room, then tells the other its four letters.</p>
+      <div class="row ocol"><button class="btn gold" id="oMake">MAKE A ROOM</button><button class="btn mint" id="oJoin">JOIN A ROOM</button><button class="btn alt small" id="oBack">◀ BACK</button></div></div>`);
+    this.btn($('#oMake', s), h.onMake); this.btn($('#oJoin', s), h.onJoin); this.btn($('#oBack', s), h.onBack);
+    this.setNav([$('#oMake', s), $('#oJoin', s), $('#oBack', s)], 1, h.onBack);
+  }
+  onlineRoom(code, onBack) {
+    const s = this.screen(`<div class="panel online"><h2 class="candy">YOUR ROOM</h2>
+      <div class="codebig">${[...code].map(c => `<b>${esc(c)}</b>`).join('')}</div>
+      <p class="onote">Tell your friend these four letters. They press <b>ONLINE</b>, then <b>JOIN A ROOM</b>.</p>
+      <p class="owait"><i></i><i></i><i></i> Waiting for your friend</p>
+      <div class="row ocol"><button class="btn alt small" id="oBack">◀ CLOSE THE ROOM</button></div></div>`);
+    this.btn($('#oBack', s), onBack);
+    this.setNav([$('#oBack', s)], 1, onBack);
+  }
+  onlineJoin(o) {
+    let code = (o.code || '').slice(0, 4);
+    const s = this.screen(`<div class="panel online"><h2 class="candy">JOIN A ROOM</h2>
+      <p class="onote">Type the four letters your friend sees.</p>
+      <div class="codebig entry">${[0, 1, 2, 3].map(() => '<b></b>').join('')}</div>
+      <p class="oerr" ${o.error ? '' : 'hidden'}>${esc(o.error || '')}</p>
+      <div class="lpad">${[...ALPHA].map(c => `<button data-c="${c}">${c}</button>`).join('')}<button data-c="del" class="del" aria-label="Rub out">⌫</button></div>
+      <div class="row"><button class="btn alt small" id="oBack">◀ BACK</button><button class="btn gold" id="oGo" disabled>JOIN</button></div></div>`);
+    const slots = [...s.querySelectorAll('.codebig b')], go = $('#oGo', s);
+    const paint = () => { slots.forEach((b, i) => { b.textContent = code[i] || ''; b.classList.toggle('now', i === code.length); }); go.disabled = code.length < 4; };
+    const add = c => { if (code.length < 4) { code += c; sfx('select'); paint(); } };
+    const del = () => { if (code.length) { code = code.slice(0, -1); sfx('back'); paint(); } };
+    const join = () => { if (code.length === 4) { sfx('confirm'); o.onJoin(code); } };
+    for (const b of s.querySelectorAll('.lpad button')) b.addEventListener('click', e => { e.preventDefault(); if (b.dataset.c === 'del') del(); else add(b.dataset.c); });
+    go.addEventListener('click', e => { e.preventDefault(); join(); });
+    this.btn($('#oBack', s), o.onBack);
+    this.setNav([$('#oBack', s), go], 2, o.onBack, 1);
+    this.G.input.typeHook = e => {
+      const m = /^Key([A-Z])$/.exec(e.code);
+      if (m) { if (ALPHA.includes(m[1])) add(m[1]); return true; }
+      if (e.code === 'Backspace') { del(); return true; }
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') { join(); return true; }
+      if (e.code === 'Escape') { sfx('back'); o.onBack(); return true; }
+      return false;
+    };
+    paint();
+  }
+  // a message with buttons: buttons = [[label, class, fn], ...]
+  onlineMsg(title, text, buttons = [], wait = false) {
+    const s = this.screen(`<div class="panel online"><h2 class="candy">${esc(title)}</h2>
+      ${text ? `<p class="onote">${esc(text)}</p>` : ''}${wait ? '<p class="owait"><i></i><i></i><i></i></p>' : ''}
+      <div class="row ocol">${buttons.map((b, i) => `<button class="btn ${b[1] || ''}" data-i="${i}">${esc(b[0])}</button>`).join('')}</div></div>`);
+    const els = [...s.querySelectorAll('.ocol .btn')];
+    els.forEach((el, i) => this.btn(el, buttons[i][2]));
+    const back = buttons.find(b => /BACK|LEAVE|OK|CLOSE/.test(b[0]));
+    this.setNav(els, 1, back ? back[2] : null);
+    return s;
+  }
+  // both bears side by side while the other player decides
+  onlinePair(keys, local, text, buttons = []) {
+    const G = this.G;
+    const card = (k, i) => { const r = k && BY_KEY[k]; return `<div class="opick ${i === local ? 'me' : ''}">${r ? `<img src="${G.portraits[k]}" alt=""><b class="candy" style="--c1:${r.ui2};--c2:${r.ui}">${esc(r.short)}</b>` : '<div class="q">?</div><b>…</b>'}<small>${i === local ? 'YOU' : 'FRIEND'}</small></div>`; };
+    const s = this.screen(`<div class="panel online"><div class="opair">${card(keys[0], 0)}<span class="candy ovs">VS</span>${card(keys[1], 1)}</div>
+      <p class="owait"><i></i><i></i><i></i> ${esc(text)}</p>
+      <div class="row ocol">${buttons.map((b, i) => `<button class="btn ${b[1] || ''}" data-i="${i}">${esc(b[0])}</button>`).join('')}</div></div>`);
+    const els = [...s.querySelectorAll('.ocol .btn')];
+    els.forEach((el, i) => this.btn(el, buttons[i][2]));
+    this.setNav(els, 1, buttons.length ? buttons[buttons.length - 1][2] : null);
+  }
+  onlineResults(res, local, h) {
+    const W = BY_KEY[res.winnerKey], won = res.winner === local;
+    const s = this.screen(`<div class="panel online"><h2 class="candy" style="--c1:${W.ui2};--c2:${W.ui}">${won ? 'YOU WIN!' : 'YOUR FRIEND WINS'}</h2>
+      <p class="onote">${esc(W.name)}${res.nubbed ? ' with a NUBBINATION!' : ' takes it.'}</p>
+      <p class="owait" hidden><i></i><i></i><i></i> <span></span></p>
+      <div class="row ocol"><button class="btn gold" id="rAgain">REMATCH</button><button class="btn mint small" id="rSel">NEW BEARS</button><button class="btn alt small" id="rLeave">LEAVE</button></div></div>`);
+    this.btn($('#rAgain', s), h.onAgain); this.btn($('#rSel', s), h.onRepick); this.btn($('#rLeave', s), h.onLeave);
+    this.setNav([$('#rAgain', s), $('#rSel', s), $('#rLeave', s)], 1, h.onLeave);
+    return t => { const w = $('.owait', s); if (!w) return; w.hidden = !t; $('span', w).textContent = t || ''; };
+  }
+  // the fight can't stop online, so this menu floats over it while it carries on
+  fightMenu(h) {
+    const G = this.G;
+    const s = this.screen(`<div class="panel online fm"><h2 class="candy">MENU</h2><p class="onote">The fight keeps going while this is open!</p>
+      <div class="row ocol"><button class="btn gold" id="fRes">KEEP FIGHTING</button><button class="btn alt small" id="fSet">SETTINGS</button>
+      ${G.canFullscreen() ? '<button class="btn alt small" id="fFull">FULL SCREEN</button>' : ''}<button class="btn small" id="fLeave">LEAVE THE MATCH</button></div></div>`, 'fmenu');
+    G.netMenu = true;
+    this.btn($('#fRes', s), h.onResume);
+    this.btn($('#fSet', s), () => { this.settings(() => this.fightMenu(h)); G.netMenu = true; });
+    if ($('#fFull', s)) this.btn($('#fFull', s), () => G.toggleFullscreen());
+    this.btn($('#fLeave', s), h.onLeave);
+    this.setNav([...s.querySelectorAll('.btn')], 1, h.onResume);
+  }
+  netBanner(text) {
+    const b = $('#netb'); if (!b) return;
+    if (this.netText === text) return; this.netText = text;
+    b.hidden = !text; if (text) b.innerHTML = `<i></i><i></i><i></i> ${esc(text)}`;
+  }
+  toast(text, sec = 2.6) {
+    const t = $('#toast'); if (!t) return;
+    t.textContent = text; t.hidden = false; t.classList.remove('go'); void t.offsetWidth; t.classList.add('go');
+    clearTimeout(this.toastT); this.toastT = setTimeout(() => { t.hidden = true; }, sec * 1000);
   }
 
   // -------------------------------------------------------------- pause
@@ -316,6 +419,7 @@ export class UI {
       M.fighters.forEach((F, i) => {
         const s = sides[i];
         $('.nm', s).textContent = F.def.name;
+        s.classList.toggle('you', !!(M.net && M.net.local === i));
         const c1 = F.def.flavor.tint, c2 = F.def.ui;
         $('.fill', s).style.setProperty('--hc1', c1); $('.fill', s).style.setProperty('--hc2', c2);
       });
@@ -325,7 +429,7 @@ export class UI {
       const hp = Math.round((F.hp / F.maxhp) * 1000) / 10;
       if (c.hp !== hp) { c.hp = hp; $('.fill', s).style.width = hp + '%'; $('.drain', s).style.width = hp + '%'; $('.bar', s).classList.toggle('low', hp < 25); }
       const mt = Math.round(F.meter);
-      if (c.mt !== mt) { c.mt = mt; $('.meter i', s).style.width = mt + '%'; $('.meter', s).classList.toggle('full', mt >= 100); this.G.input.setRush(i, mt >= 100); }
+      if (c.mt !== mt) { c.mt = mt; $('.meter i', s).style.width = mt + '%'; $('.meter', s).classList.toggle('full', mt >= 100); const ri = M.net ? (i === M.net.local ? 0 : -1) : i; if (ri >= 0) this.G.input.setRush(ri, mt >= 100); }
       const w = M.wins[i];
       if (c.w !== w) { c.w = w; s.querySelectorAll('.wins i').forEach((d, k) => d.classList.toggle('on', k < w)); }
     });

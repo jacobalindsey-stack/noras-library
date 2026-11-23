@@ -9,6 +9,7 @@ import { CPU } from './ai.js';
 import { makeShadow, makeProjectileMesh, makeIceBlock, makeDizzyStars, CONFETTI } from './fx.js';
 import { FINISHERS } from './finishers.js';
 import { sfx, say, playMusic, jingle } from './audio.js';
+import { encodeInput, decodeInput, simHash, snapshot, restore } from './net.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -56,6 +57,9 @@ export class Match {
     });
     this.cpus = [0, 1].map(i => (cfg.humans[i] ? null : new CPU(this.fighters[i], cfg.level, defs[i].boss && cfg.mode === 'arcade')));
     this.cam = { x: 0, y: 0.8, z: 5, lx: 0, ly: 0.6, fov: 30, override: null };
+    // online: both players' buttons come through the lockstep (see net.js)
+    this.net = cfg.net || null;
+    if (this.net) { this.netCpu = cfg.netBot ? new CPU(this.fighters[this.net.local], 2, false) : null; this.stallT = 0; }
     this.roundStart();
     if (this.G.stage && this.G.stage.name) setTimeout(() => this.G.ui.finisherName(this.G.stage.name), 150);
     playMusic(cfg.music || 'fight1');
@@ -86,6 +90,7 @@ export class Match {
 
   // ------------------------------------------------------------ main step
   update(dt) {
+    if (this.net) { this.netUpdate(dt); return; }
     if (this.paused) { this.syncVisuals(0); return; }
     this.time += dt;
     const k = this.slow > 0 ? this.slowK : 1;
@@ -99,7 +104,66 @@ export class Match {
     this.G.ui.hud(this);
   }
 
+  // ---------------------------------------------------------- online
+  netLocal() {
+    const me = this.fighters[this.net.local];
+    if (this.netCpu) return encodeInput(this.phase === 'nubem' && this.winner === me ? this.cpuNubInput(me) : this.netCpu.think(this));
+    return encodeInput(this.G.input.read(0, false));
+  }
+  netUpdate(dt) {
+    const N = this.net, L = N.ls;
+    this.time += dt;
+    const k = this.slow > 0 ? this.slowK : 1;
+    if (this.slow > 0) this.slow -= dt;
+    if (!N.go && L.peerLoaded && N.loaded) N.go = true;
+    let steps = 0, blocked = false;
+    if (N.go) {
+      this.acc += dt * k;
+      if (L.fixAt && this.frame > L.fixAt) { L.fixAt = 0; L.fixSnap = null; }
+      while (this.acc >= DT && steps < 8) {
+        const f = this.frame + 1;
+        while (L.mine < f + L.D) L.addMine(L.mine + 1, this.netLocal());
+        if (N.role === 'guest' && L.fixAt && f === L.fixAt + 1) {
+          if (!L.fixSnap) { blocked = true; break; }
+          restore(this, L.fixSnap); L.fixedAt = L.fixAt; L.fixAt = 0; L.fixSnap = null; L.desyncs++;
+        }
+        if (!L.ready(f)) { blocked = true; break; }
+        this.acc -= DT; this.step(); steps++;
+        this.netAfterStep();
+      }
+      if (blocked) this.acc = Math.min(this.acc, DT * 2);
+    }
+    this.stallT = (blocked || !N.go) && !steps ? this.stallT + dt : 0;
+    L.flush(false);
+    this.syncVisuals(dt * k);
+    this.updateCamera(dt);
+    this.G.ui.hud(this);
+  }
+  netAfterStep() {
+    const N = this.net, L = N.ls, f = this.frame;
+    if (f % 30 === 0) { const h = simHash(this); L.hash.set(f, h); L.link.send({ t: 'h', m: L.mid, f, h }); }
+    if (L.peerHash.size) for (const [hf, ph] of L.peerHash) {
+      const mh = L.hash.get(hf); if (mh === undefined) continue;
+      L.peerHash.delete(hf);
+      if (mh !== ph && hf > (L.fixedAt || 0) && N.role === 'host' && !L.fixAt) {
+        L.fixAt = f + L.D + 2; L.link.send({ t: 'fixAt', m: L.mid, f: L.fixAt });
+      }
+    }
+    if (N.role === 'host' && L.fixAt && f === L.fixAt) { L.link.send({ t: 'fix', m: L.mid, f, s: snapshot(this) }); L.fixedAt = f; L.fixAt = 0; L.desyncs++; }
+    L.prune(f);
+  }
+
   readInputs() {
+    if (this.net) {
+      const L = this.net.ls, none = { l: 0, r: 0, u: 0, d: 0, p: 0, k: 0, s: 0, b: 0, x: 0 };
+      this.fighters.forEach((F, i) => {
+        let inp = decodeInput(L.get(this.frame, i));
+        if (this.phase !== 'fight' && this.phase !== 'nubem') inp = none;
+        if (this.phase === 'nubem' && F === this.loser) inp = none;
+        F.setInput(inp);
+      });
+      return;
+    }
     const I = this.G.input, duo = this.cfg.humans[0] && this.cfg.humans[1];
     this.fighters.forEach((F, i) => {
       let inp;
@@ -124,7 +188,8 @@ export class Match {
     if (this.rush) { this.rushStep(); return; }
     const [a, b] = this.fighters;
     for (const F of this.fighters) if (F.state !== 'dizzy' && F.state !== 'script') F.step();
-    // arena weather: the birthday wish blows everybody sideways
+    // arena weather: the birthday wish blows everybody sideways (worked out on the fight's own clock)
+    if (this.G.stage && this.G.stage.simStep) this.G.stage.simStep(this);
     const wind = (this.G.stage && this.G.stage.wind) || 0;
     if (wind && this.phase === 'fight') for (const F of this.fighters) {
       if (['grabbed', 'script', 'throw', 'dizzy', 'ko'].includes(F.state)) continue;
@@ -432,7 +497,7 @@ export class Match {
     const D = p.owner.opp, hb = D.hurtbox();
     if (hb && !p.didHit) {
       const cx = clamp(p.x, hb[0], hb[1]), cy = clamp(p.y, hb[2], hb[3]);
-      if (Math.hypot(cx - p.x, cy - p.y) < p.burst) { p.didHit = true; this.landHit(p.owner, D, p, V(cx, cy, 0.15), true); }
+      if ((cx - p.x) * (cx - p.x) + (cy - p.y) * (cy - p.y) < p.burst * p.burst) { p.didHit = true; this.landHit(p.owner, D, p, V(cx, cy, 0.15), true); }
     }
     this.kill(p, false);
   }
@@ -487,7 +552,7 @@ export class Match {
       if (hb) {
         let hit = false, pt;
         if (p.grounded) { hit = hb[2] < p.h + 0.05 && Math.abs(D.x - p.x) < p.r + D.w; pt = V(p.x, 0.2, 0.15); }
-        else { const cx = clamp(p.x, hb[0], hb[1]), cy = clamp(p.y, hb[2], hb[3]); hit = Math.hypot(cx - p.x, cy - p.y) < p.r; pt = V(cx, cy, 0.15); }
+        else { const cx = clamp(p.x, hb[0], hb[1]), cy = clamp(p.y, hb[2], hb[3]); hit = (cx - p.x) * (cx - p.x) + (cy - p.y) * (cy - p.y) < p.r * p.r; pt = V(cx, cy, 0.15); }
         if (hit) {
           if (p.burst) { this.explode(p); continue; }
           this.landHit(owner, D, p, pt, true);
@@ -497,7 +562,7 @@ export class Match {
       // clash with the other side's projectiles
       for (const q of this.projectiles) {
         if (q === p || !q.alive || q.owner === owner || q.grounded || p.grounded || q.type === 'pillar' || q.type === 'quake') continue;
-        if (Math.hypot(q.x - p.x, q.y - p.y) < p.r + q.r) { this.kill(p, true); this.kill(q, true); sfx('pop'); fx.ring(V(p.x, p.y, 0.1), '#ffffff', 0.6, 0.3); break; }
+        if ((q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y) < (p.r + q.r) * (p.r + q.r)) { this.kill(p, true); this.kill(q, true); sfx('pop'); fx.ring(V(p.x, p.y, 0.1), '#ffffff', 0.6, 0.3); break; }
       }
       if (!p.alive) continue;
       if (p.age > p.life || Math.abs(p.x) > STAGE_W + 2) this.kill(p, false);
