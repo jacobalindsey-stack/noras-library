@@ -52,7 +52,7 @@ export class Online {
     const link = this.openLink(code, 'join');
     try { await link.ready; } catch (e) {
       if (link !== this.link) return;
-      const why = { noroom: 'No room with those letters. Check them with your friend?', full: 'That room already has two players in it.', net: "Couldn't reach the game room. Is the internet on?" }[e.message] || "Couldn't get into that room. Try again?";
+      const why = { noroom: 'No room with those letters. Check them with your friend?', full: 'That room already has two players in it.', net: "Couldn't reach the game room. Is the internet on?", csp: "Online play only works from noralindsey.com. This copy of the game isn't allowed to go on the internet." }[e.message] || "Couldn't get into that room. Try again?";
       this.joinScreen(why, code); return;
     }
     if (link !== this.link) return;
@@ -79,7 +79,7 @@ export class Online {
   problem(why) {
     this.closeLink();
     this.G.endFight(); this.G.loadStage('sill');
-    const text = why === 'net' ? "Couldn't reach the game room. Is the internet on?" : 'The connection to the game room was lost.';
+    const text = why === 'csp' ? "Online play only works from noralindsey.com. This copy of the game isn't allowed to go on the internet." : why === 'net' ? "Couldn't reach the game room. Is the internet on?" : 'The connection to the game room was lost.';
     this.G.ui.onlineMsg('UH OH', text, [['OK', 'gold', () => this.menu()]]);
     this.mode = 'menu';
   }

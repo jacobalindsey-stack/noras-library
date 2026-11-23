@@ -60,6 +60,11 @@ export class Link {
 
   _open() {
     const q = this.token ? `seat=${this.seat}&token=${this.token}` : `${this.how}=1`;
+    // a page that isn't allowed to go online at all (the private test copy) says so plainly
+    if (!this._csp) {
+      this._csp = e => { if (String(e.blockedURI || '').startsWith(this.base.replace(/^ws/, 'http')) || String(e.blockedURI || '').startsWith(this.base)) this._fail('csp'); };
+      document.addEventListener('securitypolicyviolation', this._csp);
+    }
     let ws;
     try { ws = new WebSocket(`${this.base}/nubbins-online/room/${this.code}?${q}`); }
     catch (e) { this._dropped(); return; }
@@ -94,7 +99,7 @@ export class Link {
 
   _dropped() {
     if (this.closedByUs || this.state === 'failed') return;
-    if (this.state === 'connecting' && !this.token) { this._fail('net'); return; }
+    if (this.state === 'connecting' && !this.token) { setTimeout(() => this._fail('net'), 80); return; } // a moment, in case the page's rules (not the internet) blocked it
     if (!this.lostSince) { this.lostSince = performance.now(); this.h.onDrop && this.h.onDrop(); }
     if (performance.now() - this.lostSince > 40000) { this._fail('lost'); return; }
     this.state = 'retrying';
@@ -116,6 +121,7 @@ export class Link {
     this.closedByUs = true;
     clearInterval(this.ka); clearTimeout(this.retryT);
     document.removeEventListener('visibilitychange', this._vis);
+    if (this._csp) document.removeEventListener('securitypolicyviolation', this._csp);
     if (this.ws) { try { this.ws.close(1000, 'bye'); } catch (e) {} }
   }
   close() { if (this.state === 'open') this.send({ t: 'bye' }); this.shut(); this.state = 'failed'; }
