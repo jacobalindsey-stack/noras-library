@@ -43,8 +43,18 @@ export class Link {
     this.base = h.base || serverBase();
     this.ready = new Promise((res, rej) => { this._res = res; this._rej = rej; });
     this._open();
-    this.ka = setInterval(() => { if (this.ws && this.ws.readyState === 1) try { this.ws.send('ka'); } catch (e) {} }, 15000);
-    this._vis = () => { if (!document.hidden && this.state === 'retrying') { clearTimeout(this.retryT); this._open(); } };
+    // a heartbeat every 4 s; a connection that has heard nothing for 12 s is treated as dead
+    this.lastRx = performance.now();
+    this.ka = setInterval(() => {
+      if (!this.ws || this.state !== 'open') return;
+      if (performance.now() - this.lastRx > 12000) { this._kill(); return; }
+      if (this.ws.readyState === 1) try { this.ws.send('ka'); } catch (e) {}
+    }, 4000);
+    this._vis = () => {
+      if (document.hidden) return;
+      if (this.state === 'retrying') { clearTimeout(this.retryT); this._open(); }
+      else if (this.state === 'open' && performance.now() - this.lastRx > 6000) this._kill();
+    };
     document.addEventListener('visibilitychange', this._vis);
   }
 
@@ -53,8 +63,9 @@ export class Link {
     let ws;
     try { ws = new WebSocket(`${this.base}/nubbins-online/room/${this.code}?${q}`); }
     catch (e) { this._dropped(); return; }
-    this.ws = ws;
+    this.ws = ws; this.lastRx = performance.now();
     ws.onmessage = ev => {
+      if (this.ws === ws) this.lastRx = performance.now();
       if (ev.data === 'ka') return;
       let o; try { o = JSON.parse(ev.data); } catch (e) { return; }
       if (!o || typeof o !== 'object') return;
@@ -72,6 +83,13 @@ export class Link {
     };
     ws.onclose = () => { if (this.ws === ws) this._dropped(); };
     ws.onerror = () => {};
+  }
+
+  // give up on a silent connection and start over with the same seat
+  _kill() {
+    const ws = this.ws; this.ws = null;
+    if (ws) { ws.onclose = null; ws.onmessage = null; try { ws.close(4004, 'silent'); } catch (e) {} }
+    this._dropped();
   }
 
   _dropped() {

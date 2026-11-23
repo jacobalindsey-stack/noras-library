@@ -105,7 +105,10 @@ export class NubbinsRoom {
     if (other) other.send(msg);
   }
 
-  async webSocketClose(ws, code) { await this.left(ws); }
+  async webSocketClose(ws, code) {
+    try { ws.close(code >= 1000 && code < 5000 && code !== 1005 && code !== 1006 ? code : 1000, 'bye'); } catch (e) {} // finish the goodbye so the browser notices at once
+    await this.left(ws);
+  }
   async webSocketError(ws) { await this.left(ws); }
 
   async left(ws) {
