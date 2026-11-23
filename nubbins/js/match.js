@@ -701,6 +701,9 @@ export class Match {
         const W = this.winner || a; tx = W.x; lx = W.x; tz = 3.2 * W.sc; ly = 0.55 * W.sc - touchShift * 0.5; ty = ly + 0.15;
       }
     }
+    // a low arena (under the couch) has a ceiling the camera must stay beneath
+    const ceil = this.G.stage && this.G.stage.ceiling;
+    if (ceil) { ty = Math.min(ty, ceil - 0.45); ly = Math.min(ly, ceil - 0.6); }
     const k = 1 - Math.exp(-dt * (C.override ? (C.override.snap || 4) : this.rush ? 7 : 5));
     C.x = lerp(C.x, tx, k); C.y = lerp(C.y, ty, k); C.z = lerp(C.z, tz, k); C.lx = lerp(C.lx, lx, k); C.ly = lerp(C.ly, ly, k); C.fov = lerp(C.fov, fov, k);
     this.shakeAmt *= Math.exp(-dt * 9);

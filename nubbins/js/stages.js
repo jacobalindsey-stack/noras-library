@@ -18,6 +18,7 @@ const rand = (a, b) => a + Math.random() * (b - a);
 function underCouch(g, R) {
   seed(11);
   const CEIL = 4.6, FRONT = -13;
+  R.ceiling = CEIL; // finishers that fling a bear upward stop short of the couch, and so does the camera
   // hardwood planks running out toward the TV, dusty under here
   const planks = canvas(1024, 2048, (x, w, h) => {
     const pw = w / 4;
@@ -122,6 +123,12 @@ function underCouch(g, R) {
   const fringe = instanced(tassel, phys('#d8b062', 0.5, { sheen: 1, sheenColor: C('#fff0b0') }), fringeItems, { cast: true });
   g.add(fringe);
   R.tick.push((t) => { fringeItems.forEach((it, i) => setInstance(fringe, i, it.p, [Math.sin(t * 1.6 + it.p[0] * 0.7) * 0.12, 0, Math.sin(t * 1.1 + it.p[0]) * 0.08], 1)); fringe.instanceMatrix.needsUpdate = true; });
+  // the couch's two ends: velvet arms dropping to the floor, so a camera that
+  // turns sideways (some finishers do) sees upholstery instead of darkness
+  const armG = new THREE.PlaneGeometry(30, CEIL + 0.4, 40, 4);
+  { const p = armG.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i); p.setZ(i, 0.25 * Math.sin(x * 0.9) * (1 - y / (CEIL + 0.4)) + 0.08 * Math.sin(x * 3.1)); } armG.computeVertexNormals(); }
+  const armM = phys('#24545a', 0.8, { sheen: 1, sheenColor: C('#8fe0d8'), sheenRoughness: 0.4, side: THREE.DoubleSide, emissive: C('#0e2426') });
+  for (const side of [-1, 1]) g.add(mesh(armG, armM, { p: [side * 31, (CEIL + 0.4) / 2 - 0.2, FRONT + 15], r: [0, side * Math.PI / 2, 0] }));
   // turned walnut legs with brass feet
   const legG = lathe([[0, 0], [0.55, 0], [0.6, 0.3], [0.52, 0.55], [0.46, 1.0], [0.62, 1.35], [0.7, 1.6], [0.52, 1.85], [0.58, 2.6], [0.76, 3.3], [0.86, 3.8], [0.92, CEIL - 0.9], [0, CEIL - 0.9]], 32);
   for (const x of [-11, 11]) {
@@ -247,7 +254,7 @@ function underCouch(g, R) {
   R.vac = { g: vac, light: vacLight, glow: vacGlow, brush, ring, t: -8, period: 30 };
 
   R.rig = {
-    hemi: ['#2c3858', '#120c08', 0.42],
+    hemi: ['#2c3858', '#5a3c26', 0.5], // warm bounce off the floorboards lights the couch's underside
     sun: { c: '#a8c8ff', i: 2.5, p: [4, 4.8, -46], t: [0, 0, -2], box: [26, 10, 90] },
     fill: { c: '#ffa060', i: 0.55, p: [-10, 4, 14] },
     rims: [['#7a6cff', 1.2, [-14, 3, -26]], ['#60e0ff', 0.55, [16, 2, -20]]],

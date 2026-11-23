@@ -143,9 +143,9 @@ export const ROSTER = [
   {
     key: 'razz', name: 'RAZZ', short: 'RAZZ', flavor: { tint: '#78ccff', deep: '#0a3fd0', glow: '#1e7bff', rim: '#c8ecff' },
     ui: '#2f8cff', ui2: '#cfe9ff', stats: { speed: 1.02, power: 1.07, defense: 1.03, jump: 1 },
-    title: 'The Cool One', bio: "Blue raspberry, and the coolest bear in the bag. Literally: he lives in the freezer. Never takes off the shades, not even to sleep.",
+    title: 'The Cool One', bio: "Blue raspberry, and the coolest bear in the bag. Literally: he lives in the freezer. He doesn't need sunglasses. The sun needs sunglasses.",
     moves: razzMoves(), finisher: { key: 'freeze', name: 'SNOW CONE' },
-    ending: "With Gummoth chilled, Razz turned the Jar into the coolest ice rink in the kitchen. Admission is free. Sunglasses are required.",
+    ending: "With Gummoth chilled, Razz turned the Jar into the coolest ice rink in the kitchen. Admission is free. Mittens are required.",
     dress: 'razz', winPose: 'flex', stars: { POWER: 3, SPEED: 3, REACH: 4 },
   },
   {
@@ -160,9 +160,9 @@ export const ROSTER = [
     key: 'tango', name: 'BIG TANGO', short: 'TANGO', flavor: { tint: '#ffb466', deep: '#ff6000', glow: '#ff8a1a', rim: '#ffe0b8' },
     ui: '#ff8a1a', ui2: '#ffe3c4', stats: { speed: 0.84, power: 1.1, defense: 1.06, jump: 0.92 }, scale: 1.16, wide: 1.12,
     shape: { body: [0.28, 0.265, 0.215], belly: [0.225, 0.19, 0.17], arm: [0.105, 0.16, 0.105], shoulder: [0.21, 0.48, 0.03], leg: [0.13, 0.13, 0.13], legX: 0.14, head: [0.205, 0.18, 0.17] },
-    title: 'The Champ', bio: "Three-time Heavyweight Champion of the Candy Aisle. His belt is solid gold. (It is a chocolate coin.)",
+    title: 'The Champ', bio: "Three-time Heavyweight Champion of the Candy Aisle. His title belt was solid gold. (It was a chocolate coin. He ate it.)",
     moves: tangoMoves(), finisher: { key: 'rollup', name: 'FRUIT ROLL-UP' },
-    ending: "Tango added Gummoth's crown to his collection. He now wears two belts and a crown and walks very slowly so everybody can see.",
+    ending: "Tango added Gummoth's crown to his collection. He wears it to bed, to breakfast and to the bath, and walks very slowly so everybody can see.",
     dress: 'tango', winPose: 'flex', stars: { POWER: 5, SPEED: 2, REACH: 3 },
   },
   {
@@ -177,7 +177,7 @@ export const ROSTER = [
   {
     key: 'duke', name: 'DUKE GRAPE', short: 'DUKE', flavor: { tint: '#cf98ff', deep: '#5a0aa8', glow: '#9a40ff', rim: '#ead8ff' },
     ui: '#a24cff', ui2: '#ecdcff', stats: { speed: 0.97, power: 1.15, defense: 1.05, jump: 1 }, shape: { belly: [0.215, 0.19, 0.17], bellyZ: 0.07 },
-    title: 'The Gentlebear', bio: "Old money, older grapes. A cane, a monocle and perfect manners. \"Pardon me,\" he says, right before the Royal Bounce.",
+    title: 'The Gentlebear', bio: "Old money, older grapes, perfect manners. \"Pardon me,\" he says, right before the Royal Bounce.",
     moves: dukeMoves(), finisher: { key: 'sticker', name: 'STICKERED' },
     ending: "\"Jolly good show,\" said Duke Grape, and he invited Gummoth to tea. Gummoth ate the teapot. They are friends now.",
     dress: 'duke', winPose: 'win', stars: { POWER: 4, SPEED: 3, REACH: 4 },

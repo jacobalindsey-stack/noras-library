@@ -47,8 +47,6 @@ function miniBear(M, F, scale) {
   const b = M.bear(F);
   const m = new THREE.Mesh(b.g.geo, b.mat);
   m.scale.setScalar(scale);
-  const eyeM = new THREE.MeshBasicMaterial({ color: 0x140a10 });
-  for (const e of b.g.sockets.eyes) { const s = new THREE.Mesh(new THREE.SphereGeometry(0.034, 10, 8), eyeM); s.position.copy(e.p).addScaledVector(e.n, 0.005); s.scale.set(1, 1.3, 0.6); m.add(s); }
   return m;
 }
 
@@ -82,7 +80,7 @@ function pop(M, W, L, done) {
       if (t >= 140) W.scriptPose = P(POSES.win);
       if (t >= 132 && t < 230) {
         const u = seg(t, 132, 230);
-        L.y = 0.35 + u * u * 9; L.x += 0.012 * L.f * -1;
+        L.y = Math.min(0.35 + u * u * 9, (M.G.stage.ceiling || 99) - 1.4); L.x += 0.012 * L.f * -1;
         S.bl.group.rotation.z = Math.sin(t * 0.1) * 0.3;
         if (t % 9 === 0) sfx('squeak');
         S.cam(W.x, 1.2 + u * 3.5, 5 + u * 3, (W.x + L.x) / 2, 1 + u * 6, 30, 2.5);

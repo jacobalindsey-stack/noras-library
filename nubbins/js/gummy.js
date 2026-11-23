@@ -16,6 +16,8 @@ function smin(a, b, k) { const h = Math.max(k - Math.abs(a - b), 0) / k; return 
 function smax(a, b, k) { return -smin(-a, -b, k); }
 
 // default proportions, in "bear units" (a standard bear is about 1 tall)
+export const FACE_PAINT = false;
+
 export const BASE_SHAPE = {
   head: [0.215, 0.19, 0.18], headY: 0.655,
   muzzle: [0.095, 0.07, 0.07], muzzleY: 0.61, muzzleZ: 0.125,
@@ -51,6 +53,10 @@ function buildPrims(s) {
   };
   ell(V(0, s.headY, 0), s.head, 'head');
   ell(V(0, s.muzzleY, s.muzzleZ), s.muzzle, 'head');
+  prims[prims.length - 1].k = s.blend * 0.45; // a moulded snout: a crisper edge than the rest of the body
+  // the nose: a small bead on the top front of the snout
+  ell(V(0, s.muzzleY + s.muzzle[1] * 0.42, s.muzzleZ + s.muzzle[2] * 0.82), [s.muzzle[0] * 0.34, s.muzzle[1] * 0.3, s.muzzle[2] * 0.34], 'head');
+  prims[prims.length - 1].k = 0.012;
   ell(V(s.earX, s.earY, -0.01), s.ear, 'earL');
   ell(V(-s.earX, s.earY, -0.01), s.ear, 'earR');
   ell(V(0, s.bodyY, 0), s.body, 'body');
@@ -77,12 +83,34 @@ function buildPrims(s) {
   return prims;
 }
 
-function shapeSDF(prims, blend) {
+// prims melt together (each may have its own softness k); cuts are pressed in afterwards
+function shapeSDF(prims, blend, cuts = []) {
   return (x, y, z) => {
     let d = prims[0].d(x, y, z);
-    for (let i = 1; i < prims.length; i++) d = smin(d, prims[i].d(x, y, z), blend);
+    for (let i = 1; i < prims.length; i++) d = smin(d, prims[i].d(x, y, z), prims[i].k ?? blend);
+    for (const c of cuts) d = smax(d, -c.d(x, y, z), c.k);
     return d;
   };
+}
+
+// A real gummy's face is moulded, not painted: a raised snout and nose
+// (in buildPrims), two little raised eye beads just above the snout, and a
+// shallow cupped dish in the front of each ear.
+function sculptFace(prims, s) {
+  const base = shapeSDF(prims, s.blend);
+  const hc = V(0, s.headY, 0);
+  for (const side of [1, -1]) {
+    const d = V(0.4 * side, 0.3, 1).normalize();
+    const p = marchToSurface(base, hc.clone().addScaledVector(d, 0.45), d.clone().negate());
+    const n = gradient(base, p.x, p.y, p.z);
+    const c = p.addScaledVector(n, -0.009), r = [0.021, 0.025, 0.017];
+    prims.push({ bone: 'head', k: 0.012, c, d: (x, y, z) => sdEllipsoid(x - c.x, y - c.y, z - c.z, r[0], r[1], r[2]) });
+  }
+  const cuts = [1, -1].map(side => {
+    const c = V(s.earX * side * 0.97, s.earY + s.ear[1] * 0.12, -0.01 + s.ear[2] * 1.05), r = [s.ear[0] * 0.6, s.ear[1] * 0.6, s.ear[2] * 0.55];
+    return { k: 0.02, d: (x, y, z) => sdEllipsoid(x - c.x, y - c.y, z - c.z, r[0], r[1], r[2]) };
+  });
+  return shapeSDF(prims, s.blend, cuts);
 }
 
 // ---------------------------------------------------------- surface nets
@@ -149,7 +177,7 @@ export function buildBearGeometry(shapeOver, key, rainbow) {
   if (key && geoCache.has(key)) return geoCache.get(key);
   const s = makeShape(shapeOver);
   const prims = buildPrims(s);
-  const sdf = shapeSDF(prims, s.blend);
+  const sdf = sculptFace(prims, s);
   const h = 0.0115;
   const net = surfaceNets(sdf, V(-0.5, -0.06, -0.36), V(0.5, 1.02, 0.4), h);
   const n = net.pos.length / 3;
@@ -251,15 +279,15 @@ export function buildBearGeometry(shapeOver, key, rainbow) {
 export function makeGummyMaterial(fl, opts = {}) {
   const mat = new THREE.MeshPhysicalMaterial({
     color: new THREE.Color(fl.tint),
-    roughness: fl.rough ?? 0.22,
+    roughness: (fl.rough ?? 0.22) + 0.08,   // satin, like a real gummy (was glossier before Nov 23 2026)
     metalness: 0,
     transmission: 1,
     thickness: fl.thick ?? 0.55,
     ior: 1.42,
     attenuationColor: new THREE.Color(fl.deep),
     attenuationDistance: fl.atten ?? 0.32,
-    clearcoat: fl.coat ?? 0.7,
-    clearcoatRoughness: 0.12,
+    clearcoat: (fl.coat ?? 0.7) * 0.55,
+    clearcoatRoughness: 0.3,
     specularIntensity: 1,
     sheen: fl.sugar ? 0.6 : 0,
     sheenColor: new THREE.Color(0xffffff),
@@ -412,7 +440,10 @@ export class GummyBear {
     this.wob = 0; this.dent = 0; this.flash = 0; this.time = Math.random() * 10; this.tickers = [];
   }
 
+  // painted eyes and brows: switched off since Nov 23 2026 (the face is moulded into the jelly instead)
   _buildFace() {
+    this.eyes = []; this.brows = []; this.xeyes = [];
+    if (!FACE_PAINT) return;
     const head = this.bones.head;
     const hb = this.g.bind.head;
     const eyeMat = new THREE.MeshPhysicalMaterial({ color: 0x120a10, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.02 });

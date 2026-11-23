@@ -93,7 +93,12 @@ function tails(bear, at, color, len = 0.16, spread = 0.35) {
   bear.tickers.push((time) => { for (const t of ts) { t.piv.rotation.x = t.base.x + Math.sin(time * 9 + t.s) * 0.18 + bear.springs.head.x * 0.8; t.piv.rotation.z = t.base.z + Math.sin(time * 7 + t.s * 2) * 0.1; } });
 }
 
+// Costumes are switched off since Nov 23 2026: the bears are bare gummies, and
+// only Gummoth keeps his crown. Set COSTUMES to true to bring the rest back.
+export const COSTUMES = false;
+
 export function dress(bear, kind) {
+  if (!COSTUMES && kind !== 'gummoth') return;
   const g = bear.g;
   const head = partSDF(g, ['head']);
   const torso = partSDF(g, ['body', 'belly']);
