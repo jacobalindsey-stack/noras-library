@@ -22,26 +22,26 @@ done.
 
 | Repo | What it is | Branch |
 |---|---|---|
-| `jacobalindsey-stack/noras-library` | The website itself. Static files, no build step. (`worker/index.js`, the NUBBINS online relay, is written but switched off; see Hosting.) | `main` (every push deploys live) |
+| `jacobalindsey-stack/noras-library` | The website itself. Static files, no build step, plus a tiny worker (`worker/index.js`) that serves them and runs the NUBBINS online relay. | `main` (every push deploys live) |
 | `jacobalindsey-stack/reimagined-chainsaw` | Source for Blackthorn Manor and Blackthorn Manor II | BM1: `claude/haunted-witch-game-prompt-9t1z47` · BM2: `claude/affectionate-ramanujan-3ld4ce` |
 
 **Hosting:** Cloudflare Workers with static assets, connected to
 `noras-library`. Every push to `main` goes live in about a minute.
 
-- `wrangler.jsonc` publishes the repo root as plain files.
-- `worker/index.js` is the NUBBINS online relay (two-seat rooms in a Durable
-  Object called `NubbinsRoom`; every other request passes straight to the
-  files). **It is switched off:** the first deploy with it on (Nov 23 2026,
-  build 7e84bf8a) failed on Cloudflare's side; it builds fine locally with
-  wrangler 4.166, so the reason is in the Cloudflare dashboard (asked Jacob
-  for the error). `wrangler.jsonc` lists what to add back to switch it on.
-  A failed build blocks every later deploy, so if it fails again, switch it
-  off again at once. `npx wrangler dev --port 8770` with those lines added
-  runs the site and the relay locally.
+- `wrangler.jsonc` publishes the repo root through `worker/index.js`, which
+  passes every request to the files except `/nubbins-online/` (the NUBBINS
+  online relay, a Durable Object called `NubbinsRoom`, switched on Nov 23
+  2026). Keep that pass-through intact: the whole site goes through it.
+  `npx wrangler dev --port 8770` from the repo root runs the site and the
+  relay locally.
 - `.assetsignore` keeps `.git`, the README, this file and the config files
   off the site.
 - Cloudflare rejects any single file over 25 MiB.
-- After a push, check the build with `gh api repos/jacobalindsey-stack/noras-library/commits/<sha>/check-runs`.
+- After a push, check the build with `gh api "repos/jacobalindsey-stack/noras-library/commits/<sha>/check-runs?filter=all"`.
+  Each branch a commit is pushed to gets its own build with the same name, and without
+  `filter=all` you only see the latest. Builds for branches other than `main` (preview
+  builds) have failed every time since Nov 22 2026; they don't touch the live site. Only
+  the `main` build matters: push to `main` alone, or match the build to the push by time.
   If no build shows up after a few minutes, Cloudflare missed the push (happened Nov 3 2026):
   Jacob can click Retry on the latest deployment in the Cloudflare dashboard (Workers & Pages → noras-library).
 - `_redirects` sends the old `catbakery.html`, `apprenticeship.html` and
@@ -94,7 +94,7 @@ The front page lists the games in this order (games.js order):
 | The Long Apprenticeship | `apprenticeship/` | `wilderlore:save:v1` | "Wilderlore" caravan journey. Difficulty values live in `src/app.jsx`. |
 | Pumpkin Slash | `pumpkinslash.html` | — | **Jacob says it's perfect. Do not change it.** |
 | Georgia Buns | `georgiabuns.html` | `georgiabuns.save.v1` (saga under `saga`) | Family saga with side-scroller runs, **beta**, iPad, PC and iPhone held sideways. Source is in `georgiabuns-src/` (kept off the live site by `.assetsignore`); run `python3 georgiabuns-src/build.py` from the repo root to rebuild `georgiabuns.html`. Since Nov 19 2026 the levels are places in a saga: burrow hub, Want List, errands, map, shops, stash, nightly cookout (`j_saga.js` data, `k_ui.js` canvas menus with `hot()` tap spots, `l_screens.js` rules and screens, `m_mission.js` mission modes inside runs). The old days are the scrapbook (`enterScrapbook()`). Test hooks: `window.GB` (`hots()` lists tappable spots with labels) and `window.GBSPEED` to run faster in bots. Six days plus a burrow hub and a secret Day 7 (Boulder, behind the burrow window); level data in `g2_levels.js`, the drive in `h_drive.js`, backdrops and foreground in `b2_bg.js`. Lore lives in the Game Bible: `georgiabuns-src/BIBLE.md` here, and the project's "Georgia Buns Game Bible". When one changes, update the other. |
-| NUBBINS | `nubbins/` | `nubbins.save.v1` | Nora's gummy bear fighting game ("Mortal Kombat, but gummy bears"; brutal but nonviolent). **In testing: live at the hidden address noralindsey.com/nubbins since Nov 23 2026 (so online play can be tried), but not in `games.js`, so nothing links to it. Jacob tests it before it goes on the front page.** 3D with three.js r160 in `nubbins/lib/` (no CDN). Bears are grown at load from soft shapes (`js/gummy.js`: SDF + surface nets + skinning + jelly material), costumes in `js/dress.js`, poses in `js/anim.js`, combat in `js/fighter.js` + `js/match.js`, fighters and specials in `js/roster.js`, finishers in `js/finishers.js`, arenas in `js/stages.js`, CPU in `js/ai.js`. Online play (Nov 23) is `js/net.js` (room link with auto-reconnect, lockstep button exchange, fingerprint and repair) and `js/online.js` (rooms, picks, rematch); the fight logic must stay exact so two devices agree: no `Math.random`, trig, `Math.hypot` or screen-clock time in anything that changes the fight (visual-only effects are fine), and arena effects that push bears go through `stage.simStep(M)`. The private Claude test link can't reach the relay; online play only works from noralindsey.com (once the relay is switched on) or locally. Arenas (Nov 22 later) are real places at gummy scale, built in `js/stages.js` with helpers in `js/stagekit.js` (static soft shadows computed once per arena, soft-focus painted backdrops, flames, light beams, caustics); each arena sets its own `look` (exposure and bloom) and can hook the fight through `slowZones` (theater soda), `wind` (cake gust) and `bearGlow` (fridge lights out). The camera only sees a few bear-widths either side of the fighters, so big props go behind the fighting lane, not beside it. Test hooks: `window.NUBBINS` (`testAuto` makes both sides CPU, `testSteps` fast-forwards, `noRender`, `testBoost`). Gummoth unlocks after an Arcade clear. Keep it nonviolent: no blood, no deaths; finishers squish, shrink, wrap or stick, and the loser is always fine. |
+| NUBBINS | `nubbins/` | `nubbins.save.v1` | Nora's gummy bear fighting game ("Mortal Kombat, but gummy bears"; brutal but nonviolent). **In testing: live at the hidden address noralindsey.com/nubbins since Nov 23 2026 (so online play can be tried), but not in `games.js`, so nothing links to it. Jacob tests it before it goes on the front page.** 3D with three.js r160 in `nubbins/lib/` (no CDN). Bears are grown at load from soft shapes (`js/gummy.js`: SDF + surface nets + skinning + jelly material), costumes in `js/dress.js`, poses in `js/anim.js`, combat in `js/fighter.js` + `js/match.js`, fighters and specials in `js/roster.js`, finishers in `js/finishers.js`, arenas in `js/stages.js`, CPU in `js/ai.js`. Online play (Nov 23) is `js/net.js` (room link with auto-reconnect, lockstep button exchange, fingerprint and repair) and `js/online.js` (rooms, picks, rematch); the fight logic must stay exact so two devices agree: no `Math.random`, trig, `Math.hypot` or screen-clock time in anything that changes the fight (visual-only effects are fine), and arena effects that push bears go through `stage.simStep(M)`. The private Claude test link can't reach the relay; online play only works from noralindsey.com or locally. Arenas (Nov 22 later) are real places at gummy scale, built in `js/stages.js` with helpers in `js/stagekit.js` (static soft shadows computed once per arena, soft-focus painted backdrops, flames, light beams, caustics); each arena sets its own `look` (exposure and bloom) and can hook the fight through `slowZones` (theater soda), `wind` (cake gust) and `bearGlow` (fridge lights out). The camera only sees a few bear-widths either side of the fighters, so big props go behind the fighting lane, not beside it. Test hooks: `window.NUBBINS` (`testAuto` makes both sides CPU, `testSteps` fast-forwards, `noRender`, `testBoost`). Gummoth unlocks after an Arcade clear. Keep it nonviolent: no blood, no deaths; finishers squish, shrink, wrap or stick, and the loser is always fine. |
 | Holy City Hustle | `holycity.html` | `holycity.save.v1` | SNES-style RC Pro-Am errand racer across Charleston (11 errands incl. secret King Tide race, plus Free Drive). Save also holds `stickers` and `dog` (added Nov 2; old saves fill them in on load). **Jacob called it done on Nov 3 2026**; since then steering moved to touch-to-drive with an Easy Steering (follow GPS) button (Nov 9), because the car was hard for Nora to control, and Crazy Mode (stars and coin streaks make the car flip over whatever it hits) went in Nov 10, after which Jacob called it done again. Source is the built file; no real people in the game (Jacob asked for Bill Murray; declined). |
 
 **Saves must never break.** Players have progress in browser storage. Never
