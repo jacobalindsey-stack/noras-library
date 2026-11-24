@@ -296,7 +296,7 @@ export class CatRig {
     // a soft contact shadow that follows the cat
     const sh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.9), new THREE.MeshBasicMaterial({ map: T.blob({ a: 0.5 }), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
     sh.rotation.x = -Math.PI / 2; sh.position.y = 0.015; sh.castShadow = false; sh.receiveShadow = false; sh.renderOrder = 1;
-    this.shadow = sh; root.add(sh);
+    sh.raycast = () => {}; this.shadow = sh; root.add(sh);
     // state
     this.P = { ...POSES.stand }; this.target = POSES.stand; this.over = {};
     this.phase = 0; this.t = Math.random() * 10; this.blinkT = 2; this.blink = 0;

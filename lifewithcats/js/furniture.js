@@ -559,13 +559,15 @@ export function bed(o = {}) {
   const g = group(), w = o.w || 5.0, d = o.d || 6.4, wd = M.wood(o.wood || PAL.walnut, 30);
   add(g, wobble(rbox(w + 0.2, 4.0, 0.3, 0.12), 0.015), wd, { pos: [0, 2.0, -d / 2] });
   for (let i = 0; i < 5; i++) add(g, rbox(0.3, 2.3, 0.12, 0.05), M.wood(shade(o.wood || PAL.walnut, 0.08), 31), { pos: [-1.6 + i * 0.8, 2.3, -d / 2 + 0.2] });
-  add(g, wobble(rbox(w + 0.2, 1.6, 0.25, 0.1), 0.015), wd, { pos: [0, 0.8, d / 2] });
-  add(g, rbox(w, 0.5, d - 0.2, 0.06), wd, { pos: [0, 0.55, 0] });
+  add(g, wobble(rbox(w + 0.2, 0.9, 0.22, 0.08), 0.015), wd, { pos: [0, 0.45, d / 2 + 0.02] });
+  for (const s of [-1, 1]) add(g, cyl(0.1, 0.1, 1.25, 12), wd, { pos: [s * (w / 2 + 0.05), 0.62, d / 2 + 0.02] });
+  add(g, rbox(w, 0.5, d - 0.2, 0.06), wd, { pos: [0, 0.45, 0] });
   add(g, puff(rbox(w - 0.2, 0.7, d - 0.4, 0.2, 3), 0.7, 0.06, 0.02), M.fab('#efe6d4', { scale: 1.2 }), { pos: [0, 1.15, 0] });
   const q = T.quilt(o.quilt || [PAL.terracotta, PAL.mustard, PAL.sage, PAL.dusty, PAL.rose, PAL.cream], 7);
   const qm = mat({ tex: q, scale: 2.6, rough: 0.98, bumpScale: 2.0 });
   add(g, wobble(puff(rbox(w + 0.1, 0.35, d - 1.8, 0.14, 4), 0.35, 0.14, 0.02), 0.03, 1.4), qm, { pos: [0, 1.62, 0.75] });
   for (const s of [-1, 1]) add(g, wobble(rbox(0.1, 1.0, d - 1.8, 0.05), 0.03, 2), qm, { pos: [s * (w / 2 + 0.08), 1.25, 0.75] });
+  add(g, wobble(rbox(w + 0.1, 0.9, 0.1, 0.05), 0.03, 2), qm, { pos: [0, 1.3, d / 2 - 0.12] });
   for (const s of [-1, 1]) { const p = add(g, puff(rbox(1.9, 0.35, 1.1, 0.17, 4), 0.35, 0.18, 0.04), M.fab('#f2eadb', { pattern: 'ticking', b: PAL.dusty, scale: 0.9 }), { pos: [s * 1.15, 1.75, -d / 2 + 0.95] }); p.rotation.x = -0.35; }
   const kn = M.knit(PAL.mustard, { b: PAL.cream });
   add(g, wobble(rbox(w + 0.2, 0.18, 1.2, 0.08), 0.04, 2), kn, { pos: [0, 1.85, d / 2 - 1.0] });
@@ -629,13 +631,17 @@ export function laundryBasket() {
 export function wickerChair(o = {}) {
   const g = group();
   const wick = mat({ tex: T.weave('#c49a5e', 41, { cell: 8 }), scale: 0.5, rough: 0.9, bumpScale: 3 });
-  const body = lathe([[0, 0.4], [0.9, 0.4], [1.2, 1.4], [1.35, 3.4], [1.25, 3.5], [1.05, 1.5], [0.8, 1.2], [0, 1.2]], 30);
-  const b = add(g, wobble(body, 0.03, 2), wick); b.scale.set(1, 1, 0.9);
-  // cut the front open: a seat cushion fills it in visually
-  add(g, cyl(0.6, 0.8, 0.4, 20), wick, { pos: [0, 0.2, 0] });
-  add(g, puff(new THREE.CylinderGeometry(0.95, 0.95, 0.3, 24), 0.3, 0.1, 0.03), M.fab(o.cushion || PAL.teal, { pattern: 'floral', b: PAL.mustard, c: PAL.cream, scale: 1 }), { pos: [0, 1.35, 0.1] });
+  const shell = new THREE.LatheGeometry([[0.75, 0.9], [1.05, 1.15], [1.25, 1.8], [1.32, 2.6], [1.15, 3.25], [0.75, 3.55]].map(p => new THREE.Vector2(p[0], p[1])), 30, Math.PI * 0.42, Math.PI * 1.16);
+  const wm = wick.clone(); wm.side = THREE.DoubleSide;
+  const b = add(g, wobble(shell, 0.03, 2), wm); b.scale.set(1, 1, 0.85);
+  add(g, wobble(lathe([[0, 0.85], [0.95, 0.85], [1.05, 1.05], [0.95, 1.2], [0, 1.2]], 30), 0.02, 2), wick);
+  add(g, cyl(0.12, 0.5, 0.85, 16), wick, { pos: [0, 0.43, 0] });
+  add(g, cyl(0.7, 0.7, 0.06, 20), wick, { pos: [0, 0.03, 0] });
+  const cush = M.fab(o.cushion || PAL.teal, { pattern: 'floral', b: PAL.mustard, c: PAL.cream, scale: 1 });
+  add(g, puff(new THREE.CylinderGeometry(0.92, 0.92, 0.28, 24), 0.28, 0.1, 0.03), cush, { pos: [0, 1.34, 0.05] });
+  const back = add(g, wobble(puff(rbox(1.5, 1.4, 0.35, 0.16, 3), 1.4, 0.0, 0.08), 0.04, 2), cush, { pos: [0, 2.1, -0.75] }); back.rotation.x = -0.2;
   shadowBlob(g, 2.8, 2.6, { a: 0.45 });
-  return info(g, { foot: [2.4, 2.2], perches: [{ x: 0, y: 1.5, z: 0.15, kind: 'seat', cap: 1, nap: 2 }], scratch: [{ x: 0, y: 1.0, z: 1.05, nx: 0, nz: 1 }], extra: { wearable: true } });
+  return info(g, { foot: [2.4, 2.2], perches: [{ x: 0, y: 1.48, z: 0.15, kind: 'seat', cap: 1, nap: 2 }], scratch: [{ x: 0, y: 1.0, z: 1.02, nx: 0, nz: 1 }], extra: { wearable: true } });
 }
 export function plantStand(o = {}) {
   const g = group(), wd = M.wood(PAL.walnut, 42);

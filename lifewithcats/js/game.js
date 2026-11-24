@@ -144,7 +144,7 @@ export class Game {
     if (w === 'rain') { skyTop = mix(skyTop, '#7d868e', 0.6); skyBot = mix(skyBot, '#9aa2a6', 0.6); }
     if (w === 'snow') { skyTop = mix(skyTop, '#b8c4cc', 0.5); skyBot = mix(skyBot, '#e2e8ec', 0.5); }
     const night = 1 - day;
-    let tint = mix('#6a78a8', '#ffffff', day);
+    let tint = mix('#2c3454', '#ffffff', Math.pow(day, 0.8));
     tint = mix(tint, '#ffd2a6', warmth * 0.5);
     if (w === 'rain') tint = mix(tint, '#9aa4aa', 0.35);
     const fire = Math.max(lamps, this.season === 'winter' ? 0.8 : this.season === 'autumn' ? 0.35 : 0) * (this.s.rooms[0] ? 1 : 0);

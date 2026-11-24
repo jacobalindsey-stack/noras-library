@@ -310,9 +310,11 @@ export class Agent {
       wander: 2.2, sit: 1.6, loaf: 1.2, sploot: 0.6, belly: N.love > 60 ? 0.7 : 0.1, stretch: 0.5, groom: 0.8, judge: P === PERS.grump ? 1.5 : 0.4,
       blink: hearts(d.bond) >= 3 && w.camRoom === this.room ? 0.9 : 0, gift: hearts(d.bond) >= 2 && this.cool.gift <= 0 ? 1.2 * (P.gifts || 1) : 0,
       zoom: N.fun > 60 && (d.pers === 'chaos' || d.age === 'kitten') ? 0.5 : 0.08, knead: N.love > 65 ? 0.7 : 0, visit: w.agents.length > 1 ? 0.6 : 0, explore: 0.8,
+      prank: this.cool.mischief <= 0 && !w.calm ? 0.35 * P.mischief * clamp(0.3 + w.game.s.day * 0.18, 0.3, 1) : 0,
     };
     const k = weighted(Object.keys(opts), x => opts[x], r);
     const here = () => this.downIfUp(false);
+    if (k === 'prank') { const kinds = this.mischiefOptions(this.r() < 0.5 ? 'fun' : 'love'); delete kinds.yowl; const kk = weighted(Object.keys(kinds), x => kinds[x] * ((P.kinds || {})[x] || 0.5), r); if (kk && this.startMischief(kk)) return; this.cool.mischief = 20; return this.planIdle(); }
     if (k === 'wander') { const p = h.randomFree(this.pickRoom(), r); this.setPlan([...this.goFloor(p.x, p.z), { do: 'pose', pose: 'stand', dur: 1 + r() * 2, lookAround: true }], 'wander'); }
     else if (k === 'sit') this.setPlan([{ do: 'pose', pose: 'sit', dur: 4 + r() * 5, lookAround: true, lookCam: r() < 0.4 }], 'sit');
     else if (k === 'loaf') this.setPlan([{ do: 'pose', pose: 'loaf', dur: 6 + r() * 6, meme: 'loaf' }], 'loaf');

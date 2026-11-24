@@ -348,7 +348,7 @@ export function clawMark(w = 0.6, h = 0.6) {
     clawTex = T.toTex(c, { clamp: true });
   }
   const m = new THREE.MeshStandardMaterial({ map: clawTex, transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -4 });
-  const d = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); d.renderOrder = 3;
+  const d = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); d.renderOrder = 3; d.raycast = () => {};
   const fluff = new THREE.Mesh(wobble(sphere(0.06, 8, 6), 0.03, 6), M.felt('#efe3c8'));
   fluff.position.set(0.12, -0.18, 0.04); d.add(fluff);
   return d;

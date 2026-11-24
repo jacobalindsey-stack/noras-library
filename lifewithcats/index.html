@@ -138,6 +138,8 @@ button:focus-visible{outline:3px solid var(--mustard);outline-offset:2px}
 .tabs button.on{background:var(--ink);color:var(--paper)}
 .scroll{overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;min-height:0;flex:1;padding:2px 2px 6px;margin:0 -2px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.grid > *{min-width:0}
+.item b,.item p{overflow-wrap:anywhere}
 .item{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:14px;background:#f6efdd;box-shadow:0 2px 0 rgba(59,47,42,.15);text-align:left}
 .item .top{display:flex;gap:8px;align-items:center}
 .item .top svg{width:40px;height:40px;flex:none}
@@ -250,6 +252,9 @@ button:focus-visible{outline:3px solid var(--mustard);outline-offset:2px}
   #photo .shoot:active{transform:translateX(50%) scale(.94)}
   #photo .pnav{bottom:max(120px,env(safe-area-inset-bottom))}
   .grid{grid-template-columns:1fr 1fr}
+  .item{padding:10px}
+  .item .top{flex-wrap:wrap}
+  .item .top img{width:56px;height:56px}
 }
 .touch .kbd{display:none!important}
 </style>

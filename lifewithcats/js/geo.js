@@ -126,9 +126,7 @@ export function group(o = {}) { const g = new THREE.Group(); if (o.pos) g.positi
 export function shadowBlob(parent, w, d, o = {}) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ map: T.blob({ a: o.a ?? 0.5 }), transparent: true, depthWrite: false, opacity: o.opacity ?? 1, color: 0xffffff }));
   m.rotation.x = -Math.PI / 2; m.position.set(o.x || 0, (o.y || 0) + 0.012, o.z || 0); m.renderOrder = 1; m.castShadow = false; m.receiveShadow = false;
-  m.material.blending = THREE.MultiplyBlending; m.material.premultipliedAlpha = true;
-  // multiply blending wants a colour that is white where there is no shadow
-  m.material.map = T.blob({ a: o.a ?? 0.5 }); m.material.blending = THREE.NormalBlending; m.material.premultipliedAlpha = false;
+  m.raycast = () => {}; // never catches a tap
   parent.add(m); return m;
 }
 // seeded helper

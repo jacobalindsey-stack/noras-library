@@ -379,7 +379,7 @@ class World {
     const p = this.house.nearestFree(x, z);
     if (Math.abs(p.x - x) < 1.2 && Math.abs(p.z - z) < 1.2) { x = p.x; z = p.z; }
     z = clamp(z, -RD / 2 + 0.5, RD / 2 - 0.6);
-    const g = C.mess(kind); g.position.set(x, 0, z); g.rotation.y = Math.random() * 6;
+    const g = C.mess(kind); g.position.set(x, 0, z); g.rotation.y = Math.random() * 6; g.add(hitDisc(0.75));
     this.scene.add(g);
     const m = { id: Math.random().toString(36).slice(2), kind, x, z, room, g, link };
     this.messes.push(m);
@@ -395,7 +395,7 @@ class World {
     if (m.link && m.link.plantTip) { m.link.plantTip.group.rotation.z = 0; m.link.plantTip.toppled = false; }
   }
   dropGift(id, x, z, a, quiet) {
-    const g = C.giftMesh(id); g.position.set(x, 0, z); g.rotation.y = Math.random() * 6; this.scene.add(g);
+    const g = C.giftMesh(id); g.position.set(x, 0, z); g.rotation.y = Math.random() * 6; g.add(hitDisc(0.6)); this.scene.add(g);
     const gift = { id, x, z, room: this.house.roomOf(x), g, from: a ? a.name : null };
     this.gifts.push(gift); this.pickables.push({ obj: g, type: 'gift', ref: gift });
     if (!quiet && a) { this.ui.toast(`${a.name} brought you a present!`, 'gold', 'gift', gift.room !== this.camRoom ? gift.room : null); A.trill(a); }
@@ -531,14 +531,24 @@ class World {
     const pr = this.pixelRatio();
     this.renderer.setPixelRatio(pr); this.renderer.setSize(w, h, false);
     this.post.setSize(w, h, pr);
-    this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     this.portrait = h > w * 1.05;
+    this.camera.fov = this.portrait ? 46 : 36;
+    this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
     this.frame(false);
     this.ui && this.ui.layout();
   }
   pixelRatio() { const dpr = devicePixelRatio || 1; const q = this.game.s.settings.quality; if (q === 'low') return Math.min(dpr, 1); if (q === 'high') return Math.min(dpr, 2); return this.autoPR ?? Math.min(dpr, 1.5); }
+  get halfWP() { return 3.9; }
+  panLimit() { return RW / 2 - this.halfWP + 0.5; }
   roomView(i) {
-    const X = roomX(i), a = this.camera.aspect;
+    const a = this.camera.aspect;
+    if (this.portrait) {
+      const X = roomX(i) + (this.panX || 0);
+      const hf = Math.atan(Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2) * a);
+      const dist = this.halfWP / Math.tan(hf);
+      return { pos: new THREE.Vector3(X, 9.2, 5.4 + dist), look: new THREE.Vector3(X, 2.1, -1.6) };
+    }
+    const X = roomX(i);
     const vf = THREE.MathUtils.degToRad(this.camera.fov) / 2, hf = Math.atan(Math.tan(vf) * a);
     const halfW = 7.5, halfH = this.portrait ? 5.0 : 4.3;
     const dist = Math.max(halfW / Math.tan(hf), halfH / Math.tan(vf));
@@ -554,12 +564,24 @@ class World {
   focusView() {
     const a = this.focus, s = a.rig.size;
     const p = new THREE.Vector3(a.x, a.y + 0.7 * s, a.z);
-    const dist = (this.portrait ? 7.5 : 5.4) * Math.max(0.8, s);
-    return { pos: new THREE.Vector3(p.x + 0.3, p.y + 1.9 * s + 0.6, p.z + dist), look: p.clone().add(new THREE.Vector3(0, this.portrait ? 0.1 : 0.25, 0)) };
+    const dist = (this.portrait ? 5.6 : 4.4) * Math.max(0.8, s);
+    return { pos: new THREE.Vector3(p.x + 0.3, p.y + dist * 0.95 + 0.4, Math.min(p.z + dist, 9)), look: p.clone().add(new THREE.Vector3(0, this.portrait ? -0.2 : 0.05, 0)) };
   }
-  setRoom(i, quiet) {
+  setRoom(i, quiet, pan = 0) {
     i = clamp(i, 0, ROOMS.length - 1); if (i === this.camRoom && !quiet) return;
-    this.camRoom = i; this.frame(); this.ui.roomChanged(); if (!quiet) A.soft();
+    this.camRoom = i; this.panX = pan; this.frame(); this.ui.roomChanged(); if (!quiet) A.soft();
+  }
+  // on a tall phone screen you drag through the room; past the edge you slide into the next one
+  dragPan(dx) {
+    const upp = (this.halfWP * 2) / innerWidth, lim = this.panLimit();
+    this.panX = (this.panX || 0) - dx * upp;
+    if (this.panX > lim) { this.panOver = (this.panOver || 0) + this.panX - lim; this.panX = lim; }
+    else if (this.panX < -lim) { this.panOver = (this.panOver || 0) + this.panX + lim; this.panX = -lim; }
+    else this.panOver = 0;
+    if (this.panOver > 1.6 && this.camRoom < ROOMS.length - 1) { this.panOver = 0; this.setRoom(this.camRoom + 1, false, -lim); return; }
+    if (this.panOver < -1.6 && this.camRoom > 0) { this.panOver = 0; this.setRoom(this.camRoom - 1, false, lim); return; }
+    this.frame();
+    const v = this.camTarget; this.camPos.x = v.pos.x; this.camLook.x = v.look.x;
   }
   setFocus(a) { this.focus = a; this.frame(); }
   updateCamera(dt) {
@@ -584,10 +606,16 @@ class World {
       down = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
       if (this.play.active) this.play.pointer('down', e);
     });
-    el.addEventListener('pointermove', e => { if (this.play.active) this.play.pointer('move', e); else if (down && this.ui.photoMode) {} });
+    el.addEventListener('pointermove', e => {
+      if (this.play.active) { this.play.pointer('move', e); return; }
+      if (!down || !this.portrait || this.focus) return;
+      if (!down.pan && Math.abs(e.clientX - down.x) > 12 && Math.abs(e.clientX - down.x) > Math.abs(e.clientY - down.y)) { down.pan = true; down.lx = e.clientX; this.panOver = 0; }
+      if (down.pan) { this.dragPan(e.clientX - down.lx); down.lx = e.clientX; }
+    });
     const up = e => {
       if (this.play.active) { this.play.pointer('up', e); down = null; return; }
       if (!down) return;
+      if (down.pan) { down = null; this.panOver = 0; return; }
       const dx = e.clientX - down.x, dy = e.clientY - down.y;
       if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) { this.setRoom(this.camRoom + (dx < 0 ? 1 : -1)); }
       else if (Math.hypot(dx, dy) < 14) this.tap(e.clientX, e.clientY);
@@ -596,6 +624,7 @@ class World {
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', () => { down = null; if (this.play.active) this.play.pointer('cancel'); });
     addEventListener('keydown', e => {
+      if (e.target && e.target.tagName === 'INPUT') return;
       if (e.key === 'ArrowLeft') this.setRoom(this.camRoom - 1);
       if (e.key === 'ArrowRight') this.setRoom(this.camRoom + 1);
       if (e.key === 'Escape') this.ui.escape();
@@ -611,22 +640,27 @@ class World {
       const edge = this.screenOf(c.clone().add(new THREE.Vector3(0.9 * a.rig.size, 0, 0)));
       const rad = Math.max(34, Math.abs(edge.x - s.x) * 1.1);
       const d = Math.hypot(px - s.x, py - s.y);
-      if (d < rad && d < bd) { bd = d; best = a; }
+      if (d < rad && d / rad < bd) { bd = d / rad; best = a; }
     }
-    return best;
+    return best ? { a: best, k: bd } : null;
   }
   tap(px, py) {
     if (this.ui.photoMode || this.ui.busy()) return;
     const a = this.agentAt(px, py);
-    if (a) return this.tapAgent(a);
     const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2(px / innerWidth * 2 - 1, -py / innerHeight * 2 + 1), this.camera);
     const objs = this.pickables.filter(p => p.obj.visible !== false).map(p => p.obj);
     const hits = ray.intersectObjects(objs, true);
+    let pk = null, pt = null;
     for (const h of hits) {
-      let o = h.object, pk = null;
+      let o = h.object;
       while (o && !pk) { pk = this.pickables.find(p => p.obj === o); o = o.parent; }
-      if (pk) return this.tapThing(pk, h.point);
+      if (pk) { pt = h.point; break; }
     }
+    // small things on the floor win over a cat standing next to them, unless you tapped the cat itself
+    const small = pk && ['mess', 'gift', 'food', 'water', 'litter', 'stray'].includes(pk.type);
+    if (a && (!small || a.k < 0.45)) return this.tapAgent(a.a);
+    if (pk) return this.tapThing(pk, pt);
+    if (a) return this.tapAgent(a.a);
     // a room that's still for sale
     const rooms = this.house.rooms.filter(r => !r.unlocked).map(r => r.reno);
     const rh = ray.intersectObjects(rooms, true);
@@ -741,7 +775,8 @@ class World {
     for (let k = 0; k < steps; k++) this.step(dt);
     this.updateCamera(dt);
     this.ui.tick(dt);
-    this.render(dt);
+    this.frameN = (this.frameN || 0) + 1;
+    if (!window.LWC_NORENDER || this.frameN % 20 === 0 || this.captureNext) this.render(dt);
     this.monitor(dt);
     A.musicTick(this.env);
   }
@@ -825,6 +860,8 @@ class World {
     location.reload();
   }
 }
+const HIT_MAT = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false });
+function hitDisc(r) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.4, 12), HIT_MAT); m.position.y = 0.2; m.castShadow = false; m.receiveShadow = false; return m; }
 function niceName(k) { return { sofa: 'sofa', armchair: 'armchair', bed: 'bed', wickerChair: 'wicker chair', beanbag: 'beanbag' }[k] || 'furniture'; }
 
 const world = new World();

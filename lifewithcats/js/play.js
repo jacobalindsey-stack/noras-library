@@ -26,10 +26,17 @@ export class Play {
   // ------------------------------------------------------------ start / stop
   start(mode, a) {
     if (this.active) this.stop(true);
-    this.active = true; this.mode = mode; this.a = a; this.t = 0; this.gain = 0; this.tol = 0; this.strokes = 0; this.catches = 0; this.down = false; this.result = null;
+    this.active = true; this.finished = false; this.mode = mode; this.a = a; this.t = 0; this.gain = 0; this.tol = 0; this.strokes = 0; this.catches = 0; this.down = false; this.result = null;
     this.w.ui.closeCard();
     a.hold(mode);
     a.heldCycle = null; a.heldLook = null;
+    this.shift = null;
+    if (mode !== 'play' && !a.perch && a.y < 0.05 && a.z < 1.8) {
+      // walk out to the open floor at the front, so nothing stands between you and the cat
+      const t = this.w.house.nearestFree(a.x, 2.6);
+      const path = this.w.house.path(a.x, a.z, t.x, t.z);
+      if (path && path.length) this.shift = { path };
+    }
     this.w.setFocus(a);
     for (const k of ['#dock', '#notes', '#pantry']) { const e = $(k); if (e) e.style.visibility = 'hidden'; }
     const n = a.name, P = PERS[a.d.pers];
@@ -214,7 +221,7 @@ export class Play {
     const P = new THREE.Vector3(); this.a.rig.legs.fr.paw.getWorldPosition(P); this.w.fx.snip(P.x, P.y + 0.2, P.z);
     if (this.claws.every(c => c.done)) {
       if (this.paw === 0) { this.paw = 1; this.claws.forEach(c => { c.done = false; c.ext = 0; }); this.w.ui.toast('One paw done. Now the other!', 'good', 'scissors'); }
-      else { this.drawPaw(); setTimeout(() => this.stop(), 500); return; }
+      else { this.finished = true; this.drawPaw(); setTimeout(() => this.stop(), 500); return; }
     }
     this.drawPaw();
   }
@@ -224,6 +231,15 @@ export class Play {
     if (!this.active) return;
     const a = this.a, w = this.w, d = a.d;
     this.t += dt;
+    if (this.shift) {
+      const s = this.shift;
+      if (!s.pose) { s.pose = a.rig.poseName; s.over = a.rig.over; a.setPose('walk'); }
+      const p = s.path[0], dx = p.x - a.x, dz = p.z - a.z, d = Math.hypot(dx, dz), step = 2.6 * dt;
+      a.speed = 2.2; a.heading = dampAngle(a.heading, Math.atan2(dx, dz), 12, dt);
+      if (d <= step) { a.x = p.x; a.z = p.z; s.path.shift(); } else { a.x += dx / d * step; a.z += dz / d * step; }
+      if (!s.path.length || this.t > 8) { a.speed = 0; a.heading = dampAngle(a.heading, 0.3, 1, 1); a.setPose(s.pose, s.over); this.shift = null; }
+      return;
+    }
     if (this.mode === 'pet' || this.mode === 'brush') {
       if (!this.down) this.tol = Math.max(0, this.tol - dt * 4);
       this.gauge('love', d.needs.love); this.gauge('tidy', d.needs.tidy); this.gauge('tol', 100 - this.tol);
@@ -235,6 +251,7 @@ export class Play {
     }
     if (this.mode === 'play') this.playTick(dt);
     if (this.mode === 'trim') {
+      if (this.finished) return;
       this.patience -= dt * this.patienceRate;
       this.extT = (this.extT || 0) - dt;
       if (this.extT <= 0) { this.extT = 0.55 + Math.random() * 0.4; const open = this.claws.filter(c => !c.done); if (open.length) { const c = open[Math.floor(Math.random() * open.length)]; c.ext = 1; c.until = this.t + 1.0 + PERS[d.pers].tol * 0.3; } }
