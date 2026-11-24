@@ -473,6 +473,13 @@ class World {
       } else v.target = null;
     }
     v.perch.x = v.g.position.x; v.perch.z = v.g.position.z; v.perch.room = this.house.roomOf(v.perch.x);
+    // now and then an idle cat hops on for a ride
+    v.invite = (v.invite ?? 25) - dt;
+    if (v.invite <= 0 && v.perch.occ === 0) {
+      v.invite = 35 + Math.random() * 40;
+      const a = this.agents.find(a => !a.held && !a.alert && !a.perch && a.room === v.perch.room && (!a.cur || a.cur.do === 'pose') && !(a.cur && a.cur.sleep));
+      if (a) { a.cancel(); a.setPlan([...a.goPerch(v.perch), { do: 'pose', pose: 'ride', dur: 12, meme: 'ride' }, { do: 'down' }], 'ride'); v.wait = 6; }
+    }
     const ap = this.house.nearestFree(v.perch.x, v.perch.z + 0.7); v.perch.ax = ap.x; v.perch.az = ap.z;
     for (const a of this.agents) if (a.perch === v.perch && !a.cur?.do?.startsWith?.('d')) { a.x = v.perch.x; a.z = v.perch.z; a.y = 0.3; a.heading = v.g.rotation.y; a.room = v.perch.room; }
   }

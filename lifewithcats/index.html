@@ -211,6 +211,11 @@ button:focus-visible{outline:3px solid var(--mustard);outline-offset:2px}
 #title h1{color:var(--ink);font-size:clamp(44px,8vw,92px)}
 #title h1 span{display:block;font-size:.34em;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-top:6px;color:var(--rust)}
 #title p{margin:0;font-size:15px;line-height:1.35;opacity:.85}
+@media (min-width:900px) and (min-aspect-ratio:5/4){
+  #title{align-items:flex-start;justify-content:center;padding-left:max(36px,env(safe-area-inset-left));background:linear-gradient(90deg,rgba(44,36,32,.45),rgba(44,36,32,0) 45%)}
+  #title .card{max-width:420px;padding:18px 24px 20px}
+  #title h1{font-size:clamp(44px,5.6vw,74px)}
+}
 .cutout{display:inline-block;padding:2px 10px;transform:rotate(-2deg);background:var(--mustard);border-radius:4px}
 
 /* ---------- small screens */
