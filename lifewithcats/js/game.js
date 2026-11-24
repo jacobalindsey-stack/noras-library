@@ -188,6 +188,7 @@ export class Game {
       if (k === 'adopt') return s.cats.length < this.capacity;
       if (k === 'room') return s.rooms.some((o, i) => !o && ROOMS[i].level <= L + 1);
       if (k === 'gift') return s.cats.some(c => hearts(c.bond) >= 2);
+      if (k === 'bond') return s.cats.some(c => hearts(c.bond) < 10);
       if ((G[k].perCat || k === 'bond') && !s.cats.length) return false;
       return true;
     });
@@ -196,7 +197,7 @@ export class Game {
     const def = G[type];
     const g = { type, prog: 0, n: def.n ? def.n[Math.min(def.n.length - 1, Math.floor(r() * Math.min(def.n.length, 1 + L / 3)))] : 1 };
     if (type === 'likes') { const best = s.stats.bestPost || 0; g.n = def.n.find(v => v > best * 0.8) || Math.round(best * 1.3 / 50) * 50; }
-    if (def.perCat && (r() < 0.65 || type === 'bond')) { const c = pick(s.cats, r); g.cat = c.id; g.catName = c.name; if (type === 'bond') { g.n = Math.min(10, hearts(c.bond) + 1); g.prog = hearts(c.bond); } }
+    if (def.perCat && (r() < 0.65 || type === 'bond')) { const c = pick(type === 'bond' ? s.cats.filter(c => hearts(c.bond) < 10) : s.cats, r); g.cat = c.id; g.catName = c.name; if (type === 'bond') { g.n = Math.min(10, hearts(c.bond) + 1); g.prog = hearts(c.bond); } }
     if (type === 'meme') {
       const easy = ['loaf', 'groom', 'meow', 'sunbeam', 'judge', 'sploot', 'fits', 'biscuits', 'trap', 'blep', 'perch', 'zoomies', 'regret', 'keyboard', 'tv', 'kitten', 'void', 'brain', 'chonk', 'pile', 'blink', 'gift', 'floof', 'hide', 'laundry', 'loafpile', 'ride', 'cucumber'];
       const can = easy.filter(m => !s.memes[m] && this.memePossible(m));
@@ -204,7 +205,9 @@ export class Game {
     }
     const base = { feed: 10, pet: 12, play: 14, brush: 14, treat: 10, trim: 16, scoop: 10, clean: 12, catch: 18, photo: 12, meme: 30, post: 16, likes: 40, happy: 35, bond: 30, buy: 15, adopt: 30, gift: 25, room: 50 }[type] || 15;
     const scale = 1 + (L - 1) * 0.18;
-    g.reward = { bleps: Math.round(base * scale * (1 + (g.n > 1 ? 0.3 * (g.n - 1) : 0))), xp: Math.round(base * 0.8 * (1 + L * 0.06)) };
+    // more steps, a bit more reward (but a target like "150 likes" is not 150 steps)
+    const steps = def.max ? 1 : Math.min(g.n, 5);
+    g.reward = { bleps: Math.round(base * scale * (1 + 0.3 * (steps - 1))), xp: Math.round(base * 0.8 * (1 + L * 0.06)) };
     return g;
   }
   memePossible(m) {
