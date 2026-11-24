@@ -351,7 +351,7 @@ export class Play {
       cats.push(a); for (const m of a.memes) memes.add(m);
     }
     const s = this.g.s, list = [...memes];
-    const base = 8 + 7 * cats.length;
+    const base = 12 + 9 * cats.length;
     let mult = list.length ? 0 : 0.6;
     for (const m of list) { let k = MEME[m].likes; if (!s.memes[m]) k *= 2; if ((s.today.memesPosted || []).includes(m)) k *= 0.5; mult += k; }
     if (!cats.length) mult = 0.25;
@@ -398,7 +398,7 @@ export class Play {
     s.today.posts++; s.today.likes += likes; s.today.followers += fans; s.followers += fans;
     s.today.memesPosted = [...(s.today.memesPosted || []), ...shot.memes];
     s.stats.posts++; s.stats.likes += likes; s.stats.bestPost = Math.max(s.stats.bestPost, likes);
-    const bleps = Math.round(likes / 6);
+    const bleps = Math.round(likes / 4);
     this.savePhoto(shot, img, true, likes);
     g.earn(bleps); g.xp(5 + newMemes.length * 6);
     g.emit('post'); g.emit('likes', { value: likes });
