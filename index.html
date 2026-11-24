@@ -240,8 +240,27 @@
     color: #7d1a38;
     vertical-align: 1px;
   }
+  /* a game you can play with a friend: a small ruby chip (games.js "players") */
+  .players-row { margin-top: 8px; }
+  .players-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px 2px;
+    border-radius: 999px;
+    background: #7d1a38;
+    color: #fff3dc;
+    font-family: "Jost", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: clamp(10px, .85vw, 11.5px);
+    line-height: 1.3;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .players-chip svg { width: 12px; height: 12px; flex: none; }
+  @media (max-width: 480px) { .players-chip { letter-spacing: .7px; padding: 3px 7px 2px; gap: 4px; } }
   .pv-flags { display: inline-flex; gap: 10px; align-items: center; margin-left: 12px; vertical-align: middle; }
   .pv-flags .new-badge { position: relative; top: auto; right: auto; transform: rotate(-4deg); font-size: 11px; }
+  .pv-flags .players-chip { font-size: 10.5px; }
   .pv-flags .beta-chip { margin: 0; font-family: "Jost", system-ui, sans-serif; font-weight: 500; font-size: 10.5px; letter-spacing: 1.8px; text-transform: uppercase; padding: 3px 7px 2px; }
   .pv-num { display: flex; align-items: center; }
   @media (prefers-reduced-motion: reduce) {
@@ -710,6 +729,14 @@
       });
       return b;
     }
+    // a small two-person chip for games you can play with a friend (games.js "players")
+    var PLAYERS_ICON = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="5.6" cy="4.8" r="2.6"/><circle cx="11.2" cy="5.4" r="2.2"/><path d="M.8 14.2c0-3.1 2.1-4.9 4.8-4.9s4.8 1.8 4.8 4.9z"/><path d="M11.3 9.6c2.3 0 3.9 1.5 3.9 4.6h-3.6c0-1.9-.1-3.4-.3-4.6z"/></svg>';
+    function playersChip(text) {
+      var c = el('span', 'players-chip');
+      c.innerHTML = PLAYERS_ICON;
+      c.appendChild(document.createTextNode(text));
+      return c;
+    }
     function emblem(inner) {
       return '<svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
     }
@@ -746,6 +773,7 @@
       flags.textContent = '';
       if (g.isNew) flags.appendChild(newBadge());
       if (g.beta) flags.appendChild(el('span', 'beta-chip', 'Beta'));
+      if (g.players) flags.appendChild(playersChip(g.players));
       var soon = !!g.comingSoon;
       $('pv-soon').hidden = !soon;
       $('pv-open').hidden = soon;
@@ -824,7 +852,7 @@
       a.rel = 'noopener';
       a.setAttribute('aria-label', g.title + ', ' + g.kind +
         (g.platforms && g.platforms.length ? ', best on ' + g.platforms.join(', ') : '') +
-        (g.isNew ? ', new' : '') + (g.beta ? ', beta' : '') +
+        (g.isNew ? ', new' : '') + (g.beta ? ', beta' : '') + (g.players ? ', ' + g.players : '') +
         (canPreview ? ', opens a preview' : ' (opens in a new tab)'));
       }
       if (canPreview && !soon) {
@@ -862,6 +890,12 @@
           plats.appendChild(s);
         });
         text.appendChild(plats);
+      }
+      if (g.players && !soon) {
+        var pr = el('div', 'players-row');
+        pr.setAttribute('aria-hidden', 'true');
+        pr.appendChild(playersChip(g.players));
+        text.appendChild(pr);
       }
 
       a.appendChild(el('div', 'numeral', roman(i + 1)));

@@ -18,6 +18,8 @@
 
    isNew   true shows a sparkly gold "New" badge on the cameo (remove it
            once the game has been out a while)
+   players optional short line for multiplayer, e.g. '2 players · online';
+           shown as a small chip on the card and in the preview
    beta    true adds a small "Beta" chip after the kind
    note    optional extra line in the preview, shown as "From the workshop"
 
@@ -179,5 +181,21 @@ window.NORA_GAMES = [
     ground: '#3b2f2a',
     foil: '#d4a737',
     emblem: '<path d="M6 31L32 9l26 22"/><path d="M12 26v30h40V26"/><path d="M21 56v-6c0-6 5-10 11-10s11 4 11 10v6"/><path d="M23.5 43.5L22.5 34l6.5 5M40.5 43.5l1-9.5-6.5 5"/><circle cx="28" cy="48" r="1.5" fill="currentColor" stroke="none"/><circle cx="36" cy="48" r="1.5" fill="currentColor" stroke="none"/><path d="M43 54c5 0 8-2 8-7"/>'
+  },
+  {
+    key: 'nubbins',
+    title: 'NUBBINS',
+    kind: 'Gummy bear fighting game',
+    isNew: true,
+    platforms: ['iPad', 'PC', 'iPhone'],
+    players: '2 players · online',
+    blurb: "Six gummy bears and one grudge, fought across a whole house at one inch tall: under the couch, the movie theater floor, the windowsill, the birthday cake, inside the fridge and up top, where Gummoth rules the candy jar. It's brutal. Nobody gets hurt. The loser gets inflated, frozen into babies, rolled up, wrapped, stickered or sat on, and is completely fine. Fight the computer, a friend on the same iPad, or a friend on their own iPad anywhere.",
+    howto: "Stick or arrow keys to move, then PUNCH, KICK, ★ for a special and BLOCK; RUSH when the rainbow bar fills, and ↓ + ★ at the end to NUB 'EM. To play a friend far away, both press ONLINE: one makes a room and reads out its four letters, the other types them in. Gamepads work too.",
+    note: "Nora's idea: \u201cMortal Kombat, but gummy bears.\u201d Every bear is moulded from soft see-through jelly each time the game loads.",
+    shots: ['previews/nubbins-play.jpg', 'previews/nubbins-title.jpg'],
+    href: 'nubbins/',
+    ground: '#1a0820',
+    foil: '#ffd34f',
+    emblem: '<g fill="var(--ground)"><circle cx="22.5" cy="11" r="5"/><circle cx="41.5" cy="11" r="5"/><ellipse cx="17.5" cy="40" rx="4.6" ry="7.5" transform="rotate(20 17.5 40)"/><ellipse cx="47" cy="28.5" rx="4.6" ry="7.5" transform="rotate(-30 47 28.5)"/><ellipse cx="24.5" cy="56" rx="6.5" ry="4.8"/><ellipse cx="39.5" cy="56" rx="6.5" ry="4.8"/><ellipse cx="32" cy="42" rx="12.5" ry="13.5"/><ellipse cx="32" cy="20.5" rx="12" ry="10.5"/></g><ellipse cx="32" cy="25" rx="5" ry="3.6"/><ellipse cx="32" cy="23.2" rx="1.8" ry="1.3" fill="currentColor" stroke="none"/><circle cx="27" cy="18.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="37" cy="18.5" r="1.5" fill="currentColor" stroke="none"/><path d="M53 14.5l2.5-4M56.5 19l4.5-1.5M51.5 12l-.5-4.5"/>'
   }
 ];
