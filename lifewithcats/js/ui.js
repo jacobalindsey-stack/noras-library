@@ -235,6 +235,8 @@ export class UI {
       const hot = { food: '', play: 'play', love: 'pet', brush: 'brush', claws: 'trim', sick: 'vet', chonk: 'play' }[w];
       $('[data-acts]', el).innerHTML = acts.map(([k, ic, nm, n, dis]) => `<button class="act ${k === hot ? 'hot' : ''}" data-a="${k}" ${dis ? 'disabled' : ''}>${I[ic]}<span>${nm}</span>${n ? `<span class="n">${n}</span>` : ''}</button>`).join('');
       el.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { A.tap(); this.doAct(a, b.dataset.a); });
+      const tip = { food: `${d.name} is hungry. Tap a food bowl to fill it.`, litter: 'The litter box needs scooping. Tap it.', claws: 'Itchy claws! Trim them, or buy a scratching post.', sick: `${d.name} is feeling poorly. The vet can help.`, chonk: `${d.name} is very round. Fewer treats, more play.` }[w];
+      $('[data-blurb]', el).innerHTML = tip ? `<span style="color:#b8613f;opacity:1">${esc(tip)}</span>` : esc(PERS[d.pers].blurb);
     }
   }
   actKey(a) { const s = this.game().s; return [s.pantry.treats, s.pantry.catnip, a.d.health < 65 || a.d.weight > 74, a.wish(), s.bleps >= 40].join(); }
@@ -497,9 +499,9 @@ export class UI {
   openPhoto() {
     if (this.photoMode || this.w.play.active) return;
     this.closeCard();
-    this.photoMode = true;
+    this.photoMode = true; this.w.panX = 0; this.w.frame();
     const el = h(`<div id="photo"><div class="vf"><i></i><i></i><i></i><i></i></div><div class="memes" data-m></div>
-      <div class="hint paper" data-h>Wait for a cat to do something silly, then press the shutter</div>
+      <div class="hint paper" data-h>Drag to frame a cat. Wait for something silly, then press the shutter</div>
       <button class="btn alt shut" data-close>${I.x} Done</button>
       <button class="shoot" data-shoot aria-label="Take photo"></button>
       <div class="pnav"><button class="btn alt" data-l style="padding:10px 14px">${I.left}</button><button class="btn alt" data-r style="padding:10px 14px">${I.right}</button></div></div>`);
@@ -513,6 +515,7 @@ export class UI {
   }
   closePhoto() {
     this.photoMode = false; if (this.photoEl) this.photoEl.remove(); this.photoEl = null;
+    this.w.panX = 0; this.w.frame();
     for (const k of ['#top', '#dock', '#notes', '#pantry']) { const e = $(k); if (e) e.style.visibility = ''; }
   }
   vfRect() { const r = $('.vf', this.photoEl).getBoundingClientRect(); return r; }

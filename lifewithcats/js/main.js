@@ -538,14 +538,16 @@ class World {
     this.ui && this.ui.layout();
   }
   pixelRatio() { const dpr = devicePixelRatio || 1; const q = this.game.s.settings.quality; if (q === 'low') return Math.min(dpr, 1); if (q === 'high') return Math.min(dpr, 2); return this.autoPR ?? Math.min(dpr, 1.5); }
-  get halfWP() { return 3.9; }
+  get zoomed() { return this.portrait || (this.ui && this.ui.photoMode); }
+  get halfWP() { return this.portrait ? 3.9 : 4.4; }
   panLimit() { return RW / 2 - this.halfWP + 0.5; }
   roomView(i) {
     const a = this.camera.aspect;
-    if (this.portrait) {
+    if (this.zoomed) {
       const X = roomX(i) + (this.panX || 0);
       const hf = Math.atan(Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2) * a);
       const dist = this.halfWP / Math.tan(hf);
+      if (!this.portrait) return { pos: new THREE.Vector3(X, 5.6, 5.4 + dist), look: new THREE.Vector3(X, 1.7, -1.4) };
       return { pos: new THREE.Vector3(X, 9.2, 5.4 + dist), look: new THREE.Vector3(X, 2.1, -1.6) };
     }
     const X = roomX(i);
@@ -608,7 +610,7 @@ class World {
     });
     el.addEventListener('pointermove', e => {
       if (this.play.active) { this.play.pointer('move', e); return; }
-      if (!down || !this.portrait || this.focus) return;
+      if (!down || !this.zoomed || this.focus) return;
       if (!down.pan && Math.abs(e.clientX - down.x) > 12 && Math.abs(e.clientX - down.x) > Math.abs(e.clientY - down.y)) { down.pan = true; down.lx = e.clientX; this.panOver = 0; }
       if (down.pan) { this.dragPan(e.clientX - down.lx); down.lx = e.clientX; }
     });
