@@ -163,5 +163,21 @@ window.NORA_GAMES = [
     ground: '#2a2058',
     foil: '#f6c645',
     emblem: '<path d="M25 29c-5-9-6-21-2-25 4 3 6 13 6 24"/><path d="M39 29c5-9 6-21 2-25-4 3-6 13-6 24"/><circle cx="32" cy="40" r="13"/><circle cx="27" cy="38" r="1.6" fill="currentColor" stroke="none"/><circle cx="37" cy="38" r="1.6" fill="currentColor" stroke="none"/><path d="M30 44l2 2 2-2"/><path d="M23 55q9 5 18 0"/><path d="M32 57v4"/>'
+  },
+  {
+    key: 'lifewithcats',
+    title: 'Life with Cats',
+    kind: 'Cosy cat-care life sim',
+    isNew: true,
+    beta: true,
+    platforms: ['iPad', 'PC', 'iPhone'],
+    blurb: "A little house on Nine Lives Lane, right across from the Cat Bakery. Feed them, play with them, brush them and love them, because a bored cat will push your water glass off the table and a cat with itchy claws will find the sofa.",
+    howto: "Tap a cat to pet, play, brush, treat or trim claws. Tap the bowls, the litter box and any mess to look after the house. Swipe or use the arrows to change rooms, and tap a cat with a yellow ! to stop mischief. Saves automatically.",
+    note: "The cats are little felted models and every wall, rug and cushion is painted fresh each time the game loads. Through the living room window you can see the Cat Bakery across the lane.",
+    shots: ['previews/lifewithcats-play.jpg', 'previews/lifewithcats-title.jpg'],
+    href: 'lifewithcats/',
+    ground: '#3b2f2a',
+    foil: '#d4a737',
+    emblem: '<path d="M6 31L32 9l26 22"/><path d="M12 26v30h40V26"/><path d="M21 56v-6c0-6 5-10 11-10s11 4 11 10v6"/><path d="M23.5 43.5L22.5 34l6.5 5M40.5 43.5l1-9.5-6.5 5"/><circle cx="28" cy="48" r="1.5" fill="currentColor" stroke="none"/><circle cx="36" cy="48" r="1.5" fill="currentColor" stroke="none"/><path d="M43 54c5 0 8-2 8-7"/>'
   }
 ];
