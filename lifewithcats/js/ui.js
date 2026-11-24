@@ -55,7 +55,6 @@ export class UI {
       <div class="right">
         <div class="tag paper" id="bleps" title="Bleps"><span class="ico" style="color:#c99a3e;width:24px;height:24px">${I.coin}</span><b data-bleps></b></div>
         <div class="tag paper" id="lvl"><svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="rgba(59,47,42,.15)" stroke-width="5"/><circle data-ring cx="18" cy="18" r="15" fill="none" stroke="#b8613f" stroke-width="5" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="94.2" transform="rotate(-90 18 18)"/></svg><small>Lv</small><b data-lvl></b></div>
-        <div class="tag paper" id="fans"><span class="ico" style="color:#c14b56;width:22px;height:22px">${I.fans}</span><b data-fans></b><small>fans</small></div>
         <button id="gear" class="paper" aria-label="Settings">${I.gear}</button>
       </div></div>`));
     r.appendChild(h(`<div id="notes"></div>`));
@@ -86,7 +85,6 @@ export class UI {
     $('[data-bleps]').textContent = fmt(s.bleps);
     $('[data-lvl]').textContent = s.level;
     $('[data-ring]').setAttribute('stroke-dashoffset', 94.2 * (1 - s.xp / xpFor(s.level)));
-    $('[data-fans]').textContent = fmt(s.followers);
     const P = s.pantry;
     $('#pantry').innerHTML = [['kibble', I.kibble, 'kibble'], ['wet', I.tin, 'tuna'], ['fancy', I.fish, 'salmon'], ['treats', I.treat, 'treats'], ['catnip', I.catnip, 'catnip']].filter(([k]) => k !== 'catnip' || P.catnip > 0).filter(([k]) => k !== 'fancy' || P.fancy > 0 || s.level >= 3)
       .map(([k, ic, nm]) => `<div class="tag paper ${P[k] <= 2 ? 'low' : ''}" title="${nm}">${ic}<b>${P[k]}</b><small>${nm}</small></div>`).join('');
@@ -428,16 +426,16 @@ export class UI {
   photos() { try { return JSON.parse(localStorage.getItem(PHOTO_KEY) || '[]'); } catch (e) { return []; } }
   album(tab = 'photos') {
     const s = this.game().s;
-    const el = this.sheet(`<h2>The album</h2><div class="tabs"><button data-t="photos">Photos</button><button data-t="memes">Meme book</button><button data-t="gifts">Treasures</button><button data-t="cats">Cat-alogue</button><button data-t="stats">Records</button></div><div class="scroll"><div data-body></div></div>`);
+    const el = this.sheet(`<h2>The album</h2><div class="tabs"><button data-t="photos">Photos</button><button data-t="memes">Cat moments</button><button data-t="gifts">Treasures</button><button data-t="cats">Cat-alogue</button><button data-t="stats">Records</button></div><div class="scroll"><div data-body></div></div>`);
     const draw = t => {
       el.querySelectorAll('[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === t));
       const body = $('[data-body]', el), ph = this.photos();
       if (t === 'photos') {
-        body.innerHTML = ph.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">${ph.slice().reverse().map(p => `<div class="polaroid" style="transform:rotate(${(p.id.charCodeAt(2) % 5 - 2) * 0.8}deg)"><img src="${p.img}" alt=""><div style="font-size:12px;margin-top:6px">${esc(p.title || '')}<br><span style="opacity:.7">Day ${p.day}${p.posted ? ` · ♥ ${fmt(p.likes)}` : ''}</span></div></div>`).join('')}</div>` : `<p style="font-size:14px">No photos yet. Tap the camera and catch a cat doing something silly.</p>`;
+        body.innerHTML = ph.length ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">${ph.slice().reverse().map(p => `<div class="polaroid" style="transform:rotate(${(p.id.charCodeAt(2) % 5 - 2) * 0.8}deg)"><img src="${p.img}" alt=""><div style="font-size:12px;margin-top:6px">${esc(p.title || '')}<br><span style="opacity:.7">Day ${p.day}</span></div></div>`).join('')}</div>` : `<p style="font-size:14px">No photos yet. Tap the camera and catch a cat doing something silly.</p>`;
       } else if (t === 'memes') {
         const n = MEMES.filter(m => s.memes[m.id]).length;
         const byId = Object.fromEntries(ph.map(p => [p.id, p]));
-        body.innerHTML = `<p style="margin:0 0 10px;font-size:14px">${n} of ${MEMES.length} famous cat moments caught on camera. The first photo of each is worth double likes.</p><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${MEMES.map(m => { const p = byId[s.memes[m.id]]; return `<div class="item" style="${s.memes[m.id] ? '' : 'opacity:.7'}">${p ? `<img src="${p.img}" style="width:100%;border-radius:8px">` : `<div style="height:84px;border-radius:8px;background:#e4d6b8;display:flex;align-items:center;justify-content:center;color:#b9a98c">${s.memes[m.id] ? I.check : I.camera}</div>`}<b>${esc(m.name)}</b><p>${esc(m.hint)}</p></div>`; }).join('')}</div>`;
+        body.innerHTML = `<p style="margin:0 0 10px;font-size:14px">${n} of ${MEMES.length} cat moments caught on camera. Each new one earns a sticker and some bleps.</p><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${MEMES.map(m => { const p = byId[s.memes[m.id]]; return `<div class="item" style="${s.memes[m.id] ? '' : 'opacity:.7'}">${p ? `<img src="${p.img}" style="width:100%;border-radius:8px">` : `<div style="height:84px;border-radius:8px;background:#e4d6b8;display:flex;align-items:center;justify-content:center;color:#b9a98c">${s.memes[m.id] ? I.check : I.camera}</div>`}<b>${esc(m.name)}</b><p>${esc(m.hint)}</p></div>`; }).join('')}</div>`;
       } else if (t === 'gifts') {
         const n = GIFTS.filter(g => s.gifts[g.id]).length;
         body.innerHTML = `<p style="margin:0 0 10px;font-size:14px">${n} of ${GIFTS.length} treasures. Cats who love you (two hearts or more) bring presents.</p><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">${GIFTS.map(g => `<div class="item" style="${s.gifts[g.id] ? '' : 'opacity:.55'}"><b>${s.gifts[g.id] ? esc(g.name) : '???'}</b><p>${s.gifts[g.id] ? esc(g.note) + ` (×${s.gifts[g.id]})` : 'Not found yet.'}</p></div>`).join('')}</div>`;
@@ -448,7 +446,7 @@ export class UI {
         body.insertAdjacentHTML('afterbegin', `<p style="margin:0 0 10px;font-size:14px">${got} of ${tot} breeds and coats welcomed home.</p>`);
       } else {
         const st = s.stats;
-        const rows = [['Days on Nine Lives Lane', st.days], ['Cats welcomed home', st.adopted], ['Petting sessions', st.pets], ['Play sessions', st.plays], ['Brushings', st.brushes], ['Claw trims', st.trims], ['Treats given', st.treats], ['Bowls filled', st.feeds], ['Litter scooped', st.scoops], ['Mischief caught', st.catches], ['Mischief missed', st.mischief], ['Messes cleaned', st.cleans], ['Photos taken', st.photos], ['Posts', st.posts], ['Total likes', fmt(st.likes)], ['Best post', fmt(st.bestPost)], ['Fans', fmt(s.followers)]];
+        const rows = [['Days on Nine Lives Lane', st.days], ['Cats welcomed home', st.adopted], ['Petting sessions', st.pets], ['Play sessions', st.plays], ['Brushings', st.brushes], ['Claw trims', st.trims], ['Treats given', st.treats], ['Bowls filled', st.feeds], ['Litter scooped', st.scoops], ['Mischief caught', st.catches], ['Mischief missed', st.mischief], ['Messes cleaned', st.cleans], ['Photos taken', st.photos], ['Cat moments', MEMES.filter(m => s.memes[m.id]).length + ' of ' + MEMES.length], ['Treasures found', GIFTS.filter(g => s.gifts[g.id]).length + ' of ' + GIFTS.length]];
         body.innerHTML = `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">${rows.map(([k, v]) => `<div class="item"><p>${k}</p><b style="font-size:24px">${v}</b></div>`).join('')}</div>`;
       }
     };
@@ -465,7 +463,7 @@ export class UI {
       <h3 style="font-family:var(--display);margin:6px 0">How it works</h3>
       <p style="font-size:14px;line-height:1.45;margin:0 0 6px">Each day runs from 7am to 11pm (about two minutes). Tap a cat to pet, play, brush, give treats or trim claws. Tap the food bowl to fill it, the water bowl to refresh it and the litter box to scoop it. A bubble over a cat shows what they want most.</p>
       <p style="font-size:14px;line-height:1.45;margin:0 0 6px">Cats who are bored, lonely, hungry or itchy-clawed make their own fun: glasses off tables, claws in the sofa, curtains climbed. When a yellow <b>!</b> pops up, tap the cat quickly to stop them. Scratching posts, toys and a full bowl prevent most of it.</p>
-      <p style="font-size:14px;line-height:1.45;margin:0 0 14px">Take photos of famous cat moments and post them to Purrgram for likes, fans and bleps. Your day job pays every evening, unless someone sits on the laptop.</p>
+      <p style="font-size:14px;line-height:1.45;margin:0 0 14px">Take photos of funny cat moments for your scrapbook: each new one earns a sticker and bleps. Your day job pays every evening, unless someone sits on the laptop.</p>
       <button class="btn alt" data-new>Start a new home</button></div>`);
     el.querySelector('.panel').style.width = 'min(640px,100%)';
     el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { st[b.dataset.k] = !st[b.dataset.k]; A.setAudio({ sfx: st.sfx, music: st.music }); this.w.persist(); this.settings(); });
@@ -478,10 +476,9 @@ export class UI {
     const el = this.sheet(`<h2>Lights out · Day ${sum.day}</h2><p class="lede">The cats curl up. The lane goes quiet.</p><div class="scroll">
       <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
         <div class="item"><p>Pay from work</p><b style="font-size:24px">+${sum.wage}</b>${sum.lost ? `<p>−${sum.lost} lost to a cat on the laptop</p>` : ''}</div>
-        ${sum.sponsor ? `<div class="item"><p>Purrgram sponsors</p><b style="font-size:24px">+${sum.sponsor}</b></div>` : ''}
         <div class="item"><p>Purrs earned</p><b style="font-size:24px">${sum.purrs}</b></div>
         <div class="item"><p>Mischief caught · missed</p><b style="font-size:24px">${sum.catches} · ${sum.mischief}</b></div>
-        ${sum.likes ? `<div class="item"><p>Likes today</p><b style="font-size:24px">${fmt(sum.likes)}</b><p>+${fmt(sum.followers)} fans</p></div>` : ''}
+        ${sum.moments ? `<div class="item"><p>New cat moments</p><b style="font-size:24px">${sum.moments}</b></div>` : ''}
       </div>
       ${sum.events.length ? `<div style="margin:12px 0 0;font-size:15px;line-height:1.5">${sum.events.map(e => `<div>· ${esc(e)}</div>`).join('')}</div>` : ''}
       </div><div class="row center" style="margin-top:12px"><button class="btn warm" data-ok>${I.sun} Good morning</button></div>`);
@@ -524,17 +521,16 @@ export class UI {
     const shot = this.w.play.evaluate(this.vfRect());
     $('[data-m]', this.photoEl).innerHTML = shot.memes.map(m => `<span>${esc(MEME[m].name)}${!this.game().s.memes[m] ? ' ★' : ''}</span>`).join('');
   }
-  photoResult(shot, img, post, keep) {
-    const s = this.game().s, posted = s.today.posts;
+  photoResult(shot, img, keep) {
+    const s = this.game().s;
     const el = this.sheet(`<h2>${shot.title}</h2><div class="scroll"><div class="row" style="align-items:flex-start;gap:16px">
       <div class="polaroid" style="width:min(340px,100%)"><img src="${img}" alt=""></div>
       <div style="flex:1;min-width:200px">
         <p style="margin:0 0 6px;font-size:14px">${shot.cats.length ? 'Starring ' + shot.cats.map(esc).join(', ') + '.' : 'No cats in this one. Just a nice room.'}</p>
-        <div class="row" style="gap:6px;margin-bottom:8px">${shot.memes.map(m => `<span class="chip" style="background:${s.memes[m] ? '#e4d6b8' : '#f3dc8a'}">${esc(MEME[m].name)}${s.memes[m] ? '' : ' · new!'}</span>`).join('') || '<span class="chip">No famous moments</span>'}</div>
-        <p style="margin:0 0 12px;font-size:14px">Likely likes on Purrgram: about <b>${fmt(shot.likes)}</b>.${posted >= 4 ? ' You have posted four times today; your fans need a rest. Keep it for the album.' : ` (${4 - posted} post${4 - posted === 1 ? '' : 's'} left today)`}</p>
-        <div class="row"><button class="btn warm" data-post ${posted >= 4 ? 'disabled' : ''}>${I.post} Post it</button><button class="btn" data-keep>${I.photo} Keep</button><button class="btn alt" data-bin>Bin it</button></div>
+        <div class="row" style="gap:6px;margin-bottom:8px">${shot.memes.map(m => `<span class="chip" style="background:${s.memes[m] ? '#e4d6b8' : '#f3dc8a'}">${esc(MEME[m].name)}${s.memes[m] ? '' : ' · new!'}</span>`).join('') || '<span class="chip">Just a nice photo</span>'}</div>
+        <p style="margin:0 0 12px;font-size:14px">${shot.fresh.length ? `A new cat moment! It gets a sticker in your scrapbook and <b>+${shot.reward} bleps</b>.` : shot.memes.length ? 'You already have this moment, but a cat can never have too many photos.' : 'Catch a cat doing something funny for a scrapbook sticker.'}</p>
+        <div class="row"><button class="btn warm" data-keep>${I.photo} Keep it</button><button class="btn alt" data-bin>Bin it</button></div>
       </div></div></div>`);
-    $('[data-post]', el).onclick = () => { this.closeSheet(); post(); };
     $('[data-keep]', el).onclick = () => { this.closeSheet(); keep(); };
     $('[data-bin]', el).onclick = () => this.closeSheet();
   }

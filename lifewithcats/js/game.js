@@ -40,6 +40,8 @@ export function loadSave() {
     for (const k in d.pantry) if (s.pantry[k] === undefined) s.pantry[k] = 0;
     for (const k in d.settings) if (s.settings[k] === undefined) s.settings[k] = d.settings[k];
     while (s.rooms.length < ROOMS.length) s.rooms.push(false);
+    // notes from an earlier version that asked for posting photos are retired
+    s.goals = s.goals.filter(g => G[g.type]);
     return s;
   } catch (e) { return null; }
 }
@@ -57,8 +59,7 @@ const G = {
   catch: { ev: 'catch', text: g => `Catch ${g.n} cat${g.n > 1 ? 's' : ''} mid-mischief`, n: [1, 2, 3], level: 2 },
   photo: { ev: 'photo', text: g => `Take ${g.n > 1 ? g.n + ' photos' : 'a photo'}`, n: [1, 2] },
   meme: { ev: 'meme', text: g => `Photograph “${MEME[g.meme].name}”`, n: [1], level: 2 },
-  post: { ev: 'post', text: g => `Post ${g.n > 1 ? g.n + ' photos' : 'a photo'} to Purrgram`, n: [1, 2], level: 2 },
-  likes: { ev: 'likes', text: g => `Get ${g.n} likes on one post`, n: [60, 150, 400, 1000, 2500], level: 3, max: true },
+  keep: { ev: 'keep', text: g => `Put ${g.n > 1 ? g.n + ' photos' : 'a photo'} in the scrapbook`, n: [1, 2], level: 2 },
   happy: { ev: 'happy', text: g => `Make every cat happy at once`, n: [1], level: 3 },
   bond: { ev: 'bond', text: g => `Reach ${g.n} hearts with ${g.catName}`, perCat: true, level: 2, max: true },
   buy: { ev: 'buy', text: g => `Buy something for the cats`, n: [1] },
@@ -192,20 +193,19 @@ export class Game {
       if ((G[k].perCat || k === 'bond') && !s.cats.length) return false;
       return true;
     });
-    const type = weighted(types, k => ({ feed: 1.2, pet: 1.4, play: 1.4, meme: 1.6, catch: 1.3, likes: 1, bond: 1, buy: 0.6, adopt: 0.8, room: 0.5, happy: 0.7 }[k] ?? 1), r);
+    const type = weighted(types, k => ({ feed: 1.2, pet: 1.4, play: 1.4, meme: 1.6, catch: 1.3, keep: 0.8, bond: 1, buy: 0.6, adopt: 0.8, room: 0.5, happy: 0.7 }[k] ?? 1), r);
     if (!type) return null;
     const def = G[type];
     const g = { type, prog: 0, n: def.n ? def.n[Math.min(def.n.length - 1, Math.floor(r() * Math.min(def.n.length, 1 + L / 3)))] : 1 };
-    if (type === 'likes') { const best = s.stats.bestPost || 0; g.n = def.n.find(v => v > best * 0.8) || Math.round(best * 1.3 / 50) * 50; }
     if (def.perCat && (r() < 0.65 || type === 'bond')) { const c = pick(type === 'bond' ? s.cats.filter(c => hearts(c.bond) < 10) : s.cats, r); g.cat = c.id; g.catName = c.name; if (type === 'bond') { g.n = Math.min(10, hearts(c.bond) + 1); g.prog = hearts(c.bond); } }
     if (type === 'meme') {
       const easy = ['loaf', 'groom', 'meow', 'sunbeam', 'judge', 'sploot', 'fits', 'biscuits', 'trap', 'blep', 'perch', 'zoomies', 'regret', 'keyboard', 'tv', 'kitten', 'void', 'brain', 'chonk', 'pile', 'blink', 'gift', 'floof', 'hide', 'laundry', 'loafpile', 'ride', 'cucumber'];
       const can = easy.filter(m => !s.memes[m] && this.memePossible(m));
       g.meme = can.length ? can[Math.floor(r() * Math.min(can.length, 4))] : pick(easy.filter(m => this.memePossible(m)), r);
     }
-    const base = { feed: 10, pet: 12, play: 14, brush: 14, treat: 10, trim: 16, scoop: 10, clean: 12, catch: 18, photo: 12, meme: 30, post: 16, likes: 40, happy: 35, bond: 30, buy: 15, adopt: 30, gift: 25, room: 50 }[type] || 15;
+    const base = { feed: 10, pet: 12, play: 14, brush: 14, treat: 10, trim: 16, scoop: 10, clean: 12, catch: 18, photo: 12, meme: 30, keep: 14, happy: 35, bond: 30, buy: 15, adopt: 30, gift: 25, room: 50 }[type] || 15;
     const scale = 1 + (L - 1) * 0.18;
-    // more steps, a bit more reward (but a target like "150 likes" is not 150 steps)
+    // more steps, a bit more reward (but a target like "reach 5 hearts" is not 5 steps)
     const steps = def.max ? 1 : Math.min(g.n, 5);
     g.reward = { bleps: Math.round(base * scale * (1 + 0.3 * (steps - 1))), xp: Math.round(base * 0.8 * (1 + L * 0.06)) };
     return g;
@@ -244,9 +244,8 @@ export class Game {
   endDay(agents) {
     const s = this.s;
     const wage = Math.round(s.today.wage), lost = Math.round(s.today.lost);
-    const sponsor = s.followers >= 25 ? Math.floor(Math.sqrt(s.followers) * 1.6) : 0;
-    this.earn(wage); if (sponsor) this.earn(sponsor);
-    const sum = { day: s.day, wage, lost, sponsor, purrs: s.today.purrs, catches: s.today.catches, mischief: s.today.mischief, likes: s.today.likes, followers: s.today.followers, events: [] };
+    this.earn(wage);
+    const sum = { day: s.day, wage, lost, purrs: s.today.purrs, catches: s.today.catches, mischief: s.today.mischief, moments: s.today.moments || 0, events: [] };
     s.stats.days++;
     // overnight
     for (const c of s.cats) {

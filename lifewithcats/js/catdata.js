@@ -1,5 +1,5 @@
 // Life with Cats — who the cats are: coats, breeds, personalities, names,
-// where they come from, and the internet-famous things they do.
+// where they come from, and the funny things cats do that you can catch on camera.
 import { rng, pick, weighted, hashStr } from './util.js';
 
 export const COATS = {
@@ -72,36 +72,36 @@ export const SOURCES = {
   breeder: { name: 'Featherstone Pedigrees', short: 'Breeder', blurb: 'Duchess Featherstone’s very fancy cattery. Pick a breed. Pay a fortune.' },
 };
 
-// the meme album: each one is a photo you can catch
+// cat moments for the scrapbook: each one is a photo you can catch
 export const MEMES = [
-  { id: 'loaf', name: 'Cat Loaf', hint: 'A cat tucked into a perfect bread shape.', likes: 1.0 },
-  { id: 'fits', name: 'If I Fits, I Sits', hint: 'A cat in a box or a bag.', likes: 1.3 },
-  { id: 'blep', name: 'Blep', hint: 'A tiny tongue, left out by accident.', likes: 1.5 },
-  { id: 'biscuits', name: 'Making Biscuits', hint: 'Kneading a soft blanket or bed.', likes: 1.2 },
-  { id: 'sploot', name: 'The Sploot', hint: 'Flat on the floor, back legs out like a frog.', likes: 1.3 },
-  { id: 'trap', name: 'It’s a Trap', hint: 'Belly up. Do NOT touch the belly.', likes: 1.4 },
-  { id: 'zoomies', name: 'The Zoomies', hint: 'Full speed, for no reason at all.', likes: 1.5 },
-  { id: 'judge', name: 'Judging You', hint: 'A long, unblinking, disappointed stare.', likes: 1.2 },
-  { id: 'blink', name: 'Slow Blink', hint: 'The cat way of saying I love you.', likes: 1.4 },
-  { id: 'keyboard', name: 'Working From Home', hint: 'A cat sitting on the laptop.', likes: 1.5 },
-  { id: 'regret', name: 'I Regret Nothing', hint: 'Caught mid-push, paw on the glass.', likes: 1.8 },
-  { id: 'chonk', name: 'Absolute Unit', hint: 'A very round cat. Oh lawd.', likes: 1.6 },
-  { id: 'sunbeam', name: 'Solar Powered', hint: 'Asleep in a patch of sunlight.', likes: 1.2 },
-  { id: 'pile', name: 'Cat Pile', hint: 'Two or more cats napping together.', likes: 2.0 },
-  { id: 'tv', name: 'Cat TV', hint: 'Watching birds or fish, very seriously.', likes: 1.2 },
-  { id: 'floof', name: 'Second Cat Made of Fur', hint: 'Brushing a fluffy cat, fur everywhere.', likes: 1.6 },
-  { id: 'gift', name: 'A Gift For You', hint: 'A cat proudly bringing you a present.', likes: 1.5 },
-  { id: 'cucumber', name: 'CUCUMBER!', hint: 'Spooked into a Halloween arch.', likes: 2.2 },
-  { id: 'void', name: 'The Void Stares Back', hint: 'A black cat, at night.', likes: 1.6 },
-  { id: 'brain', name: 'One Brain Cell', hint: 'An orange cat doing something chaotic.', likes: 1.7 },
-  { id: 'loafpile', name: 'Bakery Display', hint: 'Two loaves side by side.', likes: 2.4 },
-  { id: 'perch', name: 'Supervisor', hint: 'Watching everything from up high.', likes: 1.2 },
-  { id: 'laundry', name: 'Warm Laundry', hint: 'Napping in the clean washing.', likes: 1.4 },
-  { id: 'meow', name: 'Loud Opinions', hint: 'Mid-meow, mouth wide open.', likes: 1.1 },
-  { id: 'groom', name: 'Spa Day', hint: 'Washing behind the ears.', likes: 1.0 },
-  { id: 'kitten', name: 'Tiny Beans', hint: 'A kitten doing anything at all.', likes: 1.6 },
-  { id: 'hide', name: 'Can’t See Me', hint: 'Half-hidden in a tunnel or tent.', likes: 1.3 },
-  { id: 'ride', name: 'Roomba Rider', hint: 'Riding the robot vacuum.', likes: 2.2 },
+  { id: 'loaf', name: 'Cat Loaf', hint: 'A cat tucked into a perfect bread shape.', stars: 1.0 },
+  { id: 'fits', name: 'If I Fits, I Sits', hint: 'A cat in a box or a bag.', stars: 1.3 },
+  { id: 'blep', name: 'Blep', hint: 'A tiny tongue, left out by accident.', stars: 1.5 },
+  { id: 'biscuits', name: 'Making Biscuits', hint: 'Kneading a soft blanket or bed.', stars: 1.2 },
+  { id: 'sploot', name: 'The Sploot', hint: 'Flat on the floor, back legs out like a frog.', stars: 1.3 },
+  { id: 'trap', name: 'It’s a Trap', hint: 'Belly up. Do NOT touch the belly.', stars: 1.4 },
+  { id: 'zoomies', name: 'The Zoomies', hint: 'Full speed, for no reason at all.', stars: 1.5 },
+  { id: 'judge', name: 'Judging You', hint: 'A long, unblinking, disappointed stare.', stars: 1.2 },
+  { id: 'blink', name: 'Slow Blink', hint: 'The cat way of saying I love you.', stars: 1.4 },
+  { id: 'keyboard', name: 'Working From Home', hint: 'A cat sitting on the laptop.', stars: 1.5 },
+  { id: 'regret', name: 'I Regret Nothing', hint: 'Caught mid-push, paw on the glass.', stars: 1.8 },
+  { id: 'chonk', name: 'Absolute Unit', hint: 'A very round cat. Oh lawd.', stars: 1.6 },
+  { id: 'sunbeam', name: 'Solar Powered', hint: 'Asleep in a patch of sunlight.', stars: 1.2 },
+  { id: 'pile', name: 'Cat Pile', hint: 'Two or more cats napping together.', stars: 2.0 },
+  { id: 'tv', name: 'Cat TV', hint: 'Watching birds or fish, very seriously.', stars: 1.2 },
+  { id: 'floof', name: 'Second Cat Made of Fur', hint: 'Brushing a fluffy cat, fur everywhere.', stars: 1.6 },
+  { id: 'gift', name: 'A Gift For You', hint: 'A cat proudly bringing you a present.', stars: 1.5 },
+  { id: 'cucumber', name: 'CUCUMBER!', hint: 'Spooked into a Halloween arch.', stars: 2.2 },
+  { id: 'void', name: 'The Void Stares Back', hint: 'A black cat, at night.', stars: 1.6 },
+  { id: 'brain', name: 'One Brain Cell', hint: 'An orange cat doing something chaotic.', stars: 1.7 },
+  { id: 'loafpile', name: 'Bakery Display', hint: 'Two loaves side by side.', stars: 2.4 },
+  { id: 'perch', name: 'Supervisor', hint: 'Watching everything from up high.', stars: 1.2 },
+  { id: 'laundry', name: 'Warm Laundry', hint: 'Napping in the clean washing.', stars: 1.4 },
+  { id: 'meow', name: 'Loud Opinions', hint: 'Mid-meow, mouth wide open.', stars: 1.1 },
+  { id: 'groom', name: 'Spa Day', hint: 'Washing behind the ears.', stars: 1.0 },
+  { id: 'kitten', name: 'Tiny Beans', hint: 'A kitten doing anything at all.', stars: 1.6 },
+  { id: 'hide', name: 'Can’t See Me', hint: 'Half-hidden in a tunnel or tent.', stars: 1.3 },
+  { id: 'ride', name: 'Robot Rider', hint: 'Riding the robot vacuum.', stars: 2.2 },
 ];
 export const MEME = Object.fromEntries(MEMES.map(m => [m.id, m]));
 

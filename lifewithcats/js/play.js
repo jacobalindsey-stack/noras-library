@@ -351,14 +351,10 @@ export class Play {
       cats.push(a); for (const m of a.memes) memes.add(m);
     }
     const s = this.g.s, list = [...memes];
-    const base = 12 + 9 * cats.length;
-    let mult = list.length ? 0 : 0.6;
-    for (const m of list) { let k = MEME[m].likes; if (!s.memes[m]) k *= 2; if ((s.today.memesPosted || []).includes(m)) k *= 0.5; mult += k; }
-    if (!cats.length) mult = 0.25;
-    const cozy = 0.7 + w.game.cozy / 200, fame = 1 + Math.sqrt(s.followers) / 12;
-    const likes = Math.round(base * mult * cozy * fame);
-    const title = list.length ? MEME[list.sort((x, y) => MEME[y].likes - MEME[x].likes)[0]].name : cats.length ? `${cats[0].name}, at home` : 'A quiet room';
-    return { cats: cats.map(a => a.name), memes: list, likes, title };
+    const fresh = list.filter(m => !s.memes[m]);
+    const reward = fresh.reduce((t, m) => t + Math.round(10 + MEME[m].stars * 8), 0);
+    const title = list.length ? MEME[list.sort((x, y) => MEME[y].stars - MEME[x].stars)[0]].name : cats.length ? `${cats[0].name}, at home` : 'A quiet room';
+    return { cats: cats.map(a => a.name), memes: list, fresh, reward, title };
   }
   shoot() {
     const w = this.w, ui = w.ui;
@@ -375,7 +371,7 @@ export class Play {
       const s = this.g.s; s.stats.photos++;
       this.g.emit('photo', { memes: shot.memes });
       for (const m of shot.memes) this.g.emit('meme', { memes: [m] });
-      ui.photoResult(shot, img, () => this.post(shot, img), () => this.keep(shot, img, false));
+      ui.photoResult(shot, img, () => this.keep(shot, img));
     };
   }
   savePhoto(shot, img, posted, likes) {
@@ -388,23 +384,16 @@ export class Play {
     for (let i = 0; i < 6; i++) { try { localStorage.setItem(PHOTO_KEY, JSON.stringify(list)); break; } catch (e) { list.splice(0, 2); } }
     return p;
   }
-  keep(shot, img) { this.savePhoto(shot, img, false); this.w.ui.toast('Saved to the album.', 'good', 'photo'); this.w.persist(); }
-  post(shot, img) {
+  keep(shot, img) {
     const g = this.g, s = g.s;
-    if (s.today.posts >= 4) return this.keep(shot, img);
-    const newMemes = shot.memes.filter(m => !s.memes[m]);
-    const likes = Math.max(1, Math.round(shot.likes * (0.85 + Math.random() * 0.35)));
-    const fans = Math.round(likes * 0.3 + newMemes.length * 6);
-    s.today.posts++; s.today.likes += likes; s.today.followers += fans; s.followers += fans;
-    s.today.memesPosted = [...(s.today.memesPosted || []), ...shot.memes];
-    s.stats.posts++; s.stats.likes += likes; s.stats.bestPost = Math.max(s.stats.bestPost, likes);
-    const bleps = Math.round(likes / 4);
-    this.savePhoto(shot, img, true, likes);
-    g.earn(bleps); g.xp(5 + newMemes.length * 6);
-    g.emit('post'); g.emit('likes', { value: likes });
-    A.coin();
-    this.w.ui.toast(`Posted! ${fmt(likes)} likes, +${fmt(fans)} fans, +${bleps} bleps.${newMemes.length ? ' New in the meme book: ' + newMemes.map(m => MEME[m].name).join(', ') + '!' : ''}`, 'gold', 'fans');
-    for (const a of this.w.agents) if (shot.cats.includes(a.name)) a.d.fame = (a.d.fame || 0) + likes;
+    const fresh = shot.memes.filter(m => !s.memes[m]);
+    this.savePhoto(shot, img, false);
+    s.today.moments = (s.today.moments || 0) + fresh.length;
+    if (shot.reward) g.earn(shot.reward);
+    g.xp(3 + fresh.length * 6);
+    g.emit('keep');
+    if (fresh.length) { A.chime(); this.w.ui.toast(`New in the scrapbook: ${fresh.map(m => MEME[m].name).join(', ')}! +${shot.reward} bleps.`, 'gold', 'sparkle'); }
+    else { A.soft(); this.w.ui.toast('Saved to the scrapbook.', 'good', 'photo'); }
     this.w.ui.hud(); this.w.persist();
   }
 }
