@@ -178,7 +178,9 @@ export class Online {
   delay() {
     const r = this.rtt.slice().sort((a, b) => a - b);
     const rtt = r.length ? r[r.length >> 1] : 120;
-    return Math.max(2, Math.min(9, Math.ceil((rtt / 2 + 12) / (1000 / 60)) + 1));
+    // a bumpy connection (pings that vary a lot) gets a little more cushion
+    const bump = r.length >= 4 ? Math.max(0, r[Math.floor(r.length * 0.8)] - rtt) / 2 : 10;
+    return Math.max(2, Math.min(10, Math.ceil((rtt / 2 + 12 + Math.min(bump, 50)) / (1000 / 60)) + 1));
   }
 
   hostStart(stage) {

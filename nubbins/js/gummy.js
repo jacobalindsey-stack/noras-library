@@ -18,6 +18,8 @@ function smax(a, b, k) { return -smin(-a, -b, k); }
 
 // default proportions, in "bear units" (a standard bear is about 1 tall)
 export const FACE_PAINT = false;
+// jelly follow-through strength (1 = normal, 0 = off; tests flip it to compare)
+export const JELLY = { k: 1 };
 
 export const BASE_SHAPE = {
   head: [0.215, 0.19, 0.18], headY: 0.655,
@@ -519,10 +521,11 @@ export class GummyBear {
     this.springs.ears.v += 14 * strength;
     // the whole bear rings like jelly: it bows the way it was pushed, twists a little, and squashes along the hit
     const ry = this.group.rotation.y, push = Math.sign(dir) || 1;
-    this.springs.bend.v += push * Math.sin(ry) * 1.25 * strength;
-    this.springs.bend.vy += push * Math.cos(ry) * 0.8 * strength;
-    this.springs.twist.v += (Math.random() < 0.5 ? -1 : 1) * 1.6 * strength;
-    this.springs.fwd.v -= 1.1 * strength;
+    const J = JELLY.k;
+    this.springs.bend.v += push * Math.sin(ry) * 1.9 * strength * J;
+    this.springs.bend.vy += push * Math.cos(ry) * 1.2 * strength * J;
+    this.springs.twist.v += (Math.random() < 0.5 ? -1 : 1) * 2.4 * strength * J;
+    this.springs.fwd.v -= 1.5 * strength * J;
   }
   jolt(amount) { this.springs.sq.v += amount; this.springs.ears.v += amount * 4; this.springs.belly.vy += amount * 2; }
 
@@ -541,23 +544,24 @@ export class GummyBear {
     const p = this.pose, q = this.prevP;
     if (q && dt > 0) {
       const dLean = p.lean - q.lean, dTwist = p.twist - q.twist;
-      S.bend.v -= dLean * 26; S.twist.v -= dTwist * 7;
-      S.sq.v -= Math.abs(dLean) * 6;
+      const J = JELLY.k;
+      S.bend.v -= dLean * 40 * J; S.twist.v -= dTwist * 10 * J;
+      S.sq.v -= Math.abs(dLean) * 8 * J;
       for (const [k, now, was] of [['armL', p.armLs, q.armLs], ['armR', p.armRs, q.armRs], ['legL', p.legLs, q.legLs], ['legR', p.legRs, q.legRs]]) {
-        const d = now - was; S[k].v += d * 10;
-        if (d > 0.04 && k.startsWith('arm')) S.fwd.v += d * 2.2;
+        const d = now - was; S[k].v += d * 14 * J;
+        if (d > 0.04 && k.startsWith('arm')) S.fwd.v += d * 3 * J;
       }
     }
     this.prevP = { lean: p.lean, twist: p.twist, armLs: p.armLs, armRs: p.armRs, legLs: p.legLs, legRs: p.legRs };
     const shimmy = this.expr === 'happy' ? Math.sin(this.time * 9) * 0.2 : 0; // the winner's jelly dance
     const woozy = this.mood === 'dizzy' || this.mood === 'stun';                 // a dizzy jelly sways like it might topple
-    step(S.bend, 140, 5.5, -accel * 0.0012 + (woozy ? Math.sin(this.time * 2.3) * 0.09 : 0));
-    step(S.bend, 140, 5.5, 0, 'y', 'vy');
-    step(S.twist, 120, 5, shimmy + (woozy ? Math.sin(this.time * 1.7) * 0.3 : 0));
+    step(S.bend, 140, 4.5, (-accel * 0.0012 + (woozy ? Math.sin(this.time * 2.3) * 0.09 : 0)) * JELLY.k);
+    step(S.bend, 140, 4.5, 0, 'y', 'vy');
+    step(S.twist, 120, 4, (shimmy + (woozy ? Math.sin(this.time * 1.7) * 0.3 : 0)) * JELLY.k);
     step(S.fwd, 170, 7, 0);
     for (const k of ['armL', 'armR', 'legL', 'legR']) step(S[k], 300, 9, 0);
-    S.bend.x = clamp(S.bend.x, -0.17, 0.17); S.bend.y = clamp(S.bend.y, -0.12, 0.12);
-    S.twist.x = clamp(S.twist.x, -0.6, 0.6); S.fwd.x = clamp(S.fwd.x, -0.25, 0.3);
+    S.bend.x = clamp(S.bend.x, -0.26, 0.26); S.bend.y = clamp(S.bend.y, -0.18, 0.18);
+    S.twist.x = clamp(S.twist.x, -0.85, 0.85); S.fwd.x = clamp(S.fwd.x, -0.3, 0.4);
     this.u.uBend.value.set(S.bend.x, S.bend.y); this.u.uTwist.value = S.twist.x;
     this.wob *= Math.exp(-dt * 3.2);
     this.dent *= Math.exp(-dt * 7);
