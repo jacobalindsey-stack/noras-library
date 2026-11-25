@@ -270,8 +270,8 @@ export class Fighter {
         this.y = 0; const impact = this.vy; this.vy = 0;
         if (this.state === 'air') { this.go('land'); this.vx = 0; M.sfx('land', this); M.bear(this).jolt(-3); }
         else if (this.state === 'airhit') {
-          if (impact < -6 && !this.bounced) { this.bounced = true; this.vy = 3.2; this.y = 0.001; M.fxLand(this, 1); M.sfx('thud', this); M.bear(this).jolt(-6); }
-          else { this.bounced = false; this.go(this.kdPending === false && this.hp > 0 ? 'idle' : 'down'); this.vx = 0; M.fxLand(this, 0.6); M.sfx('land', this); if (this.state === 'down' && this.hp <= 0) M.onDowned(this); }
+          if (impact < -6 && !this.bounced) { this.bounced = true; this.vy = 3.2; this.y = 0.001; M.fxLand(this, 1); M.sfx('thud', this); M.sfx('boing', this); M.bear(this).jolt(-9); }
+          else { this.bounced = false; this.go(this.kdPending === false && this.hp > 0 ? 'idle' : 'down'); this.vx = 0; M.fxLand(this, 0.6); M.sfx('land', this); M.sfx('wobble', this); M.bear(this).jolt(-7); if (this.state === 'down' && this.hp <= 0) M.onDowned(this); }
         } else if (this.state === 'attack' && this.move && !this.move.air && !this.move.airEnd) { /* grounded move that briefly hopped */ }
       }
     } else {

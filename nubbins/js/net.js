@@ -154,7 +154,8 @@ export class Lockstep {
     if (!force && !fresh && !ack && now - this.lastSend < 120) return;
     const s = this.acked + 1, d = [];
     for (let f = s; f <= this.mine && d.length < 240; f++) d.push(this.inp[this.local].get(f) || 0);
-    if (this.link.send({ t: 'in', m: this.mid, a: this.theirs, s, d })) {
+    const g = this.slack == null ? undefined : Math.round(this.slack * 10) / 10;
+    if (this.link.send({ t: 'in', m: this.mid, a: this.theirs, s, d, g })) {
       this.lastSend = now; this.sentTop = s + d.length - 1; this.lastAckSent = this.theirs;
     }
   }
@@ -164,6 +165,7 @@ export class Lockstep {
     if (o.m !== this.mid) return false;
     if (o.t === 'in') {
       if (Number.isInteger(o.a) && o.a > this.acked && o.a <= this.mine) this.acked = o.a;
+      if (typeof o.g === 'number' && isFinite(o.g) && Math.abs(o.g) < 1000) this.peerSlack = o.g;
       if (Number.isInteger(o.s) && Array.isArray(o.d) && o.d.length <= 240) {
         const R = this.inp[this.remote];
         o.d.forEach((v, i) => { const f = o.s + i; if (f > this.theirs && !R.has(f) && Number.isInteger(v) && v >= 0 && v < 512) R.set(f, v); });

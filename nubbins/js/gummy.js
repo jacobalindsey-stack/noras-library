@@ -4,6 +4,7 @@
 // see-through jelly material.
 import * as THREE from '../lib/three.module.min.js';
 
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // ---------------------------------------------------------------- SDF bits
@@ -302,6 +303,7 @@ export function makeGummyMaterial(fl, opts = {}) {
     uDentP: { value: new THREE.Vector3(0, -9, 0) }, uDentA: { value: 0 }, uDentR: { value: 0.12 },
     uFlash: { value: 0 }, uFlashC: { value: new THREE.Color(1, 1, 1) },
     uFade: { value: 1 },
+    uBend: { value: new THREE.Vector2(0, 0) }, uTwist: { value: 0 },
   };
   mat.userData.u = U;
   mat.onBeforeCompile = (sh) => {
@@ -309,9 +311,18 @@ export function makeGummyMaterial(fl, opts = {}) {
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
         attribute vec3 shade; varying vec3 vShade; varying vec3 vObjP;
-        uniform float uWob, uWobT; uniform vec3 uWobDir; uniform vec3 uDentP; uniform float uDentA, uDentR;`)
+        uniform float uWob, uWobT; uniform vec3 uWobDir; uniform vec3 uDentP; uniform float uDentA, uDentR;
+        uniform vec2 uBend; uniform float uTwist;`)
       .replace('#include <skinning_vertex>', `#include <skinning_vertex>
         vShade = shade; vObjP = position;
+        {
+          // jelly: the higher up the bear, the more it twists and bows behind a fast move
+          float hh = clamp(transformed.y, 0.0, 1.3), h2 = hh * hh;
+          float ta = uTwist * h2, ca = cos(ta), sa = sin(ta);
+          transformed.xz = vec2(ca * transformed.x - sa * transformed.z, sa * transformed.x + ca * transformed.z);
+          transformed.x += uBend.y * h2;
+          transformed.z += uBend.x * h2;
+        }
         {
           float ph = dot(transformed, uWobDir) * 13.0 + transformed.y * 7.0;
           transformed += objectNormal * (sin(uWobT * 26.0 + ph) * uWob * 0.028);
@@ -435,7 +446,11 @@ export class GummyBear {
     this._buildFace();
     this.springs = {
       head: { x: 0, v: 0, y: 0, vy: 0 }, ears: { x: 0, v: 0 }, belly: { x: 0, v: 0, y: 0, vy: 0 }, sq: { x: 0, v: 0 },
+      // jelly follow-through (Nov 25 2026): body bow, twist, forward stretch, and each limb's stretch
+      bend: { x: 0, v: 0, y: 0, vy: 0 }, twist: { x: 0, v: 0 }, fwd: { x: 0, v: 0 },
+      armL: { x: 0, v: 0 }, armR: { x: 0, v: 0 }, legL: { x: 0, v: 0 }, legR: { x: 0, v: 0 },
     };
+    this.prevP = null;
     this.pose = neutralPose();
     this.wob = 0; this.dent = 0; this.flash = 0; this.time = Math.random() * 10; this.tickers = [];
   }
@@ -502,6 +517,12 @@ export class GummyBear {
     this.springs.belly.v += 9 * strength * dir;
     this.springs.sq.v -= 3.5 * strength;
     this.springs.ears.v += 14 * strength;
+    // the whole bear rings like jelly: it bows the way it was pushed, twists a little, and squashes along the hit
+    const ry = this.group.rotation.y, push = Math.sign(dir) || 1;
+    this.springs.bend.v += push * Math.sin(ry) * 1.25 * strength;
+    this.springs.bend.vy += push * Math.cos(ry) * 0.8 * strength;
+    this.springs.twist.v += (Math.random() < 0.5 ? -1 : 1) * 1.6 * strength;
+    this.springs.fwd.v -= 1.1 * strength;
   }
   jolt(amount) { this.springs.sq.v += amount; this.springs.ears.v += amount * 4; this.springs.belly.vy += amount * 2; }
 
@@ -516,6 +537,28 @@ export class GummyBear {
     step(S.belly, 120, 6, accel * 0.012);
     step(S.belly, 120, 6, 0, 'y', 'vy');
     step(S.sq, 180, 10, 0);
+    // jelly follow-through: sudden changes in the pose kick the springs, which overshoot and wobble back
+    const p = this.pose, q = this.prevP;
+    if (q && dt > 0) {
+      const dLean = p.lean - q.lean, dTwist = p.twist - q.twist;
+      S.bend.v -= dLean * 26; S.twist.v -= dTwist * 7;
+      S.sq.v -= Math.abs(dLean) * 6;
+      for (const [k, now, was] of [['armL', p.armLs, q.armLs], ['armR', p.armRs, q.armRs], ['legL', p.legLs, q.legLs], ['legR', p.legRs, q.legRs]]) {
+        const d = now - was; S[k].v += d * 10;
+        if (d > 0.04 && k.startsWith('arm')) S.fwd.v += d * 2.2;
+      }
+    }
+    this.prevP = { lean: p.lean, twist: p.twist, armLs: p.armLs, armRs: p.armRs, legLs: p.legLs, legRs: p.legRs };
+    const shimmy = this.expr === 'happy' ? Math.sin(this.time * 9) * 0.2 : 0; // the winner's jelly dance
+    const woozy = this.mood === 'dizzy' || this.mood === 'stun';                 // a dizzy jelly sways like it might topple
+    step(S.bend, 140, 5.5, -accel * 0.0012 + (woozy ? Math.sin(this.time * 2.3) * 0.09 : 0));
+    step(S.bend, 140, 5.5, 0, 'y', 'vy');
+    step(S.twist, 120, 5, shimmy + (woozy ? Math.sin(this.time * 1.7) * 0.3 : 0));
+    step(S.fwd, 170, 7, 0);
+    for (const k of ['armL', 'armR', 'legL', 'legR']) step(S[k], 300, 9, 0);
+    S.bend.x = clamp(S.bend.x, -0.17, 0.17); S.bend.y = clamp(S.bend.y, -0.12, 0.12);
+    S.twist.x = clamp(S.twist.x, -0.6, 0.6); S.fwd.x = clamp(S.fwd.x, -0.25, 0.3);
+    this.u.uBend.value.set(S.bend.x, S.bend.y); this.u.uTwist.value = S.twist.x;
     this.wob *= Math.exp(-dt * 3.2);
     this.dent *= Math.exp(-dt * 7);
     this.flash *= Math.exp(-dt * 10);
@@ -528,8 +571,8 @@ export class GummyBear {
   applyPose(p) {
     const B = this.bones, S = this.springs;
     const sq = Math.max(0.45, Math.min(1.7, p.sq + S.sq.x * 0.25));
-    const side = 1 / Math.sqrt(sq);
-    this.body.scale.set(side, sq, side);
+    const side = 1 / Math.sqrt(sq), fw = 1 + S.fwd.x, rf = 1 / Math.sqrt(fw);
+    this.body.scale.set(side * rf, sq * rf, side * fw); // squash, plus a stretch toward a punch (volume kept)
     this.body.position.set(0, p.y, p.x || 0);
     _e.set(p.lean, p.twist, p.roll); this.body.quaternion.setFromEuler(_e);
     // torso
@@ -540,10 +583,10 @@ export class GummyBear {
     _e.set(S.ears.x * 0.25, 0, S.ears.x * 0.15); B.earL.quaternion.setFromEuler(_e);
     _e.set(S.ears.x * 0.25, 0, -S.ears.x * 0.15); B.earR.quaternion.setFromEuler(_e);
     // limbs: aim -Y down the requested direction, stretch along it
-    this._limb('armL', 'pawL', p.armL, p.armLs, p.armLf);
-    this._limb('armR', 'pawR', p.armR, p.armRs, p.armRf);
-    this._limb('legL', 'footL', p.legL, p.legLs, 1);
-    this._limb('legR', 'footR', p.legR, p.legRs, 1);
+    this._limb('armL', 'pawL', p.armL, p.armLs + S.armL.x, p.armLf);
+    this._limb('armR', 'pawR', p.armR, p.armRs + S.armR.x, p.armRf);
+    this._limb('legL', 'footL', p.legL, p.legLs + S.legL.x, 1);
+    this._limb('legR', 'footR', p.legR, p.legRs + S.legR.x, 1);
     // face
     const ex = this.expr || 'idle';
     const eyeS = p.eyeS;

@@ -118,7 +118,19 @@ export class Match {
     if (!N.go && L.peerLoaded && N.loaded) N.go = true;
     let steps = 0, blocked = false;
     if (N.go) {
-      this.acc += dt * k;
+      // Keep both sides equally far apart: each side tells the other how many steps of the other's
+      // buttons it already holds (its slack). The side with less slack is ahead in time and would do
+      // all the waiting, so it runs a touch slower until the two are even. Without this, the player
+      // who joined (who always starts a moment ahead) froze briefly at every network hiccup.
+      const slack = L.theirs - this.frame;
+      L.slack = L.slack == null ? slack : L.slack + (slack - L.slack) * Math.min(1, dt * 2);
+      let pace = 1;
+      if (L.peerSlack != null && !this.G.noBalance) { // noBalance: test switch
+        const diff = L.peerSlack - L.slack;
+        L.easing = diff > 1.2 || (L.easing && diff > 0.4);
+        if (L.easing) pace = 0.9;
+      }
+      this.acc += dt * k * pace;
       if (L.fixAt && this.frame > L.fixAt) { L.fixAt = 0; L.fixSnap = null; }
       while (this.acc >= DT && steps < 8) {
         const f = this.frame + 1;
@@ -134,6 +146,8 @@ export class Match {
       if (blocked) this.acc = Math.min(this.acc, DT * 2);
     }
     this.stallT = (blocked || !N.go) && !steps ? this.stallT + dt : 0;
+    // how often this side has to wait for the other (read by tests)
+    if (N.go && blocked && !steps) { const S = L.stats || (L.stats = { waits: 0, waitTime: 0, hitches: 0 }); S.waits++; S.waitTime += dt; if (this.stallT > 0.08 && this.stallT - dt <= 0.08) S.hitches++; }
     L.flush(false);
     this.syncVisuals(dt * k);
     this.updateCamera(dt);
@@ -309,7 +323,7 @@ export class Match {
     const b = this.bear(D);
     b.squish(pt, power * 0.9, dir); b.flash = 0.3;
     this.G.fx.hit(pt, D.def.flavor.glow, power, dir);
-    sfx('hit', power);
+    sfx('hit', power); if (power > 1.15) sfx('squeak');
     this.shake(0.03 + power * 0.05);
     if (h.word) this.G.ui.comic(h.word, pt, D.def.ui, 0.8 + power * 0.25);
     if (A.combo >= 2) this.G.ui.combo(A.side, A.combo);
@@ -335,8 +349,9 @@ export class Match {
       this.phase = 'ko'; this.pt = 0;
       if (D.state !== 'airhit') { D.go('airhit'); D.vy = 6.5; D.y = 0.002; D.vx = Math.sign(D.x - A.x) * 3; }
       D.kdPending = true;
-      this.G.ui.announce('K.O.!', 'ko', 1.6);
-      say('K. O.');
+      // the round-winning call (it was "K.O." until Nov 25 2026)
+      this.G.ui.announce('JELLIED!', 'ko', 1.6);
+      say('Jellied!', { pitch: 0.3, rate: 0.85 });
     }
   }
 
@@ -642,6 +657,7 @@ export class Match {
       if (F.forceExpr) b.setExpression(F.forceExpr);
       const lightsOut = (this.G.stage && this.G.stage.bearGlow) || 0;
       if (lightsOut || b._lo) { b._lo = lightsOut; b.u.uGlow.value.copy(b.glowBase).multiplyScalar(1 + lightsOut * 4.5); b.u.uRim.value.copy(b.rimBase).multiplyScalar(1 + lightsOut * 1.2); }
+      b.mood = st; // lets the jelly sway when dizzy
       if (st !== 'frozen') b.update(dt, clamp(accel, -60, 60));
       // Ghostie's vanishing moves
       const m = F.move;

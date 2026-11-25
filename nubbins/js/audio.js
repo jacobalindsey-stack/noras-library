@@ -102,6 +102,7 @@ const SFX = {
   rush() { tone('sawtooth', 220, 880, 0.5, 0.12, { lp: 3000 }); [523, 659, 784, 1047].forEach((f, i) => tone('square', f, f, 0.12, 0.06, { delay: i * 0.05, lp: 3000 })); },
   ko() { tone('triangle', 520, 90, 0.9, 0.4, { vib: 8, vibAmt: 40 }); noise(0.6, 'lowpass', 1200, 100, 0.3); },
   inflate() { tone('triangle', 180, 900, 1.2, 0.25, { vib: 10, vibAmt: 30, bend: 1 }); },
+  wobble() { tone('sine', 320, 120, 0.5, 0.32, { vib: 9, vibAmt: 70 }); tone('triangle', 640, 240, 0.35, 0.08, { vib: 11, vibAmt: 90 }); },
   squeak() { tone('sine', R(1700, 2300), R(2400, 3200), 0.08, 0.15, { vib: 40, vibAmt: 200 }); },
   slap() { noise(0.08, 'bandpass', 2000, 600, 0.6, { q: 1 }); tone('sine', 300, 90, 0.1, 0.5); },
   wrap() { for (let i = 0; i < 10; i++) noise(0.05, 'highpass', 3000, 6000, 0.2, { delay: i * 0.05 }); },
