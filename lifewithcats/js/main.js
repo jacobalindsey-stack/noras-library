@@ -50,7 +50,7 @@ class World {
     r.domElement.addEventListener('webglcontextrestored', () => { this.lost = false; this.post.rebuild(); this.resize(); });
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color('#2c2420');
-    this.camera = new THREE.PerspectiveCamera(36, 1, 0.1, 140);
+    this.camera = new THREE.PerspectiveCamera(36, 1, 0.5, 140);
     this.post = new Post(r);
     this.fx = new FX(this.scene);
     this.audio = A;
@@ -544,7 +544,7 @@ class World {
     this.frame(false);
     this.ui && this.ui.layout();
   }
-  pixelRatio() { const dpr = devicePixelRatio || 1; const q = this.game.s.settings.quality; if (q === 'low') return Math.min(dpr, 1); if (q === 'high') return Math.min(dpr, 2); return this.autoPR ?? Math.min(dpr, 1.5); }
+  pixelRatio() { const dpr = devicePixelRatio || 1; const q = this.game.s.settings.quality; if (q === 'low') return Math.min(dpr, 1); if (q === 'high') return Math.min(dpr, this.touch ? 1.75 : 2); return this.autoPR ?? Math.min(dpr, 1.5); }
   get zoomed() { return this.portrait || (this.ui && this.ui.photoMode); }
   get halfWP() { return this.portrait ? 3.9 : 4.4; }
   panLimit() { return RW / 2 - this.halfWP + 0.5; }
@@ -840,6 +840,7 @@ class World {
     const env = this.env;
     this.light.update(env, this.camRoom, this.camPos ? this.camPos.x : 0, this.t);
     this.bdT = (this.bdT || 0) - dt;
+    for (const R of this.house.rooms) R.backdrop.group.visible = R.i === this.camRoom;
     if (this.bdT <= 0) { this.bdT = 0.4; for (const R of this.house.rooms) R.backdrop.apply(env); }
     this.house.update(dt, this.t, env);
     this.updateWeather(dt); this.updateMotes();
@@ -856,7 +857,7 @@ class World {
     const avg = this.mAcc / this.mN; this.mAcc = 0; this.mN = 0;
     const pr = this.pixelRatio(), dpr = devicePixelRatio || 1;
     if (avg > 1 / 40 && pr > 0.75) { this.autoPR = Math.max(0.75, pr - 0.25); this.resize(); }
-    else if (avg < 1 / 57 && pr < Math.min(dpr, 1.75)) { this.autoPR = Math.min(Math.min(dpr, 1.75), pr + 0.25); this.resize(); }
+    else if (avg < 1 / 57 && pr < Math.min(dpr, this.touch ? 1.5 : 1.75)) { this.autoPR = Math.min(Math.min(dpr, this.touch ? 1.5 : 1.75), pr + 0.25); this.resize(); }
   }
 
   // ------------------------------------------------------------ fresh start

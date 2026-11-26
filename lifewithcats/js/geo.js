@@ -8,7 +8,7 @@ import * as T from './tex.js';
 const V = new THREE.Vector3(), N = new THREE.Vector3();
 
 // rounded box with world-unit box-projected UVs (1 uv = 1 unit)
-export function rbox(w, h, d, r = 0.08, seg = 3) {
+export function rbox(w, h, d, r = 0.08, seg = 2) {
   const s = seg * 2 + 1;
   r = Math.min(r, w / 2 - 1e-3, h / 2 - 1e-3, d / 2 - 1e-3);
   const g = new THREE.BoxGeometry(1, 1, 1, s, s, s).toNonIndexed();
@@ -125,7 +125,8 @@ export function group(o = {}) { const g = new THREE.Group(); if (o.pos) g.positi
 // soft contact shadow under something
 export function shadowBlob(parent, w, d, o = {}) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ map: T.blob({ a: o.a ?? 0.5 }), transparent: true, depthWrite: false, opacity: o.opacity ?? 1, color: 0xffffff }));
-  m.rotation.x = -Math.PI / 2; m.position.set(o.x || 0, (o.y || 0) + 0.012, o.z || 0); m.renderOrder = 1; m.castShadow = false; m.receiveShadow = false;
+  m.material.polygonOffset = true; m.material.polygonOffsetFactor = -1; m.material.polygonOffsetUnits = -2;
+  m.rotation.x = -Math.PI / 2; m.position.set(o.x || 0, (o.y || 0) + 0.045, o.z || 0); m.renderOrder = 1; m.castShadow = false; m.receiveShadow = false;
   m.raycast = () => {}; // never catches a tap
   parent.add(m); return m;
 }

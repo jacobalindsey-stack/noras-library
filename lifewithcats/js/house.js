@@ -367,7 +367,7 @@ export class House {
   }
   placeFurniture(room, kind, o) {
     let obj;
-    if (kind === 'rug') { obj = F.rugMesh(o.kind, o.cols, o.w, o.d, room.i * 7 + 1); obj.position.set(o.x, 0.02, o.z); room.furniture.add(obj); return null; }
+    if (kind === 'rug') { obj = F.rugMesh(o.kind, o.cols, o.w, o.d, room.i * 7 + 1); obj.position.set(o.x, 0.03, o.z); room.furniture.add(obj); return null; }
     if (kind === 'playMats') { obj = F.playMats(o.w, o.d); obj.position.set(o.x, 0, o.z); room.furniture.add(obj); return null; }
     if (kind === 'stringLights') { obj = F.stringLights(o.len); obj.position.set(o.x, o.y, o.z); room.furniture.add(obj); room.stringLights = obj; room.lampSpots.push({ pos: new THREE.Vector3(room.X + o.x, o.y - 0.6, o.z + 1.5), kind: 'string', power: 0.8, range: 14, string: obj }); return null; }
     obj = BUILDERS[kind](o);
@@ -664,8 +664,8 @@ export class Lighting {
     // light shafts through every window (stronger in low warm sun)
     const shaftStrength = day * (env.weather === 'clear' ? 1 : 0.25) * (0.35 + warmth * 0.4);
     for (const { room, win } of this.house.shafts) {
-      const w = win.def, z = -RD / 2 - WT / 2;
-      const corners = [[w.x - w.w / 2, w.sill + w.h], [w.x + w.w / 2, w.sill + w.h], [w.x + w.w / 2, w.sill], [w.x - w.w / 2, w.sill]];
+      const w = win.def, z = -RD / 2 + 0.03, m = 0.1;
+      const corners = [[w.x - w.w / 2 + m, w.sill + w.h - m], [w.x + w.w / 2 - m, w.sill + w.h - m], [w.x + w.w / 2 - m, w.sill + 0.2], [w.x - w.w / 2 + m, w.sill + 0.2]];
       const P = win.shaft.geo.attributes.position.array, F = win.shaft.geo.attributes.fade.array;
       const len = Math.min(16, (w.sill + w.h * 0.5) / Math.max(0.15, -dir.y));
       for (let k = 0; k < 4; k++) {

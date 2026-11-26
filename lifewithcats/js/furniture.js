@@ -424,7 +424,7 @@ export function rugMesh(kind, cols, w, d, seed = 8) {
   const geo = kind === 'braided' || kind === 'round' ? new THREE.CircleGeometry(0.5, 48) : new THREE.PlaneGeometry(1, 1);
   if (kind === 'braided' || kind === 'round') { const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) { /* circle uv already 0..1 */ } }
   const r = mesh(geo, m, { cast: false, rot: [-Math.PI / 2, 0, 0] });
-  r.scale.set(w, d, 1); r.position.y = 0.02;
+  r.scale.set(w, d, 1); r.position.y = 0.03;
   return r;
 }
 

@@ -63,7 +63,29 @@ function speckle(x, n, colors, rmin, rmax, r, alpha = 1) {
   x.restore();
 }
 function pair(S, H = S) { const a = canvas(S, H), b = canvas(S, H); return [a, a.getContext('2d'), b, b.getContext('2d')]; }
-function done(c, b, o = {}) { return { map: toTex(c, o), bump: toTex(b, { ...o, data: true }), canvas: c, bumpCanvas: b }; }
+// Paint big, keep small: textures are painted at full size for detail, then
+// stored at a smaller size. The iPad gives a web page very little graphics
+// memory, and every painted surface lives twice (canvas and GPU copy).
+export function shrink(c, tw) {
+  if (!tw || c.width <= tw) return c;
+  let cur = c;
+  while (cur.width > tw) {
+    const w = Math.max(tw, Math.round(cur.width / 2)), h = Math.max(1, Math.round(cur.height * w / cur.width));
+    const n = canvas(w, h), x = n.getContext('2d');
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    x.drawImage(cur, 0, 0, w, h);
+    if (cur !== c) release(cur);
+    cur = n;
+  }
+  return cur;
+}
+// give a canvas's memory back at once (Safari counts canvas memory strictly)
+export function release(c) { try { c.width = 0; c.height = 0; } catch (e) {} }
+function done(c, b, o = {}) {
+  const mc = shrink(c, o.mapMax ?? 256), bc = shrink(b, o.bumpMax ?? 256);
+  if (mc !== c) release(c); if (bc !== b) release(b);
+  return { map: toTex(mc, o), bump: toTex(bc, { ...o, data: true }) };
+}
 
 // ------------------------------------------------------------------ walls
 // limewash / plaster: mottled pigment, trowel strokes, specks of grit
@@ -86,7 +108,7 @@ export function plaster(base, seed = 1, o = {}) {
     speckle(y, 900, ['#000', '#fff'], 0.4, 1.5, r, 0.35);
     overlay(x, NT.fine, 0.12, 'overlay', 1);
     overlay(y, NT.fine, 0.25, 'overlay', 1);
-    return done(c, b);
+    return done(c, b, { mapMax: 512, bumpMax: 256 });
   });
 }
 
@@ -156,7 +178,7 @@ export function wallpaper(kind, a, bcol, ccol, seed = 2) {
     overlay(x, NT.fine, 0.14, 'overlay', 1);
     speckle(x, 300, [rgba(shade(a, -0.4), 0.5), rgba('#ffffff', 0.4)], 0.3, 1.2, r);
     overlay(y, NT.fine, 0.3, 'overlay', 1);
-    return done(c, b);
+    return done(c, b, { mapMax: 512, bumpMax: 256 });
   });
 }
 function wrapDraw(ctx, cx, cy, fn) {
@@ -229,14 +251,14 @@ export function planks(base, seed = 3, o = {}) {
     }
     overlay(x, NT.mid, 0.3, 'soft-light', 2);
     overlay(x, NT.fine, 0.12, 'overlay', 2);
-    // wax wear: lighter path down the middle of the room
     overlay(y, NT.fine, 0.2, 'overlay', 2);
-    return done(c, b);
+    return done(c, b, { mapMax: 512, bumpMax: 256 });
   });
 }
 
 // furniture wood: long grain along V
 export function grain(base, seed = 4, o = {}) {
+  seed = seed % 3;
   return cached('grain' + base + seed + (o.paint || ''), () => {
     const S = 512, r = rng(seed);
     const [c, x, b, y] = pair(S);
@@ -272,6 +294,7 @@ function weaveBump(y, S, cell, depth = 0.35) {
 }
 // upholstery / linen. pattern: plain, check, stripe, floral, herring, ticking
 export function weave(base, seed = 5, o = {}) {
+  seed = seed % 2;
   return cached('weave' + base + seed + JSON.stringify(o), () => {
     const S = 512, r = rng(seed), pat = o.pattern || 'plain';
     const [c, x, b, y] = pair(S);
@@ -418,8 +441,7 @@ export function rug(kind, cols, seed = 8) {
     overlay(x, NT.mid, 0.25, 'soft-light', 2);
     overlay(x, NT.fine, 0.25, 'overlay', 1);
     overlay(y, NT.fine, 0.35, 'overlay', 1);
-    const out = done(c, b, { clamp: true });
-    return out;
+    return done(c, b, { clamp: true, mapMax: 512, bumpMax: 256 });
   });
 }
 
@@ -474,6 +496,7 @@ export function carpet(base, seed = 10) {
 
 // ----------------------------------------------------- ceramics, enamel, card
 export function ceramic(base, seed = 11, o = {}) {
+  seed = seed % 2;
   return cached('cer' + base + seed + (o.band || ''), () => {
     const S = 256, r = rng(seed);
     const [c, x, b, y] = pair(S);
@@ -484,7 +507,7 @@ export function ceramic(base, seed = 11, o = {}) {
     y.fillStyle = grey(0.5); y.fillRect(0, 0, S, S); overlay(y, NT.mid, 0.3, 'overlay', 1);
     // drips of glaze
     for (let i = 0; i < 14; i++) { const px = r() * S, L = 10 + r() * 40; x.strokeStyle = rgba(shade(base, 0.15), 0.45); x.lineWidth = 3 + r() * 4; x.beginPath(); x.moveTo(px, 0); x.lineTo(px, L); x.stroke(); }
-    return done(c, b);
+    return done(c, b, { mapMax: 128, bumpMax: 64 });
   });
 }
 export function enamel(base, seed = 12) {
@@ -495,7 +518,7 @@ export function enamel(base, seed = 12) {
     overlay(x, NT.big, 0.2, 'soft-light', 1);
     for (let i = 0; i < 10; i++) { x.fillStyle = rgba('#3a3028', 0.5); x.beginPath(); x.arc(r() * S, r() * S, 0.8 + r() * 2, 0, 6.3); x.fill(); }
     y.fillStyle = grey(0.5); y.fillRect(0, 0, S, S); overlay(y, NT.mid, 0.15, 'overlay', 1);
-    return done(c, b);
+    return done(c, b, { mapMax: 128, bumpMax: 64 });
   });
 }
 export function cardboard(seed = 13, o = {}) {
@@ -585,7 +608,7 @@ export function leaf(base, kind = 'fig', seed = 17) {
     x.lineWidth = 1.5; for (let i = 1; i < 7; i++) for (const s of [-1, 1]) { const yy = S * i / 7.5; x.beginPath(); x.moveTo(S / 2, yy); x.quadraticCurveTo(S / 2 + s * S * 0.15, yy - 6, S / 2 + s * S * 0.33, yy - 22); x.stroke(); }
     x.restore();
     y.fillStyle = grey(0.5); y.fillRect(0, 0, S, S); y.strokeStyle = grey(0.85); y.lineWidth = 4; y.beginPath(); y.moveTo(S / 2, 8); y.lineTo(S / 2, S - 8); y.stroke();
-    return done(c, b, { clamp: true });
+    return done(c, b, { clamp: true, mapMax: 128, bumpMax: 64 });
   });
 }
 // book spines: one texture per colour, with bands and a title block

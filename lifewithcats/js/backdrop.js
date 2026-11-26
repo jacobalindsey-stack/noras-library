@@ -126,8 +126,8 @@ const SCENES = {
     for (let i = 0; i < 6; i++) { const px = 180 + i * 55, py = 286 + Math.sin(i / 5 * Math.PI) * 8; paperFill(x, cl[i % 5], () => { x.beginPath(); x.rect(px, py, 34, 40 + (i % 2) * 14); }, r, { mottle: 3 }); }
     // birdbath
     paperFill(x, '#c9c0ad', () => { x.beginPath(); x.rect(615, 360, 14, 50); x.ellipse(622, 360, 34, 9, 0, 0, 6.3); }, r, { mottle: 4 });
-    [L.trees, L.treesx] = cv(); tree(L.treesx, r, 330, 405, 1.3); tree(L.treesx, r, 930, 410, 1.0, true, 'pine');
-    [L.trunks, L.trunksx] = cv(); tree(L.trunksx, r, 330, 405, 1.3, false); tree(L.trunksx, r, 930, 410, 1.0, false);
+    [L.trees, L.treesx] = cv(); tree(L.treesx, r, 90, 405, 1.3); tree(L.treesx, r, 960, 410, 1.0, true, 'pine');
+    [L.trunks, L.trunksx] = cv(); tree(L.trunksx, r, 90, 405, 1.3, false); tree(L.trunksx, r, 960, 410, 1.0, false);
     [L.near, L.nearx] = cv(); fence(L.nearx, r, 400); flowers(L.nearx, r, 470, 505, 60);
     [L.lights, L.lightsx] = cv(); for (const [wx, wy, ww, wh] of lights) { L.lightsx.fillStyle = '#ffd890'; L.lightsx.fillRect(wx + 2, wy + 2, ww - 4, wh - 4); }
     for (let i = 0; i < 24; i++) { L.lightsx.fillStyle = 'rgba(220,255,150,.9)'; L.lightsx.beginPath(); L.lightsx.arc(r() * W, 300 + r() * 180, 2.5, 0, 6.3); L.lightsx.fill(); }
@@ -197,6 +197,7 @@ export class Backdrop {
     const L = SCENES[kind](r);
     const mk = (canvas, w, h, z, y, o = {}) => {
       if (!canvas) return null;
+      const small = T.shrink(canvas, o.keep || 512); if (small !== canvas) T.release(canvas); canvas = small;
       const m = new THREE.MeshBasicMaterial({ map: T.toTex(canvas, { clamp: true }), transparent: !!o.add, alphaTest: o.add ? 0 : 0.5, depthWrite: !o.add, fog: false });
       if (o.add) { m.blending = THREE.AdditiveBlending; m.opacity = 0; }
       const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); p.position.set(0, y, z); p.castShadow = false; p.receiveShadow = false;
@@ -207,14 +208,14 @@ export class Backdrop {
     const sky = new THREE.Mesh(new THREE.PlaneGeometry(90, 44), new THREE.ShaderMaterial({ uniforms: this.skyU, vertexShader: SKY_VS, fragmentShader: SKY_FS, fog: false, depthWrite: true }));
     sky.position.set(0, 14, -40); this.group.add(sky);
     const [cc, cx] = cv(); clouds(cx, r, 7);
-    this.clouds = mk(cc, 70, 35, -36, 18);
+    this.clouds = mk(cc, 70, 35, -34, 18);
     this.layers = {
       far: mk(L.far, 56, 28, -24, 6),
-      trunks: mk(L.trunks, 34, 17, -13.9, 3.5),
-      trees: mk(L.trees, 34, 17, -13.8, 3.5),
-      mid: mk(L.mid, 34, 17, -14, 3.5),
+      mid: mk(L.mid, 34, 17, -14.6, 3.5, { keep: 768 }),
+      lights: mk(L.lights, 34, 17, -14.2, 3.5, { add: true, keep: 768 }),
+      trunks: mk(L.trunks, 34, 17, -13.6, 3.5),
+      trees: mk(L.trees, 34, 17, -13.0, 3.5),
       near: mk(L.near, 22, 11, -7.5, 1.6),
-      lights: mk(L.lights, 34, 17, -13.7, 3.5, { add: true }),
     };
     // keep the lights layer right on top of the houses
     this.cloudOff = r() * 10;
