@@ -81,7 +81,7 @@ export class Fighter {
   get w() { return 0.24 * this.sc * (this.def.wide || 1); }
   get grounded() { return this.y <= 0.0001 && this.vy <= 0; }
   // the bear to fight: the other one in 1 on 1, the nearest one still in the round in a party (set by the match)
-  get opp() { return this._opp || this.M.fighters[1 - this.side]; }
+  get opp() { return this._opp || this.M.fighters[1 - this.side] || this.M.fighters.find(G => G !== this); }
   get fwd() { return this.f > 0 ? this.inp.r : this.inp.l; }
   get back() { return this.f > 0 ? this.inp.l : this.inp.r; }
   get neutral() { return ['idle', 'walk', 'crouch', 'block', 'cblock', 'land'].includes(this.state); }

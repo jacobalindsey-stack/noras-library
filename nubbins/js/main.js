@@ -524,7 +524,8 @@ class Game {
 
   recordResult(res, humans) {
     const s = this.save.stats;
-    if (humans[res.winner] && !humans[1 - res.winner]) s.wins++; else if (!humans[res.winner]) s.losses++;
+    const otherHuman = humans.some((h, i) => h && i !== res.winner);
+    if (humans[res.winner] && !otherHuman) s.wins++; else if (!humans[res.winner] && humans.some(Boolean)) s.losses++;
     if (res.nubbed) { s.nubbinations++; if (humans[res.winner]) this.save.nubbed[res.winnerKey] = true; }
     this.persist();
   }

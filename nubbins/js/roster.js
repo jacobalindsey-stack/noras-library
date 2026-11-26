@@ -44,7 +44,7 @@ function razzMoves() {
   fsp.vx = t => (t >= 6 && t < 25 ? 7.4 * (1 - (t - 6) / 26) : 0);
   fsp.pose = st(fsp, [[0, POSES.stance], [6, POSES.crouch], [9, P({ sq: 0.62, lean: -0.55, y: 0.0, turn: 0.1, lN: [-0.05, -0.25, 1], lNs: 2.1, lF: [0.3, -0.7, 0.4], aN: [0.7, 0.5, -0.5], aF: [0.6, 0.2, -0.5], brow: 0.5 })], [25, P({ sq: 0.62, lean: -0.55, turn: 0.1, lN: [-0.05, -0.25, 1], lNs: 2.1, lF: [0.3, -0.7, 0.4], aN: [0.7, 0.5, -0.5], aF: [0.6, 0.2, -0.5] })], [total(fsp), POSES.stance]]);
   const dsp = { name: 'Icicle Rise', start: 16, active: 1, rec: 20, lvl: 'mid', sfx: 'icecast' };
-  dsp.proj = [{ at: 14, make: (F, M) => { const o = M.fighters[1 - F.side]; const d = Math.min(2.4, Math.max(0.9, Math.abs(o.x - F.x))); return { type: 'pillar', owner: F, x: F.x + F.f * d, y: 0, vx: 0, vy: 0, g: 0, r: 0.3, h: 1.4, dmg: 10, hs: 22, bs: 12, kb: 1.5, lift: 10, life: 26, delay: 6, word: 'CRACK' }; } }];
+  dsp.proj = [{ at: 14, make: (F, M) => { const o = F.opp; const d = Math.min(2.4, Math.max(0.9, Math.abs(o.x - F.x))); return { type: 'pillar', owner: F, x: F.x + F.f * d, y: 0, vx: 0, vy: 0, g: 0, r: 0.3, h: 1.4, dmg: 10, hs: 22, bs: 12, kb: 1.5, lift: 10, life: 26, delay: 6, word: 'CRACK' }; } }];
   dsp.pose = st(dsp, [[0, POSES.stance], [10, P({ sq: 0.75, lean: 0.4, aN: [0.3, -1, 0.5], aF: [0.3, -1, 0.5], aNs: 1.5, aFs: 1.5 })], [16, P({ sq: 1.1, lean: -0.1, aN: [0.3, 1, 0.4], aF: [0.3, 1, 0.4], aNs: 1.6, aFs: 1.6, brow: 0.5 })], [total(dsp), POSES.stance]]);
   return { sp, fsp, dsp, rush: rushMove() };
 }

@@ -61,7 +61,7 @@ export class Match {
       const stars = makeDizzyStars(); this.root.add(stars);
       return { b, sh, ice, stars, lastVx: 0, turn: 1 };
     });
-    this.cpus = [0, 1].map(i => (cfg.humans[i] ? null : new CPU(this.fighters[i], cfg.level, defs[i].boss && cfg.mode === 'arcade')));
+    this.cpus = this.fighters.map((F, i) => (cfg.humans[i] ? null : new CPU(F, cfg.level, defs[i].boss && cfg.mode === 'arcade')));
     this.cam = { x: 0, y: 0.8, z: 5, lx: 0, ly: 0.6, fov: 30, override: null };
     // online: both players' buttons come through the lockstep (see net.js)
     this.net = cfg.net || null;
@@ -87,6 +87,7 @@ export class Match {
       this.fighters.forEach((F, i) => F.reset(xs[i], xs[i] < 0 || (xs[i] === 0 && i % 2 === 0) ? 1 : -1));
     }
     for (const F of this.fighters) { F.hp = F.maxhp; F.out = false; F.outPending = false; F.outT = 0; F._opp = null; }
+    this.pickTargets();
     for (const p of this.projectiles) this.root.remove(p.mesh);
     this.projectiles = [];
     for (const F of this.fighters) { F.state = 'intro'; F.toDizzy = false; F.scriptPose = null; F.roundDmg = 0; }
