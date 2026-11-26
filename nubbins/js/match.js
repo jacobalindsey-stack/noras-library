@@ -12,6 +12,7 @@ import { sfx, say, playMusic, jingle } from './audio.js';
 import { encodeInput, decodeInput, simHash, snapshot, restore } from './net.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const MAX_SEP_PARTY = 7.4; // how far apart the outermost bears may get in a party
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -35,17 +36,22 @@ export class Match {
     this.frame = 0; this.time = 0; this.acc = 0;
     this.hitstop = 0; this.slow = 0; this.slowK = 1; this.shakeAmt = 0;
     this.projectiles = [];
-    this.wins = [0, 0]; this.round = 1;
     this.phase = 'intro'; this.pt = 0;
-    const defs = [cfg.p1def, cfg.p2def];
+    // 2 bears (1 on 1) or 3-4 (a party: last bear standing wins the round)
+    const defs = cfg.defs || [cfg.p1def, cfg.p2def];
+    this.n = defs.length; this.party = this.n > 2;
+    this.wins = new Array(this.n).fill(0); this.round = 1;
     this.fighters = defs.map((d, i) => new Fighter(d, i, this));
     if (cfg.bossHp && defs[1].boss) { this.fighters[1].maxhp = Math.round(this.fighters[1].maxhp * cfg.bossHp); this.fighters[1].hp = this.fighters[1].maxhp; }
     this.bears = defs.map((d, i) => getBear(d, i));
-    // mirror match: player 2 gets a darker, deeper batch of the same flavor
-    if (defs[0].key === defs[1].key) {
-      const m = this.bears[1].mat; this.mirrorSave = { c: m.color.clone(), d: m.attenuationDistance };
-      m.color.multiplyScalar(0.72); m.attenuationDistance *= 0.45;
-    }
+    // the same flavor more than once: each repeat is a different batch (darker and deeper, then lighter, then darkest)
+    this.tintSave = [];
+    const seen = {};
+    defs.forEach((d, i) => {
+      const c = seen[d.key] = (seen[d.key] || 0) + 1; if (c < 2) return;
+      const mt = this.bears[i].mat; this.tintSave.push([mt, mt.color.clone(), mt.attenuationDistance]);
+      mt.color.multiplyScalar([1, 0.72, 1.3, 0.5][c - 1]); mt.attenuationDistance *= [1, 0.45, 1.7, 0.3][c - 1];
+    });
     this.root = new THREE.Group(); this.scene.add(this.root);
     this.vis = this.fighters.map((F, i) => {
       const b = this.bears[i];
@@ -74,8 +80,13 @@ export class Match {
 
   roundStart() {
     const [a, b] = this.fighters;
-    a.reset(-1.55, 1); b.reset(1.55 * (b.sc > 1.3 ? 1.12 : 1), -1);
-    a.hp = a.maxhp; b.hp = b.maxhp;
+    if (!this.party) { a.reset(-1.55, 1); b.reset(1.55 * (b.sc > 1.3 ? 1.12 : 1), -1); }
+    else {
+      const xs = this.n === 3 ? [-2.6, 0, 2.6] : [-3.4, -1.15, 1.15, 3.4];
+      if (this.G.testFlipStart) xs.reverse(); // test switch: start the slots on the other side
+      this.fighters.forEach((F, i) => F.reset(xs[i], xs[i] < 0 || (xs[i] === 0 && i % 2 === 0) ? 1 : -1));
+    }
+    for (const F of this.fighters) { F.hp = F.maxhp; F.out = false; F.outPending = false; F.outT = 0; F._opp = null; }
     for (const p of this.projectiles) this.root.remove(p.mesh);
     this.projectiles = [];
     for (const F of this.fighters) { F.state = 'intro'; F.toDizzy = false; F.scriptPose = null; F.roundDmg = 0; }
@@ -156,10 +167,10 @@ export class Match {
   netAfterStep() {
     const N = this.net, L = N.ls, f = this.frame;
     if (f % 30 === 0) { const h = simHash(this); L.hash.set(f, h); L.link.send({ t: 'h', m: L.mid, f, h }); }
-    if (L.peerHash.size) for (const [hf, ph] of L.peerHash) {
-      const mh = L.hash.get(hf); if (mh === undefined) continue;
-      L.peerHash.delete(hf);
-      if (mh !== ph && hf > (L.fixedAt || 0) && N.role === 'host' && !L.fixAt) {
+    if (L.peerHash.size) for (const [key, ph] of L.peerHash) {
+      const hf = ph.f, mh = L.hash.get(hf); if (mh === undefined) continue;
+      L.peerHash.delete(key);
+      if (mh !== ph.h && hf > (L.fixedAt || 0) && N.role === 'host' && !L.fixAt) {
         L.fixAt = f + L.D + 2; L.link.send({ t: 'fixAt', m: L.mid, f: L.fixAt });
       }
     }
@@ -178,11 +189,11 @@ export class Match {
       });
       return;
     }
-    const I = this.G.input, duo = this.cfg.humans[0] && this.cfg.humans[1];
+    const I = this.G.input, duo = this.cfg.humans.filter(Boolean).length > 1;
     this.fighters.forEach((F, i) => {
       let inp;
       if (this.cpus[i]) inp = this.cpus[i].think(this);
-      else inp = I.read(i, duo);
+      else inp = I.read(this.cfg.ctl ? this.cfg.ctl[i] : i, duo); // ctl: which player's controls (a party can skip a slot)
       if (this.mode === 'practice' && i === 1 && this.cfg.dummy !== 'cpu') inp = this.dummyInput(F);
       if (this.phase !== 'fight' && this.phase !== 'nubem') inp = { l: 0, r: 0, u: 0, d: 0, p: 0, k: 0, s: 0, b: 0, x: 0 };
       if (this.phase === 'nubem' && F === this.loser) inp = { l: 0, r: 0, u: 0, d: 0, p: 0, k: 0, s: 0, b: 0, x: 0 };
@@ -201,21 +212,38 @@ export class Match {
     if (this.finisher) { this.finisher.step(); return; }
     if (this.rush) { this.rushStep(); return; }
     const [a, b] = this.fighters;
-    for (const F of this.fighters) if (F.state !== 'dizzy' && F.state !== 'script') F.step();
+    this.pickTargets();
+    // what every bear looks like at the start of this step: decisions read this, so the bear that
+    // happens to think first gets no head start (it used to win every throw race)
+    for (const F of this.fighters) F.seen = { x: F.x, w: F.w, sc: F.sc, state: F.state, grounded: F.grounded, neutral: F.neutral, invuln: F.invuln, move: F.move };
+    for (const F of this.fighters) {
+      if (F.out) continue;
+      // a bear knocked out of a party lies there a moment, then poofs out of the round
+      if (F.outPending && F.state === 'down') { if (++F.outT > 45) this.goOut(F); continue; }
+      if (F.state !== 'dizzy' && F.state !== 'script') F.step();
+    }
     // arena weather: the birthday wish blows everybody sideways (worked out on the fight's own clock)
     if (this.G.stage && this.G.stage.simStep) this.G.stage.simStep(this);
     const wind = (this.G.stage && this.G.stage.wind) || 0;
     if (wind && this.phase === 'fight') for (const F of this.fighters) {
+      if (F.out) continue;
       if (['grabbed', 'script', 'throw', 'dizzy', 'ko'].includes(F.state)) continue;
       F.x += wind * DT * (F.grounded ? 1 : 0.6) / Math.max(1, F.sc * 0.8);
       const lim = STAGE_W - F.w; F.x = clamp(F.x, -lim, lim);
     }
     if (wind) for (const p of this.projectiles) if (!p.grounded) p.vx += wind * DT * 0.6;
-    this.pushApart(a, b);
-    this.collide(a, b); this.collide(b, a);
+    if (!this.party) { this.pushApart(a, b); const pre = this.freezeBoxes(this.fighters); this.collide(a, b, pre); this.collide(b, a, pre); }
+    else {
+      const live = this.fighters.filter(F => !F.out);
+      for (let i = 0; i < live.length; i++) for (let j = i + 1; j < live.length; j++) this.pushPair(live[i], live[j]);
+      this.partyWall(live);
+      const pre = this.freezeBoxes(this.fighters);
+      for (const A of live) for (const D of live) if (A !== D) this.collide(A, D, pre);
+    }
     this.stepProjectiles();
     // face each other
     for (const F of this.fighters) {
+      if (F.out) continue;
       if (F.grounded && (F.neutral || F.state === 'intro' || F.state === 'dizzy')) { const s = Math.sign(F.opp.x - F.x); if (s && Math.abs(F.opp.x - F.x) > 0.05) F.f = s; }
     }
     // practice: refill
@@ -223,6 +251,55 @@ export class Match {
     for (const F of this.fighters) {
       if (F.toDizzy && F.grounded && (F.neutral || F.state === 'idle')) { F.toDizzy = false; F.go('dizzy'); F.vx = 0; this.startNubEm(); }
     }
+  }
+
+  // ---------------------------------------------------------- party (3-4 bears)
+  // everyone goes after the nearest bear still in the round (ties: the lower number), picked in a fixed order
+  pickTargets() {
+    if (!this.party) return;
+    for (const F of this.fighters) {
+      let best = null, bd = Infinity;
+      for (const G of this.fighters) {
+        if (G === F || G.out || G.outPending) continue;
+        const d = Math.abs(G.x - F.x);
+        if (d < bd) { bd = d; best = G; }
+      }
+      if (best) F._opp = best;
+    }
+  }
+  targetsOf(owner) { return this.party ? this.fighters.filter(G => G !== owner && !G.out) : [owner.opp]; }
+  pushPair(a, b) {
+    if (a.state === 'grabbed' || b.state === 'grabbed') return;
+    if ((a.move && a.move.passThrough && a.state === 'attack') || (b.move && b.move.passThrough && b.state === 'attack')) return;
+    const minD = a.w + b.w, dx = b.x - a.x;
+    if (Math.abs(a.y - b.y) < 0.8 * Math.min(a.sc, b.sc) && Math.abs(dx) < minD) {
+      const push = (minD - Math.abs(dx)) / 2 * (Math.sign(dx) || (a.side < b.side ? 1 : -1));
+      a.x -= push; b.x += push;
+      for (const F of [a, b]) { const lim = STAGE_W - F.w; F.x = clamp(F.x, -lim, lim); }
+    }
+  }
+  // the camera can only zoom out so far: the two bears farthest apart can't drift more than this
+  partyWall(live) {
+    if (live.length < 2) return;
+    let lo = live[0], hi = live[0];
+    for (const F of live) { if (F.x < lo.x) lo = F; if (F.x > hi.x) hi = F; }
+    const over = hi.x - lo.x - MAX_SEP_PARTY;
+    if (over > 0) { if (Math.abs(lo.vx) > Math.abs(hi.vx)) lo.x += over; else hi.x -= over; }
+  }
+  goOut(F) {
+    F.out = true; F.outPending = false; F.vx = 0; F.vy = 0;
+    const p = this.worldPt(F, 0.4);
+    this.G.fx.glowPuff(p, F.def.flavor.glow, 16, 0.5, 0.7, 1.2); this.G.fx.burst(p, '#ffffff', 24, 3, 0.1, 0.6);
+    sfx('poof'); sfx('pop');
+  }
+  // knocked out of a party with other bears still standing: out for the rest of the round
+  eliminate(A, D) {
+    D.outPending = true; D.outT = 0; D.toDizzy = false;
+    this.hitstop = 10; this.shake(0.18);
+    if (D.state !== 'airhit') { D.go('airhit'); D.vy = 6; D.y = 0.002; D.vx = (Math.sign(D.x - A.x) || 1) * 3; }
+    D.kdPending = true;
+    this.G.ui.comic('JELLIED!', this.worldPt(D, 0.9), D.def.ui, 1.6);
+    sfx('wobble');
   }
 
   pushApart(a, b) {
@@ -249,15 +326,20 @@ export class Match {
     }
   }
 
-  collide(A, D) {
-    const ab = A.attackBox(); if (!ab) return;
+  // Hit boxes are all read at the same instant (frozen), so when two bears hit each other on the
+  // same step both hits land: a trade. Before Nov 26 2026 the lower-numbered bear always won trades.
+  freezeBoxes(fs) { return { ab: fs.map(F => F.attackBox()), hb: fs.map(F => F.hurtbox()), mv: fs.map(F => F.move), st: fs.map(F => F.state) }; }
+  collide(A, D, pre) {
+    const ab = pre ? pre.ab[A.side] : A.attackBox(); if (!ab) return;
     if (A.hitDone.has(D.side)) return;
-    const hb = D.hurtbox(); if (!hb) return;
+    const hb = pre ? pre.hb[D.side] : D.hurtbox(); if (!hb) return;
     if (ab[1] < hb[0] || ab[0] > hb[1] || ab[3] < hb[2] || ab[2] > hb[3]) return;
-    if (A.move.grab && (!D.grounded || D.state === 'hit' || D.state === 'airhit' || D.state === 'blockstun')) return;
+    const m = pre ? pre.mv[A.side] : A.move;
+    if (!m) return;
+    if (pre && (D.state === 'grabbed' || D.out || D.outPending)) return; // grabbed or knocked out earlier this same step
+    if (m.grab && (!D.grounded || D.state === 'hit' || D.state === 'airhit' || D.state === 'blockstun' || D.state === 'grabbed' || D.state === 'throw' || A.state !== (pre ? pre.st[A.side] : A.state))) return;
     A.hitDone.add(D.side);
     const pt = V((Math.max(ab[0], hb[0]) + Math.min(ab[1], hb[1])) / 2, (Math.max(ab[2], hb[2]) + Math.min(ab[3], hb[3])) / 2, 0.15);
-    const m = A.move;
     const res = this.landHit(A, D, m, pt, false);
     if (m.onHit && res === 'hit') m.onHit(A, D, this);
     if (m.stopOnHit && res === 'block') { A.rocketStop = true; A.mt = Math.max(A.mt, m.start + m.active - 1); }
@@ -333,6 +415,11 @@ export class Match {
 
   onKO(A, D) {
     if (this.mode === 'practice') { D.hp = D.maxhp; return; }
+    if (this.party) {
+      const standing = this.fighters.filter(F => F !== D && !F.out && !F.outPending && F.hp > 0);
+      if (standing.length > 1) { this.eliminate(A, D); return; }
+      if (standing.length === 1) A = standing[0];
+    }
     const deciding = this.wins[A.side] + 1 >= this.toWin;
     this.slow = 1.1; this.slowK = 0.25;
     this.hitstop = 14; this.shake(0.25);
@@ -415,6 +502,7 @@ export class Match {
   }
 
   timeUp() {
+    if (this.party) { this.partyTimeUp(); return; }
     const [a, b] = this.fighters;
     this.G.ui.announce('TIME!', 'ko', 1.2); say('Time!');
     const ra = a.hp / a.maxhp, rb = b.hp / b.maxhp;
@@ -423,6 +511,24 @@ export class Match {
     this.winner = W; this.loser = L;
     if (this.wins[W.side] + 1 >= this.toWin) { this.phase = 'koDizzy'; this.pt = 4.5; L.go('hit'); L.hitT = 20; L.toDizzy = true; return; }
     this.wins[W.side]++; W.go('win'); L.go('hit'); L.hitT = 40;
+    setTimeout(() => this.G.ui.announce(W.def.name + ' WINS', 'name', 1.8), 700);
+    this.phase = 'time'; this.pt = 0;
+  }
+
+  partyTimeUp() {
+    this.G.ui.announce('TIME!', 'ko', 1.2); say('Time!');
+    const live = this.fighters.filter(F => !F.out && !F.outPending).sort((p, q) => (q.hp / q.maxhp - p.hp / p.maxhp) || (p.side - q.side));
+    if (live.length < 2) { this.phase = 'time'; this.pt = 0; return; }
+    const r0 = live[0].hp / live[0].maxhp, r1 = live[1].hp / live[1].maxhp;
+    if (Math.abs(r0 - r1) < 0.005) { this.phase = 'time'; this.pt = 0; this.G.ui.announce('DRAW', 'name', 1.6); return; }
+    const W = live[0], L = live[live.length - 1];
+    this.winner = W; this.loser = L;
+    if (this.wins[W.side] + 1 >= this.toWin) {
+      for (const F of live) if (F !== W && F !== L) this.goOut(F); // clear the floor for the finisher
+      this.phase = 'koDizzy'; this.pt = 4.5; L.go('hit'); L.hitT = 20; L.toDizzy = true; return;
+    }
+    this.wins[W.side]++; W.go('win');
+    for (const F of live) if (F !== W) { F.go('hit'); F.hitT = 40; }
     setTimeout(() => this.G.ui.announce(W.def.name + ' WINS', 'name', 1.8), 700);
     this.phase = 'time'; this.pt = 0;
   }
@@ -467,7 +573,7 @@ export class Match {
   }
 
   endMatch(nubbed) {
-    const W = this.winner || (this.wins[0] >= this.wins[1] ? this.fighters[0] : this.fighters[1]);
+    const W = this.winner || this.fighters.reduce((best, F) => (this.wins[F.side] > this.wins[best.side] ? F : best), this.fighters[0]);
     if (this.phase !== 'finisher' || nubbed) {
       this.wins[W.side] = Math.max(this.wins[W.side], this.toWin);
     }
@@ -476,13 +582,13 @@ export class Match {
     if (this.loser && !nubbed) { this.loser.state = 'ko'; }
     this.cam.override = null;
     const perfect = (W.roundDmg || 0) < 0.01;
-    this.result = { winner: W.side, nubbed, perfect, wins: this.wins.slice(), winnerKey: W.def.key, loserKey: W.opp.def.key };
+    this.result = { winner: W.side, nubbed, perfect, wins: this.wins.slice(), winnerKey: W.def.key, loserKey: (this.loser && this.loser !== W ? this.loser : W.opp).def.key, n: this.n };
     if (nubbed) { this.G.ui.announce('NUBBINATION!', 'nub', 2.2); say('Nubbination!', { pitch: 0.2, rate: 0.8 }); setTimeout(() => { this.G.ui.announce(W.def.name + ' WINS', 'name', 2.2); say(W.def.name.toLowerCase() + ' wins'); }, 2100); }
     else { this.G.ui.announce(W.def.name + ' WINS', 'name', 2.4); say(W.def.name.toLowerCase() + ' wins'); }
     if (perfect) setTimeout(() => this.G.ui.announce('NOT A SCRATCH!', 'small', 1.6), nubbed ? 3600 : 1200);
     sfx('cheer');
     const humanWon = !!this.cfg.humans[W.side];
-    jingle(humanWon || (this.cfg.humans[0] && this.cfg.humans[1]) ? 'win' : 'lose');
+    jingle(humanWon || this.cfg.humans.filter(Boolean).length > 1 ? 'win' : 'lose');
     if (nubbed) this.pt = -1.6;
   }
 
@@ -509,8 +615,9 @@ export class Match {
     for (const c of CONFETTI) fx.burst(pos, c, 4, 3, 0.08, 0.8);
     fx.beadsAt(pos, '#ffc8d8', 10, 0, 1.2);
     sfx('pop'); sfx('hit', 1); this.shake(0.12);
-    const D = p.owner.opp, hb = D.hurtbox();
-    if (hb && !p.didHit) {
+    for (const D of this.targetsOf(p.owner)) {
+      const hb = D.hurtbox();
+      if (!hb || p.didHit) continue;
       const cx = clamp(p.x, hb[0], hb[1]), cy = clamp(p.y, hb[2], hb[3]);
       if ((cx - p.x) * (cx - p.x) + (cy - p.y) * (cy - p.y) < p.burst * p.burst) { p.didHit = true; this.landHit(p.owner, D, p, V(cx, cy, 0.15), true); }
     }
@@ -522,20 +629,20 @@ export class Match {
     for (const p of this.projectiles) {
       if (!p.alive) continue;
       p.age++;
-      const owner = p.owner, D = owner.opp;
+      const owner = p.owner, foes = this.targetsOf(owner);
       if (p.type === 'pillar') {
         const u = clamp((p.age - p.delay) / 5, 0, 1);
         p.mesh.scale.set(1, Math.max(0.01, u), 1); p.mesh.position.set(p.x, 0, 0);
         if (p.age === p.delay) { fx.dust(p.x, '#d8f0ff', 10, 2); fx.burst(V(p.x, 0.2, 0), '#d8f4ff', 16, 3, 0.09, 0.5); sfx('icecast'); this.shake(0.08); }
-        if (p.age >= p.delay && p.age < p.delay + 8 && !p.didHit) {
+        if (p.age >= p.delay && p.age < p.delay + 8 && !p.didHit) for (const D of foes) {
           const hb = D.hurtbox();
-          if (hb && hb[1] > p.x - p.r && hb[0] < p.x + p.r && hb[2] < p.h) { p.didHit = true; this.landHit(owner, D, p, V(p.x, Math.min(hb[3], 0.6), 0.15), true); }
+          if (!p.didHit && hb && hb[1] > p.x - p.r && hb[0] < p.x + p.r && hb[2] < p.h) { p.didHit = true; this.landHit(owner, D, p, V(p.x, Math.min(hb[3], 0.6), 0.15), true); }
         }
         if (p.age > p.life) { this.kill(p, true); fx.burst(V(p.x, 0.5, 0), '#e0f6ff', 20, 2.5, 0.09, 0.5); }
         continue;
       }
       if (p.type === 'quake') {
-        if (!p.didHit && D.grounded && D.hurtbox() && Math.abs(D.x - p.x) < p.r) { p.didHit = true; this.landHit(owner, D, p, this.worldPt(D, 0.15), true); }
+        for (const D of foes) if (!p.didHit && D.grounded && D.hurtbox() && Math.abs(D.x - p.x) < p.r) { p.didHit = true; this.landHit(owner, D, p, this.worldPt(D, 0.15), true); }
         if (p.age === 1) fx.dust(p.x, this.G.stage.dust, 16, 3);
         if (p.age > p.life) this.kill(p, false);
         continue;
@@ -562,18 +669,22 @@ export class Match {
         if (p.burst) { this.explode(p); continue; }
         fx.ring(V(p.x, 0.03, 0.05), u.trail || '#fff', 0.45, 0.3, true); sfx('splat'); this.kill(p, true); continue;
       }
-      // fighters
-      const hb = D.hurtbox();
-      if (hb) {
+      // fighters (the first bear it touches)
+      let struck = false;
+      for (const D of foes) {
+        const hb = D.hurtbox();
+        if (!hb) continue;
         let hit = false, pt;
         if (p.grounded) { hit = hb[2] < p.h + 0.05 && Math.abs(D.x - p.x) < p.r + D.w; pt = V(p.x, 0.2, 0.15); }
         else { const cx = clamp(p.x, hb[0], hb[1]), cy = clamp(p.y, hb[2], hb[3]); hit = (cx - p.x) * (cx - p.x) + (cy - p.y) * (cy - p.y) < p.r * p.r; pt = V(cx, cy, 0.15); }
         if (hit) {
-          if (p.burst) { this.explode(p); continue; }
+          struck = true;
+          if (p.burst) { this.explode(p); break; }
           this.landHit(owner, D, p, pt, true);
-          this.kill(p, true); continue;
+          this.kill(p, true); break;
         }
       }
+      if (struck) continue;
       // clash with the other side's projectiles
       for (const q of this.projectiles) {
         if (q === p || !q.alive || q.owner === owner || q.grounded || p.grounded || q.type === 'pillar' || q.type === 'quake') continue;
@@ -640,6 +751,8 @@ export class Match {
     const fx = this.G.fx;
     this.fighters.forEach((F, i) => {
       const v = this.vis[i], b = v.b;
+      if (F.out !== !!v.wasOut) { v.wasOut = F.out; b.group.visible = !F.out; }
+      if (F.out) { v.sh.visible = false; v.ice.visible = false; v.stars.visible = false; return; }
       if (!F.posed) {
         const ap = F.pose(this.time);
         const turnTarget = ap.turn ?? 1;
@@ -697,15 +810,17 @@ export class Match {
       const R = this.rush, mx = (R.A.x + R.D.x) / 2, big = Math.max(R.A.sc, R.D.sc), ang = Math.sin(R.t * 0.03) * 0.5;
       tx = mx + Math.sin(ang) * 2.4 * big; tz = Math.cos(ang) * 2.4 * big; ty = 0.75 * big; lx = mx; ly = 0.5 * big; fov = 34;
     } else {
-      const midX = (a.x + b.x) / 2, sep = Math.abs(a.x - b.x);
-      const big = Math.max(a.sc, b.sc);
+      const live = this.party ? this.fighters.filter(F => !F.out) : [a, b];
+      let lo = Infinity, hi = -Infinity, big = 0, maxY = 0;
+      for (const F of live) { lo = Math.min(lo, F.x); hi = Math.max(hi, F.x); big = Math.max(big, F.sc); maxY = Math.max(maxY, F.y + F.sc); }
+      if (!live.length) { lo = hi = 0; big = 1; }
+      const midX = (lo + hi) / 2, sep = hi - lo;
       const vf = THREE.MathUtils.degToRad(30);
       const hf = 2 * Math.atan(Math.tan(vf / 2) * aspect);
       const halfW = sep / 2 + (aspect < 1 ? 0.72 : 0.95) * big;
-      const maxY = Math.max(a.y + a.sc, b.y + b.sc);
       const halfH = Math.max(0.95 * big, maxY * 0.62 + 0.3);
       let dist = Math.max(halfW / Math.tan(hf / 2), halfH / Math.tan(vf / 2), 3.3 * big);
-      dist = Math.min(dist, 11);
+      dist = Math.min(dist, this.party ? 13 : 11);
       const viewHalfW = Math.tan(hf / 2) * dist;
       tx = clamp(midX, -STAGE_W - 0.6 + viewHalfW, STAGE_W + 0.6 - viewHalfW);
       if (viewHalfW > STAGE_W + 0.6) tx = 0;
@@ -730,7 +845,7 @@ export class Match {
   }
 
   dispose() {
-    if (this.mirrorSave) { const m = this.bears[1].mat; m.color.copy(this.mirrorSave.c); m.attenuationDistance = this.mirrorSave.d; }
+    for (const [mt, c, d] of this.tintSave) { mt.color.copy(c); mt.attenuationDistance = d; }
     for (const p of this.projectiles) this.root.remove(p.mesh);
     this.scene.remove(this.root);
     for (const v of this.vis) { v.b.group.removeFromParent(); }

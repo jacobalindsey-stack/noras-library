@@ -454,9 +454,41 @@ class Game {
   }
 
   flowVersus() {
+    this.loadStage('sill'); this.showMenuScene(null, null);
+    this.ui.versusMode({ onDuel: () => this.flowDuel(), onParty: () => this.flowParty(), onBack: () => this.toTitle() });
+    playMusic('select');
+  }
+
+  // a party: 3-4 bears, players on this device (touch, keys, controllers) and the computer
+  flowParty() {
+    const st = this.partySetup || (this.partySetup = { slots: [{ k: 'cherry', who: 'player' }, { k: 'razz', who: 'cpu' }, { k: 'sour', who: 'cpu' }, { k: 'tango', who: 'off' }] });
+    for (const sl of st.slots) if (BY_KEY[sl.k].boss && !this.save.unlocked.gummoth) sl.k = 'duke';
+    this.loadStage('sill'); this.showMenuScene(null, null);
+    const setup = () => this.ui.partySetup(st, {
+      onBack: () => this.flowVersus(),
+      onStart: () => this.ui.stageSelect(this.save.unlocked.gummoth ? [...STAGES, ...SECRET_STAGES] : STAGES, s => { st.stage = s; go(); }, setup),
+    });
+    const go = () => {
+      const act = st.slots.map((sl, i) => ({ k: sl.k, who: sl.who, i })).filter(sl => sl.who !== 'off');
+      const humans = act.map(sl => sl.who === 'player');
+      const touch = st.slots[0].who === 'player' && st.slots[1].who === 'player' ? '2p' : '1p';
+      this.startFight({
+        bears: act.map(sl => sl.k), p1: act[0].k, p2: act[1].k, humans, ctl: act.map(sl => sl.i), touch,
+        mode: 'vs', stage: st.stage, level: this.save.settings.difficulty,
+        onEnd: res => {
+          this.recordResult(res, humans);
+          this.endFight(); this.loadStage('sill'); this.showMenuScene(null, null);
+          this.ui.results(res, () => go(), () => setup(), () => this.toTitle());
+        },
+      });
+    };
+    setup();
+  }
+
+  flowDuel() {
     const st = { p2human: true };
     const pick1 = () => this.pickChar({
-      heading: 'PLAYER 1, PICK!', picker: 0, onBack: () => this.toTitle(),
+      heading: 'PLAYER 1, PICK!', picker: 0, onBack: () => this.flowVersus(),
       onPick: a => { st.a = a; pick2(); },
     });
     const pick2 = () => this.pickChar({
@@ -503,13 +535,16 @@ class Game {
     this.ui.clear();
     this.loadStage(cfg.stage || 'couch');
     cfg.p1def = BY_KEY[cfg.p1]; cfg.p2def = BY_KEY[cfg.p2];
+    if (cfg.bears) cfg.defs = cfg.bears.map(k => BY_KEY[k]); // a party of 3-4
+    const nb = cfg.defs ? cfg.defs.length : 2;
     if (this.testAuto && !cfg.net) cfg.humans = [false, false];
     cfg.music = this.stage.music;
     document.body.classList.add('fighting');
-    const duo = cfg.humans[0] && cfg.humans[1];
-    this.input.setTouch(this.input.usedTouch ? (duo ? '2p' : '1p') : 'none');
-    this.input.onTouchSeen = () => { if (this.match && this.input.mode === 'none') this.input.setTouch(duo ? '2p' : '1p'); this.resize(); };
-    this.ui.enterFight(true);
+    const duo = !!(cfg.humans[0] && cfg.humans[1]);
+    const tmode = cfg.touch || (duo ? '2p' : '1p');
+    this.input.setTouch(this.input.usedTouch ? tmode : 'none');
+    this.input.onTouchSeen = () => { if (this.match && this.input.mode === 'none') this.input.setTouch(tmode); this.resize(); };
+    this.ui.enterFight(true, nb);
     this.lastCfg = cfg;
     this.match = new Match(this, cfg);
     if (this.testBoost) this.match.fighters[this.testBoost > 0 ? 0 : 1].power = 6;

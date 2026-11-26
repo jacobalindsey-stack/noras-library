@@ -45,12 +45,13 @@ export class Input {
   // ------------------------------------------------------------- reading
   read(i, duo) {
     const o = BLANK();
-    const maps = duo ? [DUO[i]] : (i === 0 ? [SOLO] : []);
+    // players 1-2: keyboard halves, their touch pad and gamepads 1-2; players 3-4: gamepads 3-4 only
+    const maps = duo ? (DUO[i] ? [DUO[i]] : []) : (i === 0 ? [SOLO] : []);
     for (const m of maps) for (const b in m) for (const code of m[b]) if (this.keys.has(code)) o[b] = 1;
     const pad = this.pad(duo ? i : (i === 0 ? -1 : 99));
     if (pad) for (const b in o) o[b] = o[b] || pad[b];
     const t = this.touchState[duo ? i : 0];
-    if (duo || i === 0) for (const b in o) o[b] = o[b] || t[b];
+    if (t && (duo || i === 0)) for (const b in o) o[b] = o[b] || t[b];
     return o;
   }
 

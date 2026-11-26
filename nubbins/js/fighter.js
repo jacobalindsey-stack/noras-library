@@ -80,7 +80,8 @@ export class Fighter {
 
   get w() { return 0.24 * this.sc * (this.def.wide || 1); }
   get grounded() { return this.y <= 0.0001 && this.vy <= 0; }
-  get opp() { return this.M.fighters[1 - this.side]; }
+  // the bear to fight: the other one in 1 on 1, the nearest one still in the round in a party (set by the match)
+  get opp() { return this._opp || this.M.fighters[1 - this.side]; }
   get fwd() { return this.f > 0 ? this.inp.r : this.inp.l; }
   get back() { return this.f > 0 ? this.inp.l : this.inp.r; }
   get neutral() { return ['idle', 'walk', 'crouch', 'block', 'cblock', 'land'].includes(this.state); }
@@ -110,7 +111,7 @@ export class Fighter {
 
   // choose an action from neutral
   act() {
-    const M = this.M, o = this.opp;
+    const M = this.M, o = this.opp.seen || this.opp; // the opponent as it was at the start of this step
     const close = Math.abs(o.x - this.x) < (this.w + o.w) + 0.3 * this.sc;
     if (this.pressed('x') && this.meter >= 100 && this.moves.rush) { this.consume('x'); return this.startMove('rush'); }
     if (this.pressed('s')) {
@@ -130,7 +131,7 @@ export class Fighter {
 
   shouldAutoBlock() {
     if (!this.back || this.inp.u) return false;
-    const o = this.opp;
+    const o = this.opp.seen || this.opp;
     const d = Math.abs(o.x - this.x);
     if (o.state === 'attack' && o.move && o.move.lvl !== 'throw' && d < 2.6 * Math.max(1, o.sc)) return true;
     for (const pr of this.M.projectiles) if (pr.owner !== this && pr.dmg && Math.abs(pr.x - this.x) < 2.4 && Math.sign(pr.vx || 0) === Math.sign(this.x - pr.x)) return true;
@@ -287,6 +288,7 @@ export class Fighter {
 
   hurtbox() {
     const s = this.sc, w = this.w;
+    if (this.out || this.outPending) return null;
     if (this.invuln > 0 || this.state === 'down' || this.state === 'getup' || this.state === 'grabbed' || this.alpha < 0.3) return null;
     if (this.state === 'airhit' && this.noJuggle) return null;
     if (this.move && this.move.invuln && this.mt >= this.move.invuln[0] && this.mt <= this.move.invuln[1]) return null;

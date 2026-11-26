@@ -10,7 +10,7 @@
 // half second and, if the two ever disagree, the room maker's copy is sent
 // across and the other side snaps to it.
 
-export const PROTO = 1;
+export const PROTO = 2; // 2: rooms of up to four (Nov 26 2026)
 export const ALPHA = 'BCDFGHJKLMNPQRSTVWXZ'; // no vowels: a code never spells a word
 const BTN = ['l', 'r', 'u', 'd', 'p', 'k', 's', 'b', 'x'];
 
@@ -37,7 +37,7 @@ export const decodeInput = v => { const o = {}; for (let i = 0; i < BTN.length; 
 export class Link {
   constructor(code, how, h = {}) {
     this.code = code; this.how = how; this.h = h;
-    this.seat = -1; this.token = null; this.peer = false;
+    this.seat = -1; this.token = null; this.peers = new Set(); // the other seats in the room right now
     this.state = 'connecting'; this.closedByUs = false;
     this.tries = 0; this.lostSince = 0;
     this.base = h.base || serverBase();
@@ -66,7 +66,7 @@ export class Link {
       document.addEventListener('securitypolicyviolation', this._csp);
     }
     let ws;
-    try { ws = new WebSocket(`${this.base}/nubbins-online/room/${this.code}?${q}`); }
+    try { ws = new WebSocket(`${this.base}/nubbins-online/room2/${this.code}?${q}`); }
     catch (e) { this._dropped(); return; }
     this.ws = ws; this.lastRx = performance.now();
     ws.onmessage = ev => {
@@ -74,17 +74,24 @@ export class Link {
       if (ev.data === 'ka') return;
       let o; try { o = JSON.parse(ev.data); } catch (e) { return; }
       if (!o || typeof o !== 'object') return;
+      // a message from another player arrives labelled by the room with their seat
+      if (o.m && typeof o.m === 'object' && Number.isInteger(o.f) && o.f >= 0 && o.f < 4) { this.h.onMsg && this.h.onMsg(o.m, o.f); return; }
       if (o.t === 'hello') {
         const back = !!this.token;
-        this.seat = o.seat === 1 ? 1 : 0; this.token = String(o.token || ''); this.peer = !!o.peer;
+        this.seat = Number.isInteger(o.seat) && o.seat >= 0 && o.seat < 4 ? o.seat : 0; this.token = String(o.token || '');
+        const was = this.peers;
+        this.peers = new Set((Array.isArray(o.peers) ? o.peers : []).filter(x => Number.isInteger(x) && x >= 0 && x < 4 && x !== this.seat));
         this.state = 'open'; this.tries = 0; this.lostSince = 0;
         if (back) this.h.onBack && this.h.onBack(); else this._res(this);
-        if (this.peer) this.h.onPeer && this.h.onPeer(true);
+        for (const p of this.peers) if (!was.has(p)) this.h.onPeer && this.h.onPeer(p, true, false);
+        for (const p of was) if (!this.peers.has(p)) this.h.onPeer && this.h.onPeer(p, false, false);
         return;
       }
       if (o.t === 'err') { this._fail(String(o.why || 'bad')); return; }
-      if (o.t === 'peer') { this.peer = !!o.on; this.h.onPeer && this.h.onPeer(this.peer, !!o.left); return; }
-      this.h.onMsg && this.h.onMsg(o);
+      if (o.t === 'peer' && Number.isInteger(o.seat)) {
+        if (o.on) this.peers.add(o.seat); else this.peers.delete(o.seat);
+        this.h.onPeer && this.h.onPeer(o.seat, !!o.on, !!o.left); return;
+      }
     };
     ws.onclose = () => { if (this.ws === ws) this._dropped(); };
     ws.onerror = () => {};
@@ -128,55 +135,70 @@ export class Link {
 }
 
 // ------------------------------------------------------------ lockstep
-// Button presses for one match. Frames 1..delay are empty for both sides, then
-// each side adds its own presses `delay` frames ahead of the step it is on.
+// Button presses for one match between 2-4 players. roster lists the room seats
+// in the match; fighter i is played from seat roster[i]. Frames 1..delay are
+// empty for everyone, then each player adds their own presses `delay` frames
+// ahead of the step they are on.
 export class Lockstep {
-  constructor(link, mid, local, delay) {
-    this.link = link; this.mid = mid; this.local = local; this.remote = 1 - local; this.D = delay;
-    this.inp = [new Map(), new Map()];
-    for (let f = 1; f <= delay; f++) { this.inp[0].set(f, 0); this.inp[1].set(f, 0); }
-    this.mine = delay;     // my presses are decided up to this frame
-    this.theirs = delay;   // I hold their presses up to this frame (no gaps)
-    this.acked = delay;    // they have mine up to this frame
-    this.lastSend = 0; this.lastAckSent = delay;
+  constructor(link, mid, roster, localSeat, delay) {
+    this.link = link; this.mid = mid; this.roster = roster.slice(); this.n = roster.length;
+    this.local = roster.indexOf(localSeat); this.D = delay;
+    this.inp = roster.map(() => new Map());
+    for (const M of this.inp) for (let f = 1; f <= delay; f++) M.set(f, 0);
+    this.mine = delay;                          // my presses are decided up to this frame
+    this.theirsOf = roster.map(() => delay);    // I hold each player's presses up to this frame (no gaps)
+    this.ackedBy = roster.map(() => delay);     // each player holds mine up to this frame
+    this.slackOf = roster.map(() => null);      // each player's reported slack
+    this.loadedOf = new Set();
+    this.lastSend = 0; this.lastAckKey = '';
     this.hash = new Map(); this.peerHash = new Map();
     this.fixAt = 0; this.fixSnap = null; this.desyncs = 0;
-    this.peerLoaded = false;
   }
+  peersIdx() { const o = []; for (let i = 0; i < this.n; i++) if (i !== this.local) o.push(i); return o; }
+  get theirs() { let m = Infinity; for (const i of this.peersIdx()) m = Math.min(m, this.theirsOf[i]); return m === Infinity ? this.mine : m; }
+  get acked() { let m = Infinity; for (const i of this.peersIdx()) m = Math.min(m, this.ackedBy[i]); return m === Infinity ? this.mine : m; }
+  get peerSlack() { let m = null; for (const i of this.peersIdx()) if (this.slackOf[i] != null) m = m == null ? this.slackOf[i] : Math.max(m, this.slackOf[i]); return m; }
+  get peerLoaded() { return this.peersIdx().every(i => this.loadedOf.has(i)); }
   addMine(f, bits) { if (f === this.mine + 1) { this.inp[this.local].set(f, bits); this.mine = f; } }
-  ready(f) { return this.inp[0].has(f) && this.inp[1].has(f); }
-  get(f, side) { return this.inp[side].get(f) || 0; }
+  ready(f) { return this.inp.every(M => M.has(f)); }
+  get(f, side) { return (this.inp[side] && this.inp[side].get(f)) || 0; }
 
   flush(force) {
     const now = performance.now();
     if (!force && now - this.lastSend < 12) return;
-    const fresh = this.mine > (this.sentTop || 0), ack = this.theirs !== this.lastAckSent;
+    const ackKey = this.theirsOf.join(',');
+    const fresh = this.mine > (this.sentTop || 0), ack = ackKey !== this.lastAckKey;
     if (!force && !fresh && !ack && now - this.lastSend < 120) return;
     const s = this.acked + 1, d = [];
     for (let f = s; f <= this.mine && d.length < 240; f++) d.push(this.inp[this.local].get(f) || 0);
     const g = this.slack == null ? undefined : Math.round(this.slack * 10) / 10;
-    if (this.link.send({ t: 'in', m: this.mid, a: this.theirs, s, d, g })) {
-      this.lastSend = now; this.sentTop = s + d.length - 1; this.lastAckSent = this.theirs;
+    const a = this.theirsOf.slice(); a[this.local] = this.mine;
+    if (this.link.send({ t: 'in', m: this.mid, a, s, d, g })) {
+      this.lastSend = now; this.sentTop = s + d.length - 1; this.lastAckKey = ackKey;
     }
   }
 
-  // messages from the other player about this match
-  take(o) {
+  // messages from another player about this match (from = their room seat)
+  take(o, from) {
     if (o.m !== this.mid) return false;
+    const i = this.roster.indexOf(from);
+    if (i < 0 || i === this.local) return true;
     if (o.t === 'in') {
-      if (Number.isInteger(o.a) && o.a > this.acked && o.a <= this.mine) this.acked = o.a;
-      if (typeof o.g === 'number' && isFinite(o.g) && Math.abs(o.g) < 1000) this.peerSlack = o.g;
+      const ak = Array.isArray(o.a) ? o.a[this.local] : null;
+      if (Number.isInteger(ak) && ak > this.ackedBy[i] && ak <= this.mine) this.ackedBy[i] = ak;
+      if (typeof o.g === 'number' && isFinite(o.g) && Math.abs(o.g) < 1000) this.slackOf[i] = o.g;
       if (Number.isInteger(o.s) && Array.isArray(o.d) && o.d.length <= 240) {
-        const R = this.inp[this.remote];
-        o.d.forEach((v, i) => { const f = o.s + i; if (f > this.theirs && !R.has(f) && Number.isInteger(v) && v >= 0 && v < 512) R.set(f, v); });
-        while (R.has(this.theirs + 1)) this.theirs++;
+        const R = this.inp[i];
+        o.d.forEach((v, k) => { const f = o.s + k; if (f > this.theirsOf[i] && !R.has(f) && Number.isInteger(v) && v >= 0 && v < 512) R.set(f, v); });
+        while (R.has(this.theirsOf[i] + 1)) this.theirsOf[i]++;
       }
       return true;
     }
-    if (o.t === 'h' && Number.isInteger(o.f) && typeof o.h === 'string') { this.peerHash.set(o.f, o.h); return true; }
-    if (o.t === 'fixAt' && Number.isInteger(o.f)) { this.fixAt = o.f; this.fixSnap = null; return true; }
-    if (o.t === 'fix' && Number.isInteger(o.f) && o.s && typeof o.s === 'object') { if (o.f === this.fixAt) this.fixSnap = o.s; return true; }
-    if (o.t === 'loaded') { this.peerLoaded = true; return true; }
+    // fingerprints: only the room maker compares them; repairs only come from the room maker
+    if (o.t === 'h' && Number.isInteger(o.f) && typeof o.h === 'string') { if (this.local === 0) this.peerHash.set(i + ':' + o.f, { f: o.f, h: o.h }); return true; }
+    if (o.t === 'fixAt' && Number.isInteger(o.f)) { if (i === 0) { this.fixAt = o.f; this.fixSnap = null; } return true; }
+    if (o.t === 'fix' && Number.isInteger(o.f) && o.s && typeof o.s === 'object') { if (i === 0 && o.f === this.fixAt) this.fixSnap = o.s; return true; }
+    if (o.t === 'loaded') { this.loadedOf.add(i); return true; }
     return false;
   }
 
@@ -185,14 +207,15 @@ export class Lockstep {
     if (frame % 120) return;
     const old = Math.min(frame, this.acked) - 600;
     for (const M of this.inp) for (const f of M.keys()) { if (f < old) M.delete(f); else break; }
-    for (const M of [this.hash, this.peerHash]) for (const f of M.keys()) if (f < frame - 600) M.delete(f);
+    for (const f of this.hash.keys()) if (f < frame - 600) this.hash.delete(f);
+    for (const [k, v] of this.peerHash) if (v.f < frame - 600) this.peerHash.delete(k);
   }
 }
 
 // a fingerprint of everything that decides the fight
 export function simHash(M) {
-  const parts = [M.frame, M.phase, M.round, M.timer, M.wins[0], M.wins[1], M.hitstop, M.projectiles.length];
-  for (const F of M.fighters) parts.push(F.x, F.y, F.vx, F.vy, F.hp, F.meter, F.state, F.mt, F.f, F.t);
+  const parts = [M.frame, M.phase, M.round, M.timer, ...M.wins, M.hitstop, M.projectiles.length];
+  for (const F of M.fighters) parts.push(F.x, F.y, F.vx, F.vy, F.hp, F.meter, F.state, F.mt, F.f, F.t, F.out ? 1 : 0);
   for (const p of M.projectiles) parts.push(p.x, p.y);
   const s = parts.join('|');
   let h = 2166136261;
@@ -202,7 +225,7 @@ export function simHash(M) {
 
 // --------------------------------------------------- snapshot and repair
 const MATCH_KEYS = ['frame', 'pt', 'phase', 'timer', 'timerAcc', 'round', 'hitstop', 'roundOver', 'fallDone'];
-const SKIP_F = new Set(['def', 'M', 'opp', 'st', 'moves', 'frozenPose', 'scriptPose', 'side']);
+const SKIP_F = new Set(['def', 'M', 'opp', 'st', 'moves', 'frozenPose', 'scriptPose', 'side', 'seen']);
 const isPlain = v => v && typeof v === 'object' && Object.getPrototypeOf(v) === Object.prototype && Object.values(v).every(x => x === null || typeof x !== 'object');
 
 function packFighter(F, M) {

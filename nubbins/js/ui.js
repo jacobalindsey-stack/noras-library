@@ -211,6 +211,62 @@ export class UI {
     this.setNav([$('#rAgain', s), $('#rSel', s), $('#rTitle', s)], 1, onTitle);
   }
 
+  // -------------------------------------------------------------- party
+  versusMode(h) {
+    const s = this.screen(`<div class="panel online"><h2 class="candy">VERSUS</h2>
+      <div class="row ocol">
+        <button class="btn gold" id="vmDuel">1 ON 1</button>
+        <button class="btn berry" id="vmParty">PARTY<small class="bsub">3 or 4 bears at once</small></button>
+        <button class="btn alt small" id="vmBack">◀ BACK</button></div></div>`);
+    this.btn($('#vmDuel', s), h.onDuel); this.btn($('#vmParty', s), h.onParty); this.btn($('#vmBack', s), h.onBack);
+    this.setNav([$('#vmDuel', s), $('#vmParty', s), $('#vmBack', s)], 1, h.onBack);
+  }
+  // four slots: a bear each, and who plays it (a player on this device, the computer, or nobody)
+  partySetup(st, h) {
+    const G = this.G;
+    const keys = ROSTER.filter(r => !r.boss || G.save.unlocked.gummoth).map(r => r.key);
+    const WHO = { player: 'PLAYER', cpu: 'COMPUTER', off: 'OFF' };
+    const note = i => (i < 2 ? `Touch, keys or controller ${i + 1}` : `Game controller ${i + 1}`);
+    const s = this.screen(`<div class="panel party">
+      <div class="row ptop"><button class="btn small alt" id="pyBack">◀ BACK</button><h2 class="candy">PARTY</h2><span class="pspace"></span></div>
+      <p class="onote">Up to four bears on the floor at once. The last bear standing wins the round.</p>
+      <div class="pslots">${st.slots.map((_, i) => `<div class="pslot s${i + 1}" data-i="${i}">
+        <div class="ptag">P${i + 1}</div>
+        <div class="pbear"><button class="parr" data-d="-1" aria-label="Previous bear">◀</button><img alt=""><button class="parr" data-d="1" aria-label="Next bear">▶</button></div>
+        <div class="pname candy"></div>
+        <button class="btn small pwho"></button>
+        <small class="pnote">${note(i)}</small></div>`).join('')}</div>
+      <p class="pwarn" hidden></p>
+      <div class="row"><button class="btn gold" id="pyGo">PICK AN ARENA</button></div></div>`, 'partyScr');
+    const cards = [...s.querySelectorAll('.pslot')], go = $('#pyGo', s), warn = $('.pwarn', s);
+    const paint = () => {
+      st.slots.forEach((sl, i) => {
+        const c = cards[i], r = BY_KEY[sl.k];
+        c.classList.toggle('off', sl.who === 'off');
+        $('img', c).src = G.portraits[sl.k] || '';
+        $('.pname', c).textContent = sl.who === 'off' ? '—' : r.short;
+        $('.pname', c).style.setProperty('--c1', r.ui2); $('.pname', c).style.setProperty('--c2', r.ui);
+        const w = $('.pwho', c); w.textContent = WHO[sl.who]; w.className = 'btn small pwho ' + (sl.who === 'player' ? 'gold' : sl.who === 'cpu' ? 'mint' : 'alt');
+      });
+      const on = st.slots.filter(sl => sl.who !== 'off').length;
+      const padless = st.slots.map((sl, i) => (i >= 2 && sl.who === 'player' && !(navigator.getGamepads && [...navigator.getGamepads()].filter(Boolean)[i]) ? i + 1 : 0)).filter(Boolean);
+      let msg = '';
+      if (on < 3) msg = 'A party needs at least 3 bears. Switch one on.';
+      else if (padless.length) msg = `Player ${padless.join(' and ')} needs a game controller (or make them COMPUTER).`;
+      warn.hidden = !msg; warn.textContent = msg;
+      go.disabled = on < 3;
+    };
+    cards.forEach((c, i) => {
+      for (const b of c.querySelectorAll('.parr')) this.btn(b, () => { const sl = st.slots[i]; const n = keys.length; sl.k = keys[(keys.indexOf(sl.k) + +b.dataset.d + n) % n]; if (sl.who === 'off') sl.who = 'cpu'; paint(); });
+      $('img', c).addEventListener('click', () => { const sl = st.slots[i]; sl.k = keys[(keys.indexOf(sl.k) + 1) % keys.length]; sfx('select'); paint(); });
+      this.btn($('.pwho', c), () => { const sl = st.slots[i]; const order = i === 0 ? ['player', 'cpu'] : ['player', 'cpu', 'off']; sl.who = order[(order.indexOf(sl.who) + 1) % order.length]; paint(); });
+    });
+    this.btn($('#pyBack', s), h.onBack);
+    this.btn(go, () => { if (!go.disabled) h.onStart(); });
+    this.setNav([...s.querySelectorAll('.parr, .pwho'), go, $('#pyBack', s)], 6, h.onBack);
+    paint();
+  }
+
   // ------------------------------------------------------------- online
   onlineMenu(h) {
     const s = this.screen(`<div class="panel online"><h2 class="candy">PLAY ONLINE</h2>
@@ -219,14 +275,20 @@ export class UI {
     this.btn($('#oMake', s), h.onMake); this.btn($('#oJoin', s), h.onJoin); this.btn($('#oBack', s), h.onBack);
     this.setNav([$('#oMake', s), $('#oJoin', s), $('#oBack', s)], 1, h.onBack);
   }
-  onlineRoom(code, onBack) {
-    const s = this.screen(`<div class="panel online"><h2 class="candy">YOUR ROOM</h2>
-      <div class="codebig">${[...code].map(c => `<b>${esc(c)}</b>`).join('')}</div>
-      <p class="onote">Tell your friend these four letters. They press <b>ONLINE</b>, then <b>JOIN A ROOM</b>.</p>
-      <p class="owait"><i></i><i></i><i></i> Waiting for your friend</p>
-      <div class="row ocol"><button class="btn alt small" id="oBack">◀ CLOSE THE ROOM</button></div></div>`);
-    this.btn($('#oBack', s), onBack);
-    this.setNav([$('#oBack', s)], 1, onBack);
+  // the waiting room: four seats, the room maker starts when friends are in
+  onlineRoom(o) {
+    const n = o.present.filter(Boolean).length;
+    const chips = o.present.map((on, s) => `<div class="oseat s${s + 1} ${on ? 'on' : ''}"><b>P${s + 1}</b><span>${on ? (s === o.seat ? 'YOU' : 'HERE') : '…'}</span>${s === 0 ? '<small>room maker</small>' : ''}</div>`).join('');
+    const s = this.screen(`<div class="panel online"><h2 class="candy">${o.isHost ? 'YOUR ROOM' : 'THE ROOM'}</h2>
+      <div class="codebig">${[...o.code].map(c => `<b>${esc(c)}</b>`).join('')}</div>
+      <p class="onote">${o.isHost ? 'Tell your friends these four letters. They press <b>ONLINE</b>, then <b>JOIN A ROOM</b>. Up to 4 players.' : "You're in! The room maker starts the game when everyone is here."}</p>
+      <div class="oseats">${chips}</div>
+      ${o.isHost ? `<p class="onote osmall">${n < 2 ? 'Waiting for a friend to join…' : n === 2 ? '2 players: a 1 on 1 fight.' : n + ' players: a party, last bear standing wins.'}</p>` : '<p class="owait"><i></i><i></i><i></i> Waiting for the room maker</p>'}
+      <div class="row ocol">${o.isHost ? `<button class="btn gold" id="oStart" ${n < 2 ? 'disabled' : ''}>START${n >= 2 ? ' WITH ' + n : ''}</button>` : ''}
+      <button class="btn alt small" id="oBack">◀ ${o.isHost ? 'CLOSE THE ROOM' : 'LEAVE'}</button></div></div>`);
+    if (o.isHost) this.btn($('#oStart', s), () => { if (n >= 2) o.onStart(); });
+    this.btn($('#oBack', s), o.onLeave);
+    this.setNav([o.isHost ? $('#oStart', s) : null, $('#oBack', s)], 1, o.onLeave, 0);
   }
   onlineJoin(o) {
     let code = (o.code || '').slice(0, 4);
@@ -266,20 +328,21 @@ export class UI {
     this.setNav(els, 1, back ? back[2] : null);
     return s;
   }
-  // both bears side by side while the other player decides
-  onlinePair(keys, local, text, buttons = []) {
-    const G = this.G;
-    const card = (k, i) => { const r = k && BY_KEY[k]; return `<div class="opick ${i === local ? 'me' : ''}">${r ? `<img src="${G.portraits[k]}" alt=""><b class="candy" style="--c1:${r.ui2};--c2:${r.ui}">${esc(r.short)}</b>` : '<div class="q">?</div><b>…</b>'}<small>${i === local ? 'YOU' : 'FRIEND'}</small></div>`; };
-    const s = this.screen(`<div class="panel online"><div class="opair">${card(keys[0], 0)}<span class="candy ovs">VS</span>${card(keys[1], 1)}</div>
+  // everyone's bears side by side while the others decide
+  onlinePair(keys, local, text, buttons = [], seats = null) {
+    const G = this.G, two = keys.length === 2;
+    const card = (k, i) => { const r = k && BY_KEY[k]; const who = i === local ? 'YOU' : two ? 'FRIEND' : 'P' + ((seats ? seats[i] : i) + 1); return `<div class="opick ${i === local ? 'me' : ''}">${r ? `<img src="${G.portraits[k]}" alt=""><b class="candy" style="--c1:${r.ui2};--c2:${r.ui}">${esc(r.short)}</b>` : '<div class="q">?</div><b>…</b>'}<small>${who}</small></div>`; };
+    const s = this.screen(`<div class="panel online"><div class="opair ${two ? '' : 'many'}">${keys.map(card).join(two ? '<span class="candy ovs">VS</span>' : '')}</div>
       <p class="owait"><i></i><i></i><i></i> ${esc(text)}</p>
       <div class="row ocol">${buttons.map((b, i) => `<button class="btn ${b[1] || ''}" data-i="${i}">${esc(b[0])}</button>`).join('')}</div></div>`);
     const els = [...s.querySelectorAll('.ocol .btn')];
     els.forEach((el, i) => this.btn(el, buttons[i][2]));
     this.setNav(els, 1, buttons.length ? buttons[buttons.length - 1][2] : null);
   }
-  onlineResults(res, local, h) {
+  onlineResults(res, local, h, seats = [0, 1]) {
     const W = BY_KEY[res.winnerKey], won = res.winner === local;
-    const s = this.screen(`<div class="panel online"><h2 class="candy" style="--c1:${W.ui2};--c2:${W.ui}">${won ? 'YOU WIN!' : 'YOUR FRIEND WINS'}</h2>
+    const title = won ? 'YOU WIN!' : seats.length === 2 ? 'YOUR FRIEND WINS' : 'P' + (seats[res.winner] + 1) + ' WINS';
+    const s = this.screen(`<div class="panel online"><h2 class="candy" style="--c1:${W.ui2};--c2:${W.ui}">${title}</h2>
       <p class="onote">${esc(W.name)}${res.nubbed ? ' with a NUBBINATION!' : ' takes it.'}</p>
       <p class="owait" hidden><i></i><i></i><i></i> <span></span></p>
       <div class="row ocol"><button class="btn gold" id="rAgain">REMATCH</button><button class="btn mint small" id="rSel">NEW BEARS</button><button class="btn alt small" id="rLeave">LEAVE</button></div></div>`);
@@ -399,12 +462,25 @@ export class UI {
   }
 
   // ------------------------------------------------------------- the HUD
-  enterFight(on) {
+  enterFight(on, n = 2) {
     this.fight.hidden = !on;
     if (on) {
       this.clear();
-      $('#hud').innerHTML = [0, 1].map(i => `<div class="side p${i + 1}"><div class="nameRow"><span class="nm"></span><span class="wins"><i></i><i></i></span></div>
-        <div class="bar"><div class="drain"></div><div class="fill"></div></div><span class="meter"><i></i></span></div>`).join('<div class="mid"><div id="timer" class="candy">60</div><button id="pauseBtn" aria-label="Pause">II</button></div>');
+      const mid = '<div class="mid"><div id="timer" class="candy">60</div><button id="pauseBtn" aria-label="Pause">II</button></div>';
+      if (n <= 2) {
+        $('#hud').className = '';
+        $('#hud').innerHTML = [0, 1].map(i => `<div class="side p${i + 1}"><div class="nameRow"><span class="nm"></span><span class="wins"><i></i><i></i></span></div>
+        <div class="bar"><div class="drain"></div><div class="fill"></div></div><span class="meter"><i></i></span></div>`).join(mid);
+      } else {
+        // a party: a compact bar for each bear, left to right in the order they start on the floor
+        const half = Math.ceil(n / 2);
+        const panel = i => `<div class="side s${i + 1}${i >= half ? ' r' : ''}"><div class="nameRow"><span class="tagp"></span><span class="nm"></span><span class="wins"><i></i><i></i></span></div>
+        <div class="bar"><div class="drain"></div><div class="fill"></div></div><span class="meter"><i></i></span></div>`;
+        const ps = Array.from({ length: n }, (_, i) => panel(i));
+        $('#hud').className = 'party';
+        $('#hud').innerHTML = ps.slice(0, half).join('') + mid + ps.slice(half).join('');
+      }
+      if (this.marks) { for (const m of this.marks) m.remove(); this.marks = null; }
       $('#pauseBtn').addEventListener('click', () => this.G.togglePause());
       this.ann.innerHTML = ''; this.words.innerHTML = '';
       this.hudCache = null;
@@ -415,17 +491,21 @@ export class UI {
     const sides = document.querySelectorAll('#hud .side');
     if (!sides.length) return;
     if (reset || !this.hudCache) {
-      this.hudCache = [{}, {}];
+      this.hudCache = M.fighters.map(() => ({}));
       M.fighters.forEach((F, i) => {
-        const s = sides[i];
+        const s = sides[i]; if (!s) return;
         $('.nm', s).textContent = F.def.name;
+        const tg = $('.tagp', s);
+        if (tg) tg.textContent = this.playerTag(M, i);
         s.classList.toggle('you', !!(M.net && M.net.local === i));
         const c1 = F.def.flavor.tint, c2 = F.def.ui;
         $('.fill', s).style.setProperty('--hc1', c1); $('.fill', s).style.setProperty('--hc2', c2);
       });
     }
+    if (M.party) this.markers(M);
     M.fighters.forEach((F, i) => {
-      const s = sides[i], c = this.hudCache[i];
+      const s = sides[i], c = this.hudCache[i]; if (!s || !c) return;
+      if (c.out !== !!F.out) { c.out = !!F.out; s.classList.toggle('out', !!F.out); }
       const hp = Math.round((F.hp / F.maxhp) * 1000) / 10;
       if (c.hp !== hp) { c.hp = hp; $('.fill', s).style.width = hp + '%'; $('.drain', s).style.width = hp + '%'; $('.bar', s).classList.toggle('low', hp < 25); }
       const mt = Math.round(F.meter);
@@ -448,6 +528,34 @@ export class UI {
   finisherName(name) {
     const el = document.createElement('div'); el.className = 'finName candy'; el.textContent = name;
     this.ann.appendChild(el); setTimeout(() => el.remove(), 3200);
+  }
+
+  // who plays each bear in a party: YOU (online), P1-P4 (players on this device) or CPU
+  playerTag(M, i) {
+    if (M.net) return M.net.local === i ? 'YOU' : 'P' + ((M.net.ls && M.net.ls.roster ? M.net.ls.roster[i] : i) + 1);
+    return M.cfg.humans[i] ? 'P' + ((M.cfg.ctl ? M.cfg.ctl[i] : i) + 1) : 'CPU';
+  }
+  // a small floating tag over each player's bear, so everyone can find theirs in a four-bear pile
+  markers(M) {
+    if (!this.marks) {
+      this.marks = M.fighters.map((F, i) => {
+        const el = document.createElement('div');
+        const tag = this.playerTag(M, i);
+        el.className = 'pmark s' + (i + 1) + (tag === 'CPU' ? ' cpu' : '') + (tag === 'YOU' ? ' you' : '');
+        el.textContent = tag;
+        this.fight.appendChild(el);
+        return el;
+      });
+    }
+    const cam = this.G.camera, rect = this.G.viewRect();
+    M.fighters.forEach((F, i) => {
+      const el = this.marks[i]; if (!el) return;
+      const b = M.bears[i];
+      if (F.out || !b.group.visible || M.finisher) { if (!el.hidden) el.hidden = true; return; }
+      const v = this.tmpV.set(F.x, F.y + 1.12 * F.sc, 0).project(cam);
+      el.hidden = false;
+      el.style.transform = `translate(${(rect.left + (v.x * 0.5 + 0.5) * rect.width).toFixed(1)}px, ${(rect.top + (-v.y * 0.5 + 0.5) * rect.height).toFixed(1)}px) translate(-50%, -100%)`;
+    });
   }
 
   comic(word, pt, color = '#fff', scale = 1) {
