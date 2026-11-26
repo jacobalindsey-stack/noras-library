@@ -570,7 +570,7 @@ class Game {
     cfg.p1def = BY_KEY[cfg.p1]; cfg.p2def = BY_KEY[cfg.p2];
     if (cfg.bears) cfg.defs = cfg.bears.map(k => BY_KEY[k]); // a party of 3-4
     const nb = cfg.defs ? cfg.defs.length : 2;
-    if (this.testAuto && !cfg.net) cfg.humans = [false, false];
+    if (this.testAuto && !cfg.net) cfg.humans = (cfg.bears || [0, 0]).map(() => false);
     cfg.music = this.stage.music;
     document.body.classList.add('fighting');
     const duo = !!(cfg.humans[0] && cfg.humans[1]);
