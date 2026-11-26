@@ -180,7 +180,7 @@ class Game {
       if (document.hidden) { audioSuspend(true); if (this.match && !this.match.net && !this.match.paused && this.match.phase === 'fight') this.togglePause(); }
       else audioSuspend(false);
     });
-    for (const ev of ['gesturestart', 'gesturechange', 'dblclick']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+    this.guardZoom();
     this.input.onTouchSeen = () => this.resize();
     this.resize();
     this.loadStage('cake');
@@ -351,6 +351,38 @@ class Game {
       return false;
     }
     return this.ui.onNav(a, rep, code);
+  }
+
+  // iPad Safari ignores "no zooming" for double-taps, and the page used to block the pinch that
+  // would undo it. Now: a quick second tap never zooms (but still counts as a tap), pinching is
+  // blocked only at normal size, and a zoomed page snaps back to normal size by itself.
+  guardZoom() {
+    const zoomed = () => !!(window.visualViewport && visualViewport.scale > 1.02);
+    for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, e => { if (!zoomed()) e.preventDefault(); }, { passive: false });
+    document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+    let lastEnd = 0, lastX = 0, lastY = 0;
+    document.addEventListener('touchend', e => {
+      const now = performance.now(), t = e.changedTouches[0];
+      if (!t || e.touches.length) { lastEnd = 0; return; }
+      const near = Math.abs(t.clientX - lastX) < 40 && Math.abs(t.clientY - lastY) < 40;
+      if (now - lastEnd < 380 && near && !(e.target.closest && e.target.closest('#touch'))) {
+        e.preventDefault(); // this is what stops the double-tap zoom
+        const el = e.target.closest && e.target.closest('button, .card, .stg, img, a');
+        if (el && !el.disabled) el.click(); // but keep the tap
+        lastEnd = 0;
+      } else lastEnd = now;
+      lastX = t.clientX; lastY = t.clientY;
+    }, { passive: false });
+    // snap a zoomed page back to normal size once fingers are off the screen
+    if (window.visualViewport) {
+      const meta = document.querySelector('meta[name=viewport]'), base = meta ? meta.content : '';
+      let tm = 0;
+      visualViewport.addEventListener('resize', () => {
+        clearTimeout(tm);
+        if (!zoomed() || !meta) return;
+        tm = setTimeout(() => { if (!zoomed()) return; meta.content = base.replace('initial-scale=1', 'initial-scale=1.0001'); setTimeout(() => { meta.content = base; window.scrollTo(0, 0); this.resize(); }, 60); }, 900);
+      });
+    }
   }
 
   canFullscreen() { return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }

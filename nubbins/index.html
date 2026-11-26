@@ -21,7 +21,9 @@
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--plum);color:var(--cream);overflow:hidden;font-family:var(--body);
   touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
-button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+/* no double-tap zoom anywhere you can tap (iPad Safari honors manipulation) */
+#ui,.screen,.card,.stg,.oseat,.pslot,.pslot img,.opick,#title{touch-action:manipulation}
 button:focus-visible,.card:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 [hidden]{display:none!important}
 #view{position:fixed;left:0;top:0;width:100%;height:100%;overflow:hidden;background:#000}
@@ -74,7 +76,7 @@ body.portrait.fighting #view{height:62%}
 
 /* ---------- panels */
 .panel{background:linear-gradient(180deg,rgba(60,18,64,.94),rgba(30,8,34,.96));border-radius:26px;box-shadow:0 0 0 3px var(--ink),0 0 0 6px rgba(255,255,255,.12),0 18px 40px rgba(0,0,0,.5);
-  padding:20px;max-width:min(760px,100%);width:100%;max-height:100%;overflow:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+  padding:20px;max-width:min(760px,100%);width:100%;max-height:100%;overflow:auto;touch-action:manipulation;-webkit-overflow-scrolling:touch}
 .panel h2{font-family:var(--display);font-size:clamp(26px,4vw,40px);margin:0 0 12px;text-align:center}
 .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;align-items:center}
 .dim{position:absolute;inset:0;background:rgba(14,3,16,.6);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
