@@ -1,8 +1,9 @@
 // Cloudflare settings for noralindsey.com.
 // The site is static files in this folder; there is no build step.
 // worker/index.js hands every request to those files, except the small
-// NUBBINS online relay under /nubbins-online/ and the charades rooms under
-// /charades-online/ (each kind of room lives in its own Durable Object).
+// NUBBINS online relay under /nubbins-online/, the charades rooms under
+// /charades-online/ and the Slap Happy relay under /slaphappy-online/ (each
+// kind of room lives in its own Durable Object).
 {
   "name": "noras-library",
   "compatibility_date": "2026-10-12",
@@ -16,11 +17,13 @@
   "durable_objects": {
     "bindings": [
       { "name": "NUBBINS_ROOMS", "class_name": "NubbinsRoom" },
-      { "name": "CHARADES_ROOMS", "class_name": "CharadesRoom" }
+      { "name": "CHARADES_ROOMS", "class_name": "CharadesRoom" },
+      { "name": "SLAP_ROOMS", "class_name": "SlapRoom" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["NubbinsRoom"] },
-    { "tag": "v2", "new_sqlite_classes": ["CharadesRoom"] }
+    { "tag": "v2", "new_sqlite_classes": ["CharadesRoom"] },
+    { "tag": "v3", "new_sqlite_classes": ["SlapRoom"] }
   ]
 }

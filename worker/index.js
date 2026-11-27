@@ -1,6 +1,7 @@
 // noralindsey.com: serves the website's files exactly as before, plus two small
-// extras: the relay that lets people play NUBBINS online, and the charades
-// rooms (CharadesRoom, further down).
+// extras: the relay that lets people play NUBBINS online, the charades rooms
+// (CharadesRoom, further down), and the Slap Happy relay between the big screen
+// and the team phones (worker/slaphappy.js).
 //
 // The relay is a set of rooms of up to four seats, named by a four-letter code.
 // It passes the game's own messages (button presses, which bear, which arena)
@@ -8,6 +9,8 @@
 // is kept once a room has been empty for a while.
 
 import { freshState, reduce, LIMITS } from '../charades/js/rules.js';
+import { slapOnline, SlapRoom } from './slaphappy.js';
+export { SlapRoom };
 
 const CODE = /^[BCDFGHJKLMNPQRSTVWXZ]{4}$/;   // no vowels, so a code never spells a word
 const MAX_MSG = 16384;                           // bytes per message
@@ -21,6 +24,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/nubbins-online/')) return online(request, env, url);
     if (url.pathname.startsWith('/charades-online/')) return charadesOnline(request, env, url);
+    if (url.pathname.startsWith('/slaphappy-online/')) return slapOnline(request, env, url, CODE);
     return env.ASSETS.fetch(request);
   },
 };

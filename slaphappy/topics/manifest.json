@@ -1,0 +1,6 @@
+{
+  "about": "Topic modules for Slap Happy. Add one line per topic file in this folder. See slaphappy/TOPICS.md.",
+  "topics": [
+    "cats.json"
+  ]
+}

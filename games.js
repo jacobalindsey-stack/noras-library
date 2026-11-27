@@ -197,5 +197,21 @@ window.NORA_GAMES = [
     ground: '#1a0820',
     foil: '#ffd34f',
     emblem: '<g fill="var(--ground)"><circle cx="22.5" cy="11" r="5"/><circle cx="41.5" cy="11" r="5"/><ellipse cx="17.5" cy="40" rx="4.6" ry="7.5" transform="rotate(20 17.5 40)"/><ellipse cx="47" cy="28.5" rx="4.6" ry="7.5" transform="rotate(-30 47 28.5)"/><ellipse cx="24.5" cy="56" rx="6.5" ry="4.8"/><ellipse cx="39.5" cy="56" rx="6.5" ry="4.8"/><ellipse cx="32" cy="42" rx="12.5" ry="13.5"/><ellipse cx="32" cy="20.5" rx="12" ry="10.5"/></g><ellipse cx="32" cy="25" rx="5" ry="3.6"/><ellipse cx="32" cy="23.2" rx="1.8" ry="1.3" fill="currentColor" stroke="none"/><circle cx="27" cy="18.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="37" cy="18.5" r="1.5" fill="currentColor" stroke="none"/><path d="M53 14.5l2.5-4M56.5 19l4.5-1.5M51.5 12l-.5-4.5"/>'
+  },
+  {
+    key: 'slaphappy',
+    title: 'Slap Happy',
+    kind: 'Family trivia game show',
+    isNew: true,
+    platforms: ['iPad', 'PC', 'iPhone'],
+    players: '2-8 teams · phones are buzzers',
+    blurb: "Lights up, buzzers live! The iPad becomes the game show and every team's phone becomes one giant glossy buzzer. Slap first, flood the stage with your color, and shout your answer before the clock runs out.",
+    howto: "On the iPad, press Host the show. Each team scans the code (or types the four letters) on a phone and picks a name, a color and a buzzer sound. Slap at the ding, say your answer, tap to show it, then own up: right or wrong. No phones handy? Add teams on the iPad and slap their podiums.",
+    note: "Ten buzzer sounds, from a cowbell to a duck. Every answer comes with a fun fact, and every fifth question pays double. First topic: Cats, with more on the way.",
+    shots: ['previews/slaphappy-play.jpg', 'previews/slaphappy-title.jpg'],
+    href: 'slaphappy/',
+    ground: '#0e3640',
+    foil: '#ffb81c',
+    emblem: '<path d="M8 54h48"/><path d="M12 54l3 6h34l3-6"/><path d="M17 54a15 15 0 0 1 30 0"/><path d="M24 47a8 8 0 0 1 5-5"/><path d="M32 31v-8M19.5 35.5l-6-6M44.5 35.5l6-6M12 45H5M52 45h7"/><path d="M32 4l1.8 4.2 4.2 1.8-4.2 1.8L32 16l-1.8-4.2L26 10l4.2-1.8z" fill="currentColor" stroke="none"/>'
   }
 ];
