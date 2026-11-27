@@ -1,0 +1,20 @@
+export default {
+  id: 'act-it-out',
+  title: 'Act It Out',
+  icon: '🎭',
+  color: '#ff4f9a',
+  cards: [
+    'Brushing teeth', 'Taking a selfie', 'Walking the dog', 'Doing homework', 'Blowing bubbles',
+    'Flying a kite', 'Making a sandwich', 'Washing dishes', 'Taking a shower', 'Tying your shoes',
+    'Sneezing', 'Yawning', 'Hiccups', 'Brushing hair', 'Raking leaves',
+    'Building a snowman', 'Snowball fight', 'Opening a present', 'Blowing out candles', 'Waking up late',
+    'Sleepwalking', 'Carrying groceries', 'Ironing clothes', 'Playing video games', 'Reading a book',
+    'Watching a scary movie', 'Riding a roller coaster', 'Eating a sour lemon', 'Brain freeze', 'Walking on hot sand',
+    'Slipping on a banana peel', 'Getting a haircut', 'Roasting marshmallows', 'Building a sandcastle', 'Putting on sunscreen',
+    'Swatting a fly', 'Changing a light bulb', 'Doing a cartwheel', 'Rowing a boat', 'Milking a cow',
+    'Baking cookies', 'Wrapping a gift', 'Running for the bus', 'Taking out the trash', 'Washing a car',
+    'Planting a seed', 'Painting a wall', 'Taking a bath', 'Doing push-ups', 'Getting stung by a bee',
+    'Stuck in the mud', 'Chewing gum', 'Popping a balloon', 'Losing a tooth', 'Making a snow angel',
+    'Climbing a tree', 'Jumping in puddles', 'Walking a tightrope', 'Pulling a wagon', 'Catching a fish',
+  ],
+};
