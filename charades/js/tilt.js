@@ -110,8 +110,9 @@ export function contentTurn() {
 // Feed it every frame during a round. It calls back 'ok' or 'pass' once per
 // nod, then waits for the head to come back level before it listens again.
 export class NodReader {
-  constructor(threshold = 38) {
-    this.th = threshold; this.neutral = 0; this.samples = [];
+  // th: { ok, pass } degrees from level for a nod down and a tip up
+  constructor(th = { ok: 36, pass: 20 }) {
+    this.th = th; this.neutral = 0; this.samples = [];
     this.armed = false; this.over = null; this.overT = 0; this.levelT = 0;
   }
   // during the countdown: learn how this player holds their head
@@ -130,12 +131,12 @@ export class NodReader {
     const d = r.pitch - this.neutral;
     const t = now();
     if (this.armed) {
-      const dir = d < -this.th ? 'ok' : d > this.th ? 'pass' : null;
+      const dir = d < -this.th.ok ? 'ok' : d > this.th.pass ? 'pass' : null;
       if (dir !== this.over) { this.over = dir; this.overT = t; }
       if (dir && t - this.overT > 70) { this.armed = false; this.levelT = 0; return dir; }
       return null;
     }
-    if (Math.abs(d) < this.th * 0.5) {
+    if (d > -this.th.ok * 0.5 && d < this.th.pass * 0.5) {
       if (!this.levelT) this.levelT = t;
       if (t - this.levelT > 140) { this.armed = true; this.over = null; return 'level'; }
     } else this.levelT = 0;

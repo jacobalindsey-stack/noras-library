@@ -14,7 +14,9 @@ import { Room, newCode, validCode, WHY } from './net.js';
 
 const TITLE = 'Charades'; // working title: the game isn't named yet
 const AVA = ['#ffc83d', '#12c98a', '#ff4f9a', '#4f86ff', '#ff8a1f', '#14a3a0', '#e05ae8', '#f0473c', '#a78bfa', '#38bdf8', '#a3e635', '#fb7185'];
-const NOD = { small: 26, normal: 36, big: 48 };
+// degrees from level that count: tipping the head back is harder than
+// nodding forward, so a pass needs a bit over half the movement of a got it
+const NOD = { small: { ok: 26, pass: 14 }, normal: { ok: 36, pass: 20 }, big: { ok: 48, pass: 28 } };
 const TOUCH = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
 const UPRIGHT_MS = 700;   // phone held upright this long starts the countdown
 const COUNT_MS = 800;     // each beat of 3-2-1
@@ -903,12 +905,12 @@ function meterLoop() {
   const th = NOD[app.st.prefs.nod] || NOD.normal;
   const zl = document.getElementById('mzok'), zr = document.getElementById('mzpass'), say = document.getElementById('msay');
   const span = 90;
-  const zw = ((span - th) / (2 * span) * 100).toFixed(1) + '%';
-  zl.style.width = zw; zr.style.width = zw;
+  zl.style.width = ((span - th.ok) / (2 * span) * 100).toFixed(1) + '%';
+  zr.style.width = ((span - th.pass) / (2 * span) * 100).toFixed(1) + '%';
   if (!hasTilt()) { say.textContent = app.motion === 'denied' ? 'Motion is blocked for this site' : 'No tilt readings yet'; return; }
   const p = reading().pitch;
   needle.style.left = (50 + Math.max(-span, Math.min(span, p)) / span * 50).toFixed(1) + '%';
-  say.textContent = p < -th ? 'Got it!' : p > th ? 'Pass' : '';
+  say.textContent = p < -th.ok ? 'Got it!' : p > th.pass ? 'Pass' : '';
 }
 
 // ================================================================ online room
