@@ -9,7 +9,7 @@ import { freshState, reduce, currentPlayer, playerById, standings, usedWords, ro
 import { loadDecks, decks, deckById, draw, MIX } from './decks.js';
 import { load as loadStore, save, addScorecard } from './store.js';
 import { sfx, unlockAudio, buzz, setSound, setBuzz, stayAwake } from './sfx.js';
-import { askMotion, hasTilt, reading, screenUpright, contentTurn, NodReader } from './tilt.js';
+import { askMotion, hasTilt, reading, screenUpright, contentTurn, NodReader, NEEDS_ASK } from './tilt.js';
 import { Room, newCode, validCode, WHY } from './net.js';
 
 const TITLE = 'Charades'; // working title: the game isn't named yet
@@ -114,10 +114,15 @@ function finished(S) {
   setTimeout(() => { sfx.fanfare(); confetti(); }, app.screen === 'game' ? 250 : 0);
 }
 
-// iPhone only turns motion on from a tap; ask again on any tap that leads into a turn
+// iPhone only turns motion on from a tap. Ask at the very start of a tap
+// (see the listeners near the bottom), and never switch a player to tap mode
+// without saying so: the forehead screen offers "Turn on tilt" instead.
 function wakeTilt() {
-  if (app.st.prefs.controls !== 'tilt' || !TOUCH) return;
-  askMotion().then(r => { app.motion = r; if (R && R.state === 'wait' && r !== 'granted') { R.mode = 'tap'; render(); } });
+  if (app.st.prefs.controls !== 'tilt' || !TOUCH || app.motion === 'granted' && hasTilt()) return;
+  askMotion().then(r => {
+    app.motion = r;
+    if (R && R.state === 'wait' && R.mode === 'tilt') { R.since = performance.now(); if (r === 'granted') R.needAsk = false; render(); }
+  });
 }
 
 // ================================================================ the turn
@@ -138,7 +143,7 @@ function syncTurn() {
     reader: new NodReader(NOD[app.st.prefs.nod] || NOD.normal),
     card: null, marks: [], local: new Set(), upT: 0, since: performance.now(), countT: 0, lastBeat: 0, localEnds: 0, flashT: 0,
   };
-  const wantTilt = TOUCH && app.st.prefs.controls === 'tilt' && app.motion !== 'denied' && app.motion !== 'none';
+  const wantTilt = TOUCH && app.st.prefs.controls === 'tilt' && app.motion !== 'none';
   R.mode = wantTilt ? 'tilt' : 'tap';
   if (S.phase === 'play') {
     // back after a reload in the middle of a turn: carry on
@@ -156,9 +161,11 @@ function waitLoop() {
   if (R.mode === 'tilt') {
     const t = performance.now();
     if (!hasTilt()) {
-      if (t - R.since > NO_SENSOR_MS) { R.mode = 'tap'; R.noSensor = true; render(); }
+      if (NEEDS_ASK) { if (!R.needAsk && t - R.since > 900) { R.needAsk = true; render(); } }
+      else if (t - R.since > NO_SENSOR_MS) { R.mode = 'tap'; R.noSensor = true; render(); }
       return;
     }
+    if (R.needAsk) { R.needAsk = false; render(); }
     if (screenUpright()) { if (!R.upT) R.upT = t; } else R.upT = 0;
     const f = R.upT ? Math.min(1, (t - R.upT) / UPRIGHT_MS) : 0;
     const bar = document.getElementById('upbar');
@@ -682,11 +689,16 @@ function vReady() {
       <h1>${esc(p.name)}, phone on your forehead</h1>
       ${HEAD_SVG}
       <div class="legend"><span class="l ok"><i>↓</i>Got it</span><span class="l pass"><i>↑</i>Pass</span></div>
-      <div class="waitbar"><span id="upbar"></span></div>
+      ${R.needAsk ? (app.motion === 'denied'
+        ? `<div class="note">Tilt is switched off for this site. Close Safari all the way (swipe it up in the app switcher), open the game again and tap Allow.</div>
+           <div class="row" style="justify-content:center"><button class="btn big" data-a="turnontilt">Try again</button><button class="btn paper" data-a="usetap">Use taps instead</button></div>`
+        : `<button class="btn big" data-a="turnontilt">Turn on tilt</button>
+           <button class="btn quiet" data-a="usetap">Use taps instead</button>`)
+      : `<div class="waitbar"><span id="upbar"></span></div>
       <div class="row" style="justify-content:center">
         <button class="btn paper" data-a="startnow">Start</button>
         <button class="btn quiet" data-a="unpick">Change deck</button>
-      </div>
+      </div>`}
     </div>`;
   }
   const local = app.mode === 'local';
@@ -1023,18 +1035,23 @@ const handlers = {
   tolobby() { act({ t: 'lobby' }); },
 
   pick(el) {
+    wakeTilt();
     const d = deckById(el.dataset.deck); if (!d) return;
     sfx.pop();
-    // the tap that picks the deck is also the moment iPhone lets the game ask for motion
-    if (app.st.prefs.controls === 'tilt' && app.motion !== 'granted') {
-      askMotion().then(r => { app.motion = r; save(); if (R && R.state === 'wait') { R.mode = r === 'granted' ? 'tilt' : 'tap'; R.since = performance.now(); render(); } });
-    } else if (app.st.prefs.controls === 'tilt') askMotion();
     act({ t: 'pick', deck: d.id, title: d.title });
   },
+  turnontilt() {
+    askMotion().then(r => {
+      app.motion = r;
+      if (R) { R.since = performance.now(); R.needAsk = r !== 'granted'; }
+      render();
+    });
+  },
+  usetap() { if (R) { R.mode = 'tap'; R.needAsk = false; } render(); },
   unpick() { act({ t: 'unpick' }); },
   startnow() {
+    wakeTilt();
     if (!R) return;
-    if (R.mode === 'tilt' && app.motion !== 'granted') askMotion().then(r => { app.motion = r; save(); });
     startCount();
   },
 
@@ -1142,6 +1159,17 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && app.sheet && app.sheet !== 'pause') closeSheet();
 });
 
+// iPhone: ask for tilt first thing in a tap (once a game is on its way), so
+// nothing else in the tap can use up the browser's permission to ask
+function tiltTap(e) {
+  if (!app.st || app.st.prefs.controls !== 'tilt' || !TOUCH || !NEEDS_ASK) return;
+  if (app.motion === 'granted' && hasTilt()) return;
+  if (app.screen === 'title' && !(e.target.closest && e.target.closest('[data-a="play"],[data-a="online"],[data-a="resume"],[data-a="rejoin"]'))) return;
+  if (app.screen === 'history' || app.screen === 'scorecard') return;
+  wakeTilt();
+}
+document.addEventListener('touchend', tiltTap, { capture: true, passive: true });
+document.addEventListener('click', tiltTap, true);
 // iPhone: sound may only start from a finger lift; no pinch or double-tap zoom
 document.addEventListener('touchend', unlockAudio, { passive: true });
 document.addEventListener('click', unlockAudio, true);

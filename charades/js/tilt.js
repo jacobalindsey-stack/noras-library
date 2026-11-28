@@ -50,32 +50,38 @@ function onMotion(e) {
   feed(v, 'motion');
 }
 
-function listen() {
+export function listen() {
   if (T.listening) return;
   T.listening = true;
   window.addEventListener('deviceorientation', onOrient);
   window.addEventListener('devicemotion', onMotion);
 }
 
-// Must be called straight from a tap (iPhone asks the player once).
-// Resolves to 'granted', 'denied' or 'none' (no motion sensor in this browser).
+// iPhone and iPad ask the player before the game may read tilt.
+export const NEEDS_ASK = typeof window.DeviceOrientationEvent !== 'undefined' && typeof window.DeviceOrientationEvent.requestPermission === 'function';
+let asking = null;
+
+// Must be called straight from a tap, before anything else in that tap.
+// Resolves to 'granted', 'denied' (the player said no, or said no earlier
+// in this Safari session), 'nogesture' (the browser didn't count the tap)
+// or 'none' (no motion sensor in this browser).
 export function askMotion() {
   const DO = window.DeviceOrientationEvent, DM = window.DeviceMotionEvent;
   if (!DO && !DM) return Promise.resolve('none');
+  listen();
+  if (asking) return asking;
   T.flipSet = false;
   let p;
   try {
     if (DO && typeof DO.requestPermission === 'function') p = DO.requestPermission();
     else if (DM && typeof DM.requestPermission === 'function') p = DM.requestPermission();
-  } catch (e) { p = Promise.resolve('denied'); }
-  if (!p) { listen(); return Promise.resolve('granted'); }
-  return p.then(r => {
-    if (r === 'granted') {
-      listen();
-      try { if (DM && typeof DM.requestPermission === 'function') DM.requestPermission().catch(() => {}); } catch (e) {}
-    }
+  } catch (e) { return Promise.resolve('nogesture'); }
+  if (!p) return Promise.resolve('granted');
+  asking = p.then(r => {
+    if (r === 'granted') { try { if (DM && typeof DM.requestPermission === 'function') DM.requestPermission().catch(() => {}); } catch (e) {} }
     return r === 'granted' ? 'granted' : 'denied';
-  }).catch(() => 'denied');
+  }).catch(() => 'nogesture').then(r => { asking = null; return r; });
+  return asking;
 }
 
 // true once real readings are coming in
@@ -112,6 +118,7 @@ export function contentTurn() {
 export class NodReader {
   // th: { ok, pass } degrees from level for a nod down and a tip up
   constructor(th = { ok: 36, pass: 20 }) {
+    if (typeof th === 'number') th = { ok: th, pass: Math.round(th * 0.56) };
     this.th = th; this.neutral = 0; this.samples = [];
     this.armed = false; this.over = null; this.overT = 0; this.levelT = 0;
   }
@@ -131,15 +138,21 @@ export class NodReader {
     const d = r.pitch - this.neutral;
     const t = now();
     if (this.armed) {
+      // follow slow changes in how the head is held, so level stays level
+      if (d > -this.th.ok * 0.35 && d < this.th.pass * 0.35) this.neutral += d * 0.02;
       const dir = d < -this.th.ok ? 'ok' : d > this.th.pass ? 'pass' : null;
       if (dir !== this.over) { this.over = dir; this.overT = t; }
       if (dir && t - this.overT > 70) { this.armed = false; this.levelT = 0; return dir; }
       return null;
     }
-    if (d > -this.th.ok * 0.5 && d < this.th.pass * 0.5) {
+    if (d > -this.th.ok * 0.6 && d < this.th.pass * 0.75) {
       if (!this.levelT) this.levelT = t;
       if (t - this.levelT > 140) { this.armed = true; this.over = null; return 'level'; }
     } else this.levelT = 0;
     return null;
   }
 }
+
+// Listen from the start: where tilt was already allowed this session the
+// readings flow at once; elsewhere nothing arrives until askMotion() succeeds.
+listen();
