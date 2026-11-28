@@ -5,6 +5,9 @@ Run from anywhere:  python3 slaphappy/tools/check_topics.py
 Exits with status 1 if any topic has a problem that would break or spoil a show.
 """
 import json, re, sys, collections
+
+# languages besides English that each question can carry (see TOPICS.md)
+LANGS = ['hr']
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent / 'topics'
@@ -48,6 +51,10 @@ def main():
         if not isinstance(qs, list) or not qs: problems.append(f'{where}: no questions'); continue
         seen = set()
         levels = collections.Counter()
+        missing = collections.Counter()
+        for code in LANGS:
+            if not isinstance(t.get(code), dict) or not str(t[code].get('title') or '').strip():
+                warnings.append(f'{where}: no "{code}" title (the English one shows)')
         for i, q in enumerate(qs, 1):
             w = f'{where} question {i}'
             text = (q.get('q') or '').strip()
@@ -75,12 +82,24 @@ def main():
                     if len(str(c)) > 32: warnings.append(f'{w}: choice "{c}" is long (aim for under 26 characters)')
                 if any(re.search(r'all of the above|none of the above|both', str(c), re.I) for c in ch) and not q.get('fixed'):
                     warnings.append(f'{w}: "all/none of the above" choices need "fixed": true')
+            # translations (TOPICS.md): same number of choices, in the same order
+            for code in LANGS:
+                tr = q.get(code)
+                if tr is None: missing[code] += 1; continue
+                if not isinstance(tr, dict) or not str(tr.get('q') or '').strip(): problems.append(f'{w}: "{code}" needs "q"'); continue
+                tc = tr.get('choices')
+                if not isinstance(tc, list) or len(tc) != len(ch): problems.append(f'{w}: "{code}" needs {len(ch)} choices, in the same order as the English'); continue
+                if len(set(map(str, tc))) != len(tc): problems.append(f'{w}: two "{code}" choices are the same')
+                if not str(tr.get('fact') or '').strip(): warnings.append(f'{w}: "{code}" has no fact (the English one shows)')
+                for c in tc:
+                    if len(str(c)) > 32: warnings.append(f'{w}: {code} choice "{c}" is long (aim for under 28 characters)')
             blob = ' '.join([text, fact, ' '.join(map(str, ch or [])), str(ans)])
             m = NOPE.search(blob)
             if m: warnings.append(f'{w}: contains "{m.group(0)}"; make sure it suits 10-year-olds')
         total += len(qs)
         print(f'{where}: {len(qs)} questions (level 1: {levels[1]}, level 2: {levels[2]}, level 3: {levels[3]})')
         if len(qs) < 30: warnings.append(f'{where}: only {len(qs)} questions; aim for 40 or more')
+        for code, n in missing.items(): warnings.append(f'{where}: {n} question(s) without "{code}" (they show in English)')
     for w in warnings: print('  note:', w)
     for p in problems: print('  PROBLEM:', p)
     print(f'{len(listed)} topic(s), {total} questions, {len(problems)} problem(s), {len(warnings)} note(s)')

@@ -344,20 +344,33 @@ function playStep(m, step, t) {
 }
 
 // ---------- the host's voice (reads the question when switched on) ----------
-let voice = null;
+// Each screen reads in its own language. A device with no voice for that
+// language stays quiet rather than reading Croatian in an English accent.
+const SPEECH = { en: 'en-US', hr: 'hr-HR' };
+let voices = {};
+function voiceFor(lang) {
+  if (lang in voices) return voices[lang];
+  const all = speechSynthesis.getVoices();
+  if (!all.length) return undefined;                       // not loaded yet: ask again next time
+  const mine = all.filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith(lang));
+  const v = lang === 'en'
+    ? mine.find(v => /Samantha|Karen|Daniel|Moira|Google US English|Aria|Jenny/i.test(v.name)) || mine[0] || null
+    : mine.find(v => /hr-hr/i.test(v.lang)) || mine[0] || null;
+  voices[lang] = v;
+  return v;
+}
 // onDone(ok) runs once when the voice finishes (ok = true) or can't speak (ok = false).
-export function speak(text, onDone) {
+export function speak(text, onDone, lang = 'en') {
   let done = false;
   const finish = ok => { if (done) return; done = true; if (onDone) onDone(ok); };
-  if (!('speechSynthesis' in window) || !prefs.sound) { finish(false); return; }
+  if (!('speechSynthesis' in window) || !prefs.sound || !text) { finish(false); return; }
   try {
     speechSynthesis.cancel();
-    if (!voice) {
-      const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
-      voice = vs.find(v => /Samantha|Karen|Daniel|Moira|Google US English|Aria|Jenny/i.test(v.name)) || vs[0] || null;
-    }
+    const v = voiceFor(lang);
+    if (v === null && lang !== 'en') { finish(false); return; } // no voice for this language on this device
     const u = new SpeechSynthesisUtterance(text);
-    if (voice) u.voice = voice;
+    u.lang = SPEECH[lang] || lang;
+    if (v) u.voice = v;
     u.rate = 1.0; u.pitch = 1.05; u.volume = 1;
     u.onend = () => finish(true);
     u.onerror = () => finish(false);
@@ -365,14 +378,17 @@ export function speak(text, onDone) {
   } catch (e) { finish(false); }
 }
 // iPhone and iPad only let a page talk after it has talked during a tap.
-export function primeSpeech(text = '') {
+export function primeSpeech(text = '', lang = 'en') {
   if (!('speechSynthesis' in window)) return;
   try {
+    const v = voiceFor(lang);
+    if (text && v === null && lang !== 'en') text = '';
     const u = new SpeechSynthesisUtterance(text || ' ');
     u.volume = text ? 1 : 0; u.rate = 1.0; u.pitch = 1.05;
-    if (voice) u.voice = voice;
+    u.lang = SPEECH[lang] || lang;
+    if (v) u.voice = v;
     speechSynthesis.speak(u);
   } catch (e) {}
 }
-if ('speechSynthesis' in window) { try { speechSynthesis.onvoiceschanged = () => { voice = null; }; } catch (e) {} }
+if ('speechSynthesis' in window) { try { speechSynthesis.onvoiceschanged = () => { voices = {}; }; } catch (e) {} }
 export function hush() { try { speechSynthesis.cancel(); } catch (e) {} }

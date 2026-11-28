@@ -1,6 +1,8 @@
 // Topic modules. Each topic is one JSON file in topics/, listed in
 // topics/manifest.json. See TOPICS.md for the format and the content rules.
 
+import { LANGS } from './i18n.js';
+
 export async function loadTopics() {
   const out = [];
   let man;
@@ -27,10 +29,21 @@ export function clean(t) {
     if (ch.length < 2 || ch.length > 4 || new Set(ch).size !== ch.length || ch.some(c => !c)) return bad('needs 2 to 4 different choices');
     if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= ch.length) return bad('answer must be the number of the right choice, counting from 0');
     out.choices = ch; out.answer = q.answer;
+    // translations: "hr": { "q", "choices" (same order as the English), "fact" }
+    out.tr = {};
+    for (const { id } of LANGS) {
+      const x = q[id];
+      if (id === 'en' || !x) continue;
+      const xc = Array.isArray(x.choices) ? x.choices.map(c => String(c).trim()) : null;
+      if (typeof x.q !== 'string' || !x.q.trim() || !xc || xc.length !== ch.length || xc.some(c => !c)) { bad(`its ${id} translation doesn't match (shown in English)`); continue; }
+      out.tr[id] = { q: x.q.trim(), choices: xc, fact: typeof x.fact === 'string' ? x.fact.trim() : '' };
+    }
     qs.push(out);
   });
   if (!qs.length) return null;
-  return { id: t.id, title: String(t.title || t.id), emoji: String(t.emoji || '❓'), blurb: String(t.blurb || ''), questions: qs };
+  const tr = {};
+  for (const { id } of LANGS) if (id !== 'en' && t[id] && typeof t[id].title === 'string') tr[id] = { title: t[id].title, blurb: String(t[id].blurb || '') };
+  return { id: t.id, title: String(t.title || t.id), emoji: String(t.emoji || '❓'), blurb: String(t.blurb || ''), tr, questions: qs };
 }
 
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -58,6 +71,9 @@ export function pickQuestions(topics, ids, n) {
     r.choices = order.map(k => q.choices[k]);
     r.answer = order.indexOf(q.answer);
     r.answerText = q.choices[q.answer];
+    // the same shuffle for every language, so B is B on every screen
+    r.tr = {};
+    for (const [id, x] of Object.entries(q.tr || {})) r.tr[id] = { q: x.q, choices: order.map(k => x.choices[k]), fact: x.fact, answerText: x.choices[q.answer] };
     return r;
   });
 }

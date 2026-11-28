@@ -62,7 +62,8 @@ Families: adults and kids aged 10 to 12 playing together.
       "answer": 0,
       "level": 2,
       "fact": "Cheetahs also chirp like birds to call to their cubs.",
-      "src": "https://..."
+      "src": "https://...",
+      "hr": { "q": "Koja velika mačka može presti, ali ne može rikati?", "choices": ["Gepard", "Lav", "Tigar", "Jaguar"], "fact": "Gepardi i cvrkuću poput ptica kad dozivaju svoje mladunce." }
     },
     {
       "q": "True or false: milk is a good drink for grown-up cats.",
@@ -91,6 +92,27 @@ Families: adults and kids aged 10 to 12 playing together.
 | `questions[].fact` | yes | One or two sentences, under 200 characters. |
 | `questions[].fixed` | no | `true` keeps the choices in the order written (use for numbers and ranges, and for True/False). Otherwise the game shuffles them each time. |
 | `questions[].src` | no | A page that backs up this particular question, for anything numeric or surprising. |
+| `hr` (topic) | no | Croatian `title` and `blurb` for the topic button. |
+| `questions[].hr` | no | The question in Croatian: `q`, `choices` and `fact`. The choices must be **in the same order** as the English ones (same number, right answer in the same place). A question without it shows in English on Croatian screens. |
+
+## Croatian (and other languages)
+
+Every screen and phone picks its own language (the EN | HR switch; a phone or
+TV set to Croatian starts in Croatian), so each question can carry a Croatian
+version in an `hr` block. Write it as a native speaker would say it to a
+10-year-old, not word for word:
+
+- Metric units: convert miles, feet, pounds and °F, numbers rounded the same
+  way in every choice ("Oko 15 km", "Oko 3.700 m", "30.000 °C"). Croatian
+  numbers use a dot for thousands and a comma for decimals.
+- Use the names Croatian children know: Ivica i Marica, Pepeljuga,
+  Cvilidreta, Ružno pače, Mačak u čizmama, Alisa u Zemlji čudesa.
+- If a question only works in English (a pun, an English collective noun),
+  ask the same idea a Croatian way, keeping the same right answer position.
+- True/False is `["Točno", "Netočno"]`.
+
+The checker reports any question without `hr`, and any `hr` whose choices
+don't line up with the English.
 
 Tips:
 
@@ -115,4 +137,7 @@ coding session along with this file:
 > No question without choices. Every question gets a surprising one- or
 > two-sentence fact.
 > Check every answer and fact against reliable sources, list them in
-> `sources`, and put a `src` on anything numeric or surprising.
+> `sources`, and put a `src` on anything numeric or surprising. Give every
+> question an `hr` block (natural Croatian for a 10-year-old, metric units,
+> choices in the same order as the English) and the topic an `hr` title and
+> blurb.

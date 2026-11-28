@@ -8,6 +8,9 @@ import * as SND from './sound.js';
 import { haptic } from './haptics.js';
 import { loadTopics, pickQuestions, markSeen } from './topics.js';
 import { setupForm, wireSetup } from './team.js';
+import { t, tn, lang, setLang, onLang, langSwitch, loc, qx, LANGS } from './i18n.js';
+
+const T = t; // for the places where `t` is a team
 
 const SAVE = 'slaphappy.host.v1';
 const MAX_TEAMS = 8;
@@ -26,8 +29,8 @@ export async function startHost(app, { fresh }) {
   H = {
     app, room: null, key: null, link: null, net: 'connecting', netSince: now(), teams: [], topics: [],
     settings: { count: 10, slap: 20, answer: 10, topics: null, voice: true },
-    g: null, loop: null, screen: null, screens: new Set(), pingT: null,
-    stop() { clearInterval(this.loop); clearInterval(this.pingT); if (this.link) this.link.close(); SND.stopMusic(); SND.hush(); },
+    g: null, loop: null, screen: null, screens: new Set(), pingT: null, offLang: onLang(() => relang()),
+    stop() { clearInterval(this.loop); clearInterval(this.pingT); if (this.link) this.link.close(); SND.stopMusic(); SND.hush(); this.offLang(); },
   };
   window.SLAP = window.SLAP || {}; window.SLAP.host = H;
   const s = !fresh && savedShow();
@@ -78,7 +81,7 @@ function onNet(m) {
   } else if (m.t === 'peer') {
     const t = byId(m.id);
     if (m.on) { if (t) { t.online = true; sendView(t, true); } send(m.id, info()); }
-    else { if (t) t.online = false; H.screens.delete(m.id); }
+    else { if (t) t.online = false; H.screens.delete(m.id); if (H.g && H.g.readers && H.g.readers.delete(m.id)) readDone(); }
     renderTeams();
   } else if (m.f && m.m) fromTeam(m.f, m.m);
 }
@@ -95,6 +98,8 @@ function freeColor(want, self) {
 
 function fromTeam(id, msg) {
   if (msg.t === 'watch') { H.screens.add(id); syncScreens(true); return; }
+  // a watch screen finished reading the question aloud (in its own language)
+  if (msg.t === 'read') { const g = H.g; if (g && g.readers && msg.r === g.seq && g.readers.delete(id)) readDone(); return; }
   let t = byId(id);
   if (msg.t === 'pong') { if (t && isFinite(msg.s)) { const r = Math.max(0, now() - msg.s); t.rtt = t.rtt ? t.rtt * 0.6 + r * 0.4 : r; } return; }
   if (msg.t === 'join') {
@@ -136,8 +141,10 @@ function viewFor(t) {
   const left = () => Math.max(0, Math.round(g.end - now()));
   const buzzT = g.buzz && byId(g.buzz);
   const by = buzzT ? { name: buzzT.name, color: buzzT.color } : null;
-  const answer = q ? `${LTR[q.answer]}: ${q.answerText}` : '';
-  const said = g.pick && q ? `${LTR[g.pick.i]}: ${q.choices[g.pick.i]}` : '';
+  // answers go to phones in every language; each phone shows its own
+  const answer = q ? inAll(q, x => `${LTR[q.answer]}: ${x.answerText}`) : '';
+  const said = g.pick && q ? inAll(q, x => `${LTR[g.pick.i]}: ${x.choices[g.pick.i]}`) : '';
+  const tr = q ? Object.fromEntries(Object.entries(q.tr || {}).map(([id, x]) => [id, { q: x.q, choices: x.choices }])) : null;
   const mine = t.id === g.buzz, out = g.out.includes(t.id);
   switch (g.phase) {
     case 'intro': return { ...v, v: 'intro' };
@@ -145,8 +152,8 @@ function viewFor(t) {
     case 'ready': return { ...v, v: 'get', voice: !!H.settings.voice };
     case 'steal': return out ? { ...v, v: 'sit' } : { ...v, v: 'get', steal: true };
     case 'armed': return out ? { ...v, v: 'sit' } : { ...v, v: 'slap', ms: left(), steal: g.att > 1 };
-    case 'up': return mine ? { ...v, v: 'pick', ms: left(), q: q.q, choices: q.choices, gone: g.gone } : { ...v, v: 'out', by, choosing: true };
-    case 'checking': return mine ? { ...v, v: 'pick', locked: g.pick.i, q: q.q, choices: q.choices, gone: g.gone.filter(i => i !== g.pick.i) } : { ...v, v: 'out', by, said };
+    case 'up': return mine ? { ...v, v: 'pick', ms: left(), q: q.q, choices: q.choices, tr, gone: g.gone } : { ...v, v: 'out', by, choosing: true };
+    case 'checking': return mine ? { ...v, v: 'pick', locked: g.pick.i, q: q.q, choices: q.choices, tr, gone: g.gone.filter(i => i !== g.pick.i) } : { ...v, v: 'out', by, said };
     case 'miss': {
       const more = q.choices.length - g.gone.length > 1 && H.teams.some(canPlay); // a steal is coming
       return mine ? { ...v, v: 'miss', said, late: !g.pick, more } : { ...v, v: 'out', by, said, missed: true, next: more && canPlay(t) };
@@ -161,6 +168,12 @@ function viewFor(t) {
     }
   }
   return { ...v, v: 'lobby' };
+}
+// { en: ..., hr: ... } built from a question in each of its languages
+function inAll(q, f) {
+  const o = { en: f(q) };
+  for (const [id, x] of Object.entries(q.tr || {})) o[id] = f({ ...q, ...x });
+  return o;
 }
 function sendView(t, force) {
   if (H.mirror) return;
@@ -184,7 +197,7 @@ function snapshot() {
       i: g.i, total: g.qs.length, seq: g.seq, att: g.att, phase: g.phase, dur: g.dur || 0, paused: !!g.paused, buzz: g.buzz, result: g.result,
       revealed: !!g.revealed, over: !!g.over, slapped: g.slaps.map(x => x.id), out: g.out, gone: g.gone, pick: g.pick,
       left: g.paused ? Math.round(g.left || 0) : (g.end ? Math.max(0, Math.round(g.end - now())) : 0),
-      q: q ? { id: q.id, q: q.q, choices: q.choices, answer: q.answer, answerText: q.answerText, fact: q.fact, bonus: q.bonus } : null,
+      q: q ? { id: q.id, q: q.q, choices: q.choices, answer: q.answer, answerText: q.answerText, fact: q.fact, bonus: q.bonus, tr: q.tr || {} } : null,
     } : null,
   };
 }
@@ -250,50 +263,52 @@ function lobby() {
       <div class="mini-logo">Slap <b>Happy</b></div>
       <div class="grow"></div>
       <div class="tools">
-        <button class="iconbtn${SND.prefs.music ? '' : ' off'}" data-act="music" aria-label="Music on or off">${ICON.music(SND.prefs.music)}</button>
-        <button class="iconbtn${SND.prefs.sound ? '' : ' off'}" data-act="sound" aria-label="Sound on or off">${ICON.sound(SND.prefs.sound)}</button>
-        <button class="iconbtn" data-act="exit" aria-label="Leave the show">${ICON.exit}</button>
+        ${langSwitch()}
+        <button class="iconbtn${SND.prefs.music ? '' : ' off'}" data-act="music" aria-label="${t('music_onoff')}">${ICON.music(SND.prefs.music)}</button>
+        <button class="iconbtn${SND.prefs.sound ? '' : ' off'}" data-act="sound" aria-label="${t('sound_onoff')}">${ICON.sound(SND.prefs.sound)}</button>
+        <button class="iconbtn" data-act="exit" aria-label="${t('leave_show')}">${ICON.exit}</button>
       </div>
     </header>
     <div class="lobby-main">
       <section class="join-card marquee chase">
-        <div class="how">Join on your phone</div>
+        <div class="how">${t('join_phone')}</div>
         <div class="qr">${qrSVG(joinURL())}</div>
         <div class="codebox">
           <div class="url">${esc(shortURL())}</div>
-          <div class="code-label">Room letters</div>
+          <div class="code-label">${t('room_letters')}</div>
           <div class="code${H.net === 'open' ? '' : ' pending'}">${H.room}</div>
           <div class="netwarn"></div>
-          ${H.mirror ? '' : `<div class="farnote">Family far away? Open this page on their TV or iPad, tap Watch on another screen, and type the letters.</div>`}
+          ${H.mirror ? '' : `<div class="farnote">${t('farnote')}</div>`}
         </div>
       </section>
       <section class="teams-card">
-        <div class="teams-head"><h2>Teams</h2><div class="grow"></div><button class="btn ghost small" data-act="addlocal">Add a team on this screen</button></div>
+        <div class="teams-head"><h2>${t('teams')}</h2><div class="grow"></div><button class="btn ghost small" data-act="addlocal">${t('add_local')}</button></div>
         <div class="podiums lobby-podiums scroll"></div>
       </section>
     </div>
     <footer class="lobby-foot">
-      <div class="optgroup"><div class="lbl">Topics</div><div class="topics">${H.topics.map(t => `<button class="topic${S.topics.includes(t.id) ? ' on' : ''}" data-act="topic" data-arg="${t.id}"><span class="e">${esc(t.emoji)}</span>${esc(t.title)} <small>${t.questions.length}</small></button>`).join('') || '<span class="netwarn">No topics found.</span>'}</div></div>
-      <div class="optgroup"><div class="lbl">Questions</div><div class="pills">${[10, 15, 20].map(n => `<button class="pill${S.count === n ? ' on' : ''}" data-act="count" data-arg="${n}" ${n > pool ? 'disabled style="opacity:.3"' : ''}>${n}</button>`).join('')}</div></div>
-      <div class="optgroup"><div class="lbl">Time to slap</div><div class="pills">${[10, 20, 30].map(n => `<button class="pill${S.slap === n ? ' on' : ''}" data-act="slaptime" data-arg="${n}">${n}s</button>`).join('')}</div></div>
-      <div class="optgroup"><div class="lbl">Read questions aloud</div><div class="pills"><button class="pill${S.voice ? '' : ' on'}" data-act="voice" data-arg="0">Off</button><button class="pill${S.voice ? ' on' : ''}" data-act="voice" data-arg="1">On</button></div></div>
+      <div class="optgroup"><div class="lbl">${t('topics')}</div><div class="topics">${H.topics.map(tp => `<button class="topic${S.topics.includes(tp.id) ? ' on' : ''}" data-act="topic" data-arg="${tp.id}"><span class="e">${esc(tp.emoji)}</span>${esc(qx(tp).title)} <small>${tp.questions.length}</small></button>`).join('') || `<span class="netwarn">${t('no_topics')}</span>`}</div></div>
+      <div class="optgroup"><div class="lbl">${t('questions')}</div><div class="pills">${[10, 15, 20].map(n => `<button class="pill${S.count === n ? ' on' : ''}" data-act="count" data-arg="${n}" ${n > pool ? 'disabled style="opacity:.3"' : ''}>${n}</button>`).join('')}</div></div>
+      <div class="optgroup"><div class="lbl">${t('time_slap')}</div><div class="pills">${[10, 20, 30].map(n => `<button class="pill${S.slap === n ? ' on' : ''}" data-act="slaptime" data-arg="${n}">${n}s</button>`).join('')}</div></div>
+      <div class="optgroup"><div class="lbl">${t('read_aloud')}</div><div class="pills"><button class="pill${S.voice ? '' : ' on'}" data-act="voice" data-arg="0">${t('off')}</button><button class="pill${S.voice ? ' on' : ''}" data-act="voice" data-arg="1">${t('on')}</button></div></div>
       <div class="grow"></div>
-      <button class="btn big gold start" data-act="start">Start the show</button>
+      <button class="btn big gold start" data-act="start">${t('start')}</button>
     </footer>
-    ${H.mirror ? `<div class="mirror-wait">Waiting for the host to start the show</div>` : ''}
+    ${H.mirror ? `<div class="mirror-wait">${t('waiting_host')}</div>` : ''}
   </div>`;
   const scr = H.app.firstElementChild;
   if (H.mirror) scr.classList.add('mirror');
   bindTaps(scr, {
     music: (a, b) => { SND.setMusic(!SND.prefs.music); b.innerHTML = ICON.music(SND.prefs.music); b.classList.toggle('off', !SND.prefs.music); if (SND.prefs.music) SND.music('lobby'); },
     sound: (a, b) => { SND.setSound(!SND.prefs.sound); b.innerHTML = ICON.sound(SND.prefs.sound); b.classList.toggle('off', !SND.prefs.sound); },
-    exit: () => H.mirror ? leaveMirror() : confirmBox('Leave the show?', 'Phones will be sent home. The teams can join a new show later.', 'Leave', () => { endShow(); }),
+    lang: id => { SND.play('pop'); setLang(id); },
+    exit: () => H.mirror ? leaveMirror() : confirmBox(t('leave_q'), t('leave_note'), t('leave'), () => { endShow(); }),
     addlocal: () => addLocal(),
     remove: id => { const t = byId(id); if (!t) return; if (!t.local) H.link.send({ kick: id }); H.teams = H.teams.filter(x => x !== t); SND.play('pop'); save(); renderTeams(); broadcastInfo(); },
     topic: id => { const on = S.topics.includes(id); if (on && S.topics.length === 1) return; S.topics = on ? S.topics.filter(x => x !== id) : [...S.topics, id]; SND.play('pop'); save(); lobby(); },
     count: n => { S.count = +n; SND.play('pop'); save(); lobby(); },
     slaptime: n => { S.slap = +n; SND.play('pop'); save(); lobby(); },
-    voice: n => { S.voice = n === '1'; S.voiceSet = true; SND.play('pop'); save(); lobby(); if (S.voice) SND.primeSpeech('Welcome to Slap Happy!'); },
+    voice: n => { S.voice = n === '1'; S.voiceSet = true; SND.play('pop'); save(); lobby(); if (S.voice) SND.primeSpeech(t('say_welcome'), lang()); },
     start: () => startGame(),
   });
   wirePads(scr);
@@ -307,15 +322,15 @@ function renderNet() {
   if (!code || !warn) return;
   code.classList.toggle('pending', H.net !== 'open');
   const bad = H.net === 'dead' || (H.net !== 'open' && H.link && H.link.tries >= 3);
-  warn.textContent = bad ? "Phones can't reach this show right now. Check the Wi-Fi, or add teams on this screen." : '';
+  warn.textContent = bad ? t('net_warn') : '';
 }
 
 function podiumHTML(t, { lobbyMode } = {}) {
   const b = SND.BUZZERS.find(x => x.id === t.sound);
   return `<div class="podium${t.local ? ' local' : ''}${!t.local && !t.online ? ' offline' : ''}" data-id="${t.id}" style="--tc:${colorOf(t.color)};--tink:${inkOn(colorOf(t.color))}">
     <div class="p-light"></div>
-    ${lobbyMode ? `<button class="p-x" data-act="remove" data-arg="${t.id}" aria-label="Remove ${esc(t.name)}">×</button><span class="p-sound">${b ? b.e : ''}</span>` : ''}
-    <span class="p-off">phone asleep</span>
+    ${lobbyMode ? `<button class="p-x" data-act="remove" data-arg="${t.id}" aria-label="${T('remove', { name: esc(t.name) })}">×</button><span class="p-sound">${b ? b.e : ''}</span>` : ''}
+    <span class="p-off">${T('phone_asleep')}</span>
     <div class="p-name">${esc(t.name)}</div>
     <div class="p-score">${t.score}</div>
     <div class="p-act"></div>
@@ -325,7 +340,7 @@ function podiumHTML(t, { lobbyMode } = {}) {
 function renderTeams() {
   if (H.screen === 'lobby') {
     const box = $('.lobby-podiums', H.app); if (!box) return;
-    box.innerHTML = H.teams.length ? H.teams.map(t => podiumHTML(t, { lobbyMode: true })).join('') : `<div class="empty-teams">Scan the code or go to the address with each team's phone. Teams pop up here as they join.</div>`;
+    box.innerHTML = H.teams.length ? H.teams.map(t => podiumHTML(t, { lobbyMode: true })).join('') : `<div class="empty-teams">${T('empty_teams')}</div>`;
     const start = $('[data-act="start"]', H.app); if (start) start.disabled = !H.teams.length;
     if (!H.mirror) for (const t of H.teams) if (t.local) renderPad(t, viewFor(t));
   } else if (H.screen === 'show') {
@@ -372,11 +387,11 @@ function renderPad(t, v) {
   const g = H.g;
   let h = '';
   switch (v.v) {
-    case 'lobby': h = `<button class="p-tap" data-pad="test">Test</button>`; break;
-    case 'next': case 'get': case 'intro': h = `<button class="p-tap calm" data-pad="slap">${v.steal ? 'Steal coming' : 'Wait for it'}</button>`; break;
-    case 'slap': h = g && g.slaps.some(s => s.id === t.id) ? `<button class="p-tap calm" disabled>Slapped!</button>` : `<button class="p-tap live" data-pad="slap">Slap!</button>`; break;
-    case 'pick': h = v.locked === undefined ? `<span class="p-hint">Tap your answer</span>` : `<span class="p-hint">${LTR[v.locked]}!</span>`; break;
-    case 'sit': h = `<span class="p-hint">Sitting out</span>`; break;
+    case 'lobby': h = `<button class="p-tap" data-pad="test">${T('test')}</button>`; break;
+    case 'next': case 'get': case 'intro': h = `<button class="p-tap calm" data-pad="slap">${v.steal ? T('steal_coming') : T('wait_for_it')}</button>`; break;
+    case 'slap': h = g && g.slaps.some(s => s.id === t.id) ? `<button class="p-tap calm" disabled>${T('slapped')}</button>` : `<button class="p-tap live" data-pad="slap">${T('slap')}</button>`; break;
+    case 'pick': h = v.locked === undefined ? `<span class="p-hint">${T('tap_answer')}</span>` : `<span class="p-hint">${LTR[v.locked]}!</span>`; break;
+    case 'sit': h = `<span class="p-hint">${T('sitting_out')}</span>`; break;
     default: h = '';
   }
   if (p.innerHTML !== h) p.innerHTML = h;
@@ -386,7 +401,7 @@ function addLocal() {
   if (H.teams.length >= MAX_TEAMS) return;
   const ov = document.createElement('div');
   ov.className = 'overlay';
-  ov.innerHTML = `<div class="card marquee"><div class="join">${setupForm({ title: 'Team on this screen', takenColors: H.teams.map(t => t.color), takenNames: H.teams.map(t => t.name), takenSounds: H.teams.map(t => t.sound), button: 'Add team' })}<button class="btn ghost small back" data-act="cancel">Cancel</button></div></div>`;
+  ov.innerHTML = `<div class="card marquee"><div class="join">${setupForm({ title: T('team_here'), takenColors: H.teams.map(t => t.color), takenNames: H.teams.map(t => t.name), takenSounds: H.teams.map(t => t.sound), button: T('add_team') })}<button class="btn ghost small back" data-act="cancel">${T('cancel')}</button></div></div>`;
   H.app.firstElementChild.appendChild(ov);
   bindTaps(ov, { cancel: () => ov.remove() });
   ov.addEventListener('pointerdown', e => { if (e.target === ov) ov.remove(); });
@@ -406,7 +421,7 @@ function addLocal() {
 function confirmBox(title, note, yes, onYes) {
   const ov = document.createElement('div');
   ov.className = 'overlay';
-  ov.innerHTML = `<div class="card marquee"><h2>${esc(title)}</h2><p class="note">${esc(note)}</p><div class="row"><button class="btn ghost" data-act="no">Stay</button><button class="btn tang" data-act="yes">${esc(yes)}</button></div></div>`;
+  ov.innerHTML = `<div class="card marquee"><h2>${esc(title)}</h2><p class="note">${esc(note)}</p><div class="row"><button class="btn ghost" data-act="no">${t('stay')}</button><button class="btn tang" data-act="yes">${esc(yes)}</button></div></div>`;
   H.app.firstElementChild.appendChild(ov);
   bindTaps(ov, { no: () => ov.remove(), yes: () => { ov.remove(); onYes(); } });
 }
@@ -423,7 +438,7 @@ function endShow() {
 function offerResume(sg) {
   const ov = document.createElement('div');
   ov.className = 'overlay';
-  ov.innerHTML = `<div class="card marquee"><h2>Pick up where you left off?</h2><p class="note">Question ${Math.min(sg.i + 1, sg.qs.length)} of ${sg.qs.length}, scores kept.</p><div class="row"><button class="btn ghost" data-act="no">Back to the lobby</button><button class="btn gold" data-act="yes">Keep playing</button></div></div>`;
+  ov.innerHTML = `<div class="card marquee"><h2>${t('resume_q')}</h2><p class="note">${t('resume_note', { i: Math.min(sg.i + 1, sg.qs.length), n: sg.qs.length })}</p><div class="row"><button class="btn ghost" data-act="no">${t('back_lobby')}</button><button class="btn gold" data-act="yes">${t('keep_playing')}</button></div></div>`;
   H.app.firstElementChild.appendChild(ov);
   bindTaps(ov, {
     no: () => { ov.remove(); },
@@ -435,7 +450,7 @@ function offerResume(sg) {
 function startGame({ resume, again } = {}) {
   if (!H.teams.length) return;
   SND.unlock();
-  if (H.settings.voice) SND.primeSpeech("Let's play Slap Happy!");
+  if (H.settings.voice) SND.primeSpeech(t('say_lets_play'), lang());
   stayAwake();
   let qs, i = -1, seq = 0;
   if (resume) {
@@ -457,7 +472,7 @@ function startGame({ resume, again } = {}) {
   splash([['3', '']]);
   SND.stopMusic();
   [0, 1, 2].forEach(k => setTimeout(() => { if (!H || !H.g || H.g.phase !== 'intro') return; splash([[String(3 - k), '']]); SND.play('beep'); }, ms(k * 1)));
-  setTimeout(() => { if (!H || !H.g || H.g.phase !== 'intro') return; splash([['Go!', 'pink']]); SND.play('go'); }, ms(3));
+  setTimeout(() => { if (!H || !H.g || H.g.phase !== 'intro') return; splash([[t('go'), 'pink']]); SND.play('go'); }, ms(3));
   broadcastInfo();
   save();
 }
@@ -484,33 +499,46 @@ function nextQuestion() {
   markSeen([q.id]);
   renderQuestion(q);
   SND.stopMusic();
-  if (q.bonus) { SND.play('bonus'); splash([['Bonus round!', 'pink'], ['Double points', 'small']]); }
-  else { SND.play('whoosh'); splash([[`Question ${g.i + 1}`, ''], [`of ${g.qs.length}`, 'small']]); }
+  if (q.bonus) { SND.play('bonus'); splash([[t('bonus'), 'pink'], [t('double_pts'), 'small']]); }
+  else { SND.play('whoosh'); splash([[t('question_n', { n: g.i + 1 }), ''], [t('of_n', { n: g.qs.length }), 'small']]); }
   save();
-  if (q.bonus && H.settings.voice) SND.speak('Bonus round!');
+  if (q.bonus && H.settings.voice) SND.speak(t('bonus'), null, lang());
   setPhase('splash', ms(q.bonus ? 2.2 : 1.2), () => { splash(null); readQuestion(q); });
 }
 
 // The buzzers stay locked while the question is read. With the voice on they
 // unlock a beat after it finishes (never sooner than 2.5 s, and if the voice
 // stalls, after a generous guess). With it off, after time to read it.
+// Watch screens far away read it too, in their own language (Croatian takes
+// a little longer), and the buzzers wait for them as well.
+const longest = q => Math.max(q.q.length, ...Object.values(q.tr || {}).map(x => x.q.length));
 function readTime(q) {
-  const len = q.q.length + (q.choices ? q.choices.join('').length * 0.6 : 0);
+  const all = [q, ...Object.values(q.tr || {})];
+  const len = Math.max(...all.map(x => x.q.length + (x.choices ? x.choices.join('').length * 0.6 : 0)));
   return Math.min(6000, Math.max(2500, 1200 + 32 * len));
 }
 function readQuestion(q) {
   const g = H.g, seq = g.seq, started = now();
+  g.readers = new Set(); g.hostAt = null;
   if (!H.settings.voice) { setPhase('ready', readTime(q) * SPEED, arm); return; }
-  const guess = 900 + 70 * q.q.length;                     // how long the voice should take
-  const fallback = Math.min(14000, Math.max(4000, guess * 1.5 + 1500));
+  const mine = qx(q).q;
+  const guess = 900 + 70 * mine.length;                     // how long this voice should take
+  const fallback = Math.min(14000, Math.max(4000, (900 + 70 * longest(q)) * 1.5 + 1500));
+  g.readers = new Set(H.screens);
   setPhase('ready', fallback * SPEED, arm);
-  SND.speak(q.q, ok => {
-    if (!H || H.g !== g || g.seq !== seq || g.phase !== 'ready' || g.paused) return;
+  SND.speak(mine, ok => {
+    if (!H || H.g !== g || g.seq !== seq || g.phase !== 'ready') return;
     const took = now() - started;
     // a voice that "finished" far too fast didn't really speak: give reading time instead
-    const at = ok && took > guess * 0.4 ? Math.max(started + 2500 * SPEED, now() + 350 * SPEED) : started + readTime(q) * SPEED;
-    g.end = Math.min(g.end, at);
-  });
+    g.hostAt = ok && took > guess * 0.4 ? Math.max(started + 2500 * SPEED, now() + 350 * SPEED) : started + readTime(q) * SPEED;
+    readDone();
+  }, lang());
+}
+// unlock once this screen and every watch screen have finished reading
+function readDone() {
+  const g = H.g;
+  if (!g || g.phase !== 'ready' || g.paused || g.hostAt == null || (g.readers && g.readers.size)) return;
+  g.end = Math.min(g.end, Math.max(g.hostAt, now() + 350 * SPEED));
 }
 
 function arm() {
@@ -605,7 +633,7 @@ function steal() {
   g.att++; g.buzz = null; g.pick = null; g.slaps = [];
   clearTimeout(g.decideT); g.decideT = null;
   SND.play('whoosh');
-  splash([['Steal it!', 'pink'], ['Slap when it lights up', 'small']]);
+  splash([[t('steal_it'), 'pink'], [t('slap_when'), 'small']]);
   setPhase('steal', ms(1.4), () => { splash(null); arm(); });
 }
 function showAnswer() {
@@ -626,7 +654,7 @@ function timeUp() {
 function final() {
   const g = H.g;
   SND.stopMusic();
-  splash([['And the winner is...', '']]);
+  splash([[t('winner_is'), '']]);
   SND.drumroll(2.3 * SPEED);
   setPhase('final', ms(2.6), () => { splash(null); g.over = true; save(); setPhase('over', 0, null); podiumScreen(); });
 }
@@ -678,7 +706,7 @@ function buildShow() {
   H.screen = 'show';
   const topicIds = H.settings.topics;
   const tp = H.topics.filter(t => topicIds.includes(t.id));
-  const chip = tp.length === 1 ? `${esc(tp[0].emoji)} ${esc(tp[0].title)}` : tp.length <= 4 ? `${tp.map(t => esc(t.emoji)).join(' ')} Mixed bag` : `Mixed bag of ${tp.length} topics`;
+  const chip = tp.length === 1 ? `${esc(tp[0].emoji)} ${esc(qx(tp[0]).title)}` : tp.length <= 4 ? `${tp.map(x => esc(x.emoji)).join(' ')} ${t('mixed')}` : t('mixed_n', { n: tp.length });
   H.app.innerHTML = `
   <div class="screen host show">
     <div class="rays"></div>
@@ -687,12 +715,13 @@ function buildShow() {
       <div class="round"></div>
       <div class="topic-chip">${chip}</div>
       <div class="grow"></div>
-      <div class="roomcode">Join: ${esc(shortURL())} · <b>${H.room}</b></div>
-      <button class="iconbtn" data-act="pause" aria-label="Pause">${ICON.pause}</button>
+      <div class="roomcode">${t('join_at')} ${esc(shortURL())} · <b>${H.room}</b></div>
+      ${langSwitch('small')}
+      <button class="iconbtn" data-act="pause" aria-label="${t('pause')}">${ICON.pause}</button>
     </header>
     <main class="stage">
       <div class="qrow">
-        <div class="board marquee"><div class="bonus-tag">Bonus round: double points</div><div class="qtext"></div></div>
+        <div class="board marquee"><div class="bonus-tag">${t('bonus_tag')}</div><div class="qtext"></div></div>
         <div class="timer idle"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="45"/><circle class="arc" cx="50" cy="50" r="45" stroke-dasharray="${CIRC}" stroke-dashoffset="0"/></svg><span class="tnum"></span><span class="tlbl"></span></div>
       </div>
       <div class="choices"></div>
@@ -705,6 +734,7 @@ function buildShow() {
   const scr = H.app.firstElementChild;
   if (H.mirror) scr.classList.add('mirror');
   bindTaps(scr, {
+    lang: id => setLang(id),
     pause: () => pause(),
     next: () => { const g = H.g; if (g && (g.phase === 'result' || g.phase === 'answer')) nextQuestion(); },
   });
@@ -712,11 +742,13 @@ function buildShow() {
   renderTeams();
 }
 
-function renderQuestion(q) {
+function renderQuestion(q0) {
   const scr = H.app.firstElementChild;
+  const q = qx(q0);                       // in this screen's language
   scr.classList.toggle('bonus', !!q.bonus);
   const qt = $('.qtext', scr);
   qt.textContent = q.q;
+  qt.lang = q0.tr && q0.tr[lang()] ? lang() : 'en';
   const L = q.q.length;
   qt.style.setProperty('--qs', L < 50 ? 4.8 : L < 80 ? 4.3 : L < 120 ? 3.8 : 3.3);
   const ch = $('.choices', scr);
@@ -732,7 +764,7 @@ function renderShow() {
   const g = H.g, scr = H.app.firstElementChild;
   if (!g || H.screen !== 'show' || !scr) return;
   const q = g.qs[Math.min(g.i, g.qs.length - 1)] || g.qs[0];
-  $('.round', scr).innerHTML = g.i >= 0 && g.i < g.qs.length ? `Question <b>${g.i + 1}</b> of ${g.qs.length}` : '';
+  $('.round', scr).innerHTML = g.i >= 0 && g.i < g.qs.length ? t('round', { n: g.i + 1, total: g.qs.length }) : '';
   const buzzT = g.buzz && byId(g.buzz);
   const showAns = g.revealed && ['result', 'answer'].includes(g.phase);
   scr.classList.toggle('buzzed', ['up', 'checking', 'miss', 'result'].includes(g.phase) && !!buzzT);
@@ -749,11 +781,12 @@ function renderShow() {
     c.classList.toggle('tappable', !!localUp && !gone.includes(i));
   });
   const fact = $('.fact', scr);
-  if (showAns && q.fact) { fact.innerHTML = `<b>Did you know?</b> ${esc(q.fact)}`; fact.classList.add('show'); } else fact.classList.remove('show');
+  const qq = qx(q);
+  if (showAns && qq.fact) { fact.innerHTML = `<b>${t('did_you_know')}</b> ${esc(qq.fact)}`; fact.classList.add('show'); } else fact.classList.remove('show');
   // timer
   const tm = $('.timer', scr);
   tm.classList.toggle('idle', !(g.phase === 'armed' || g.phase === 'up'));
-  $('.tlbl', tm).textContent = g.phase === 'up' ? 'to pick' : g.phase === 'armed' || g.phase === 'ready' ? 'to slap' : '';
+  $('.tlbl', tm).textContent = g.phase === 'up' ? t('to_pick') : g.phase === 'armed' || g.phase === 'ready' ? t('to_slap') : '';
   if (g.phase === 'ready') { $('.tnum', tm).textContent = H.settings.slap; $('.arc', tm).style.strokeDashoffset = '0'; }
   if (g.phase === 'up') { $('.arc', tm).style.strokeDashoffset = '0'; }
   if (['timeout', 'answer', 'checking', 'miss', 'steal'].includes(g.phase)) $('.tnum', tm).textContent = '';
@@ -764,15 +797,15 @@ function renderShow() {
   const why = g.result && g.result.why;
   let h = '';
   switch (g.phase) {
-    case 'ready': h = `<div class="signal wait"><i></i>${H.settings.voice ? 'Listen...' : 'Read it...'}</div>`; break;
-    case 'steal': h = `<div class="signal wait"><i></i>Steal coming...</div>`; break;
-    case 'armed': h = `<div class="signal go"><i></i>${g.att > 1 ? 'Slap to steal!' : 'Slap now!'}</div>`; break;
-    case 'up': h = `<div class="call">${name}, pick ${localUp ? 'on the board' : 'on your phone'}!</div>`; break;
-    case 'checking': h = `<div class="call">${name} says ${L}!</div>`; break;
-    case 'miss': h = `<div class="call">${pick ? `Not ${L}!` : `Out of time, ${name}!`}</div>`; break;
-    case 'result': h = `<div class="call go">${g.result.stolen ? 'Stolen! ' : ''}+${g.result.pts} for ${name}!</div>` + nextHTML(); break;
-    case 'timeout': h = `<div class="call">Time's up!</div>`; break;
-    case 'answer': h = `<div class="call">${why === 'noslap' ? 'Nobody slapped. Here’s the answer' : why === 'nosteal' ? 'No steals. Here’s the answer' : why === 'skip' ? 'Here’s the answer' : 'Nobody got it. Here’s the answer'}</div>` + nextHTML(); break;
+    case 'ready': h = `<div class="signal wait"><i></i>${H.settings.voice ? t('listen') : t('read_it')}</div>`; break;
+    case 'steal': h = `<div class="signal wait"><i></i>${t('steal_soon')}</div>`; break;
+    case 'armed': h = `<div class="signal go"><i></i>${g.att > 1 ? t('slap_steal') : t('slap_now')}</div>`; break;
+    case 'up': h = `<div class="call">${t(localUp ? 'pick_board' : 'pick_phone', { name })}</div>`; break;
+    case 'checking': h = `<div class="call">${t('says', { name, L })}</div>`; break;
+    case 'miss': h = `<div class="call">${pick ? t('not_L', { L }) : t('late_name', { name })}</div>`; break;
+    case 'result': h = `<div class="call go">${g.result.stolen ? t('stolen_pre') : ''}${t('plus_for', { pts: g.result.pts, name })}</div>` + nextHTML(); break;
+    case 'timeout': h = `<div class="call">${t('times_up')}</div>`; break;
+    case 'answer': h = `<div class="call">${t(why === 'noslap' ? 'ans_noslap' : why === 'nosteal' ? 'ans_nosteal' : why === 'skip' ? 'ans_skip' : 'ans_nobody')}</div>` + nextHTML(); break;
   }
   sl.innerHTML = h;
   scr.classList.toggle('reveal', showAns);
@@ -797,7 +830,7 @@ function fitStage() {
 }
 addEventListener('resize', () => { if (H && H.screen === 'show') fitStage(); });
 if (document.fonts) document.fonts.ready.then(() => { if (H && H.screen === 'show') fitStage(); });
-const nextHTML = () => `<div class="override"><div class="nextbar"><i></i></div><button class="btn ghost small" data-act="next">Next question</button></div>`;
+const nextHTML = () => `<div class="override"><div class="nextbar"><i></i></div><button class="btn ghost small" data-act="next">${t('next_question')}</button></div>`;
 
 function renderPodiums() {
   const g = H.g;
@@ -864,25 +897,32 @@ function pause() {
   clearTimeout(g.decideT);
   SND.hush(); SND.stopMusic();
   pushViews();
+  pauseMenu();
+}
+function pauseMenu() {
+  const g = H.g;
   const ov = document.createElement('div');
   ov.className = 'overlay pause-ov';
+  const onoff = v => v ? t('v_on') : t('v_off');
   const draw = () => {
     ov.innerHTML = `<div class="card marquee">
-      <h2>Paused</h2>
-      <div class="row"><button class="btn big gold" data-act="resume">Keep playing</button></div>
-      <div class="row"><button class="btn ghost small" data-act="skip">Skip this question</button><button class="btn ghost small" data-act="end">End the show now</button></div>
-      <div class="field-label" style="margin:6px 0 -6px 4px">Fix the scores</div>
-      <div class="scorefix">${H.teams.map(t => `<div class="sf" style="--tc:${colorOf(t.color)};--tink:${inkOn(colorOf(t.color))}"><span>${esc(t.name)}</span><button data-act="minus" data-arg="${t.id}" aria-label="Take away 100">−100</button><b>${t.score}</b><button data-act="plus" data-arg="${t.id}" aria-label="Add 100">+100</button></div>`).join('')}</div>
+      <h2>${t('paused')}</h2>
+      <div class="row"><button class="btn big gold" data-act="resume">${t('keep_playing')}</button></div>
+      <div class="row"><button class="btn ghost small" data-act="skip">${t('skip_q')}</button><button class="btn ghost small" data-act="end">${t('end_now')}</button></div>
+      <div class="field-label" style="margin:6px 0 -6px 4px">${t('fix_scores')}</div>
+      <div class="scorefix">${H.teams.map(tm => `<div class="sf" style="--tc:${colorOf(tm.color)};--tink:${inkOn(colorOf(tm.color))}"><span>${esc(tm.name)}</span><button data-act="minus" data-arg="${tm.id}" aria-label="${t('take100')}">−100</button><b>${tm.score}</b><button data-act="plus" data-arg="${tm.id}" aria-label="${t('add100')}">+100</button></div>`).join('')}</div>
       <div class="toggles">
-        <button class="btn ghost small" data-act="snd">Sound: ${SND.prefs.sound ? 'on' : 'off'}</button>
-        <button class="btn ghost small" data-act="mus">Music: ${SND.prefs.music ? 'on' : 'off'}</button>
-        <button class="btn ghost small" data-act="voice">Read aloud: ${H.settings.voice ? 'on' : 'off'}</button>
+        <button class="btn ghost small" data-act="snd">${t('sound_v', { v: onoff(SND.prefs.sound) })}</button>
+        <button class="btn ghost small" data-act="mus">${t('music_v', { v: onoff(SND.prefs.music) })}</button>
+        <button class="btn ghost small" data-act="voice">${t('read_v', { v: onoff(H.settings.voice) })}</button>
+        ${langSwitch()}
       </div>
     </div>`;
   };
   draw();
   H.app.firstElementChild.appendChild(ov);
   bindTaps(ov, {
+    lang: id => setLang(id),
     resume: () => { ov.remove(); resume(); },
     skip: () => { ov.remove(); resume(true); skip(); },
     end: () => { ov.remove(); resume(true); g.i = g.qs.length; final(); },
@@ -890,7 +930,7 @@ function pause() {
     plus: id => { const t = byId(id); if (t) { t.score += 100; save(); draw(); renderPodiums(); syncScreens(); } },
     snd: () => { SND.setSound(!SND.prefs.sound); draw(); },
     mus: () => { SND.setMusic(!SND.prefs.music); draw(); },
-    voice: () => { H.settings.voice = !H.settings.voice; H.settings.voiceSet = true; save(); draw(); if (H.settings.voice) SND.primeSpeech(' '); else SND.hush(); },
+    voice: () => { H.settings.voice = !H.settings.voice; H.settings.voiceSet = true; save(); draw(); if (H.settings.voice) SND.primeSpeech('', lang()); else SND.hush(); },
   });
 }
 function resume(quiet) {
@@ -908,7 +948,7 @@ function resume(quiet) {
 }
 
 // ---------- the winners ----------
-function podiumScreen() {
+function podiumScreen(quiet) {
   H.screen = 'over';
   const ranked = [...H.teams].sort((a, b) => b.score - a.score);
   const placeOf = t => 1 + H.teams.filter(o => o.score > t.score).length;
@@ -919,29 +959,51 @@ function podiumScreen() {
   H.app.innerHTML = `
   <div class="screen host final">
     <div class="rays turn"></div>
-    <header><div class="mini-logo">Slap <b>Happy</b></div><div class="grow"></div></header>
+    <header><div class="mini-logo">Slap <b>Happy</b></div><div class="grow"></div>${langSwitch()}</header>
     <div class="winbox">
-      <div class="champ">${winners.length > 1 ? `<span>It's a tie!</span>${winners.map(w => esc(w.name)).join(' & ')}` : `<span>The winner is</span>${esc(winners[0].name)}`}</div>
+      <div class="champ">${winners.length > 1 ? `<span>${t('tie')}</span>${winners.map(w => esc(w.name)).join(' & ')}` : `<span>${t('winner_short')}</span>${esc(winners[0].name)}`}</div>
       <div class="steps">${order.map(t => { const p = placeOf(t); return `<div class="step p${Math.min(p, 4)}" style="--tc:${colorOf(t.color)};--tink:${inkOn(colorOf(t.color))}"><div class="who">${esc(t.name)}</div><div class="pts">${t.score}</div><div class="block">${p}</div></div>`; }).join('')}</div>
       ${rest.length ? `<div class="rest">${rest.map(t => `<span style="--tc:${colorOf(t.color)};--tink:${inkOn(colorOf(t.color))}">${placeOf(t)}. ${esc(t.name)} · ${t.score}</span>`).join('')}</div>` : ''}
     </div>
     <div class="acts">
-      <button class="btn big gold" data-act="again">Play again</button>
-      <button class="btn ghost" data-act="teams">Change teams or topics</button>
-      <button class="btn ghost" data-act="done">Finish</button>
+      <button class="btn big gold" data-act="again">${t('play_again')}</button>
+      <button class="btn ghost" data-act="teams">${t('change_setup')}</button>
+      <button class="btn ghost" data-act="done">${t('finish')}</button>
     </div>
   </div>`;
   const scr = H.app.firstElementChild;
   if (H.mirror) scr.classList.add('mirror');
   bindTaps(scr, {
+    lang: id => setLang(id),
     again: () => startGame({ again: true }),
     teams: () => { for (const t of H.teams) t.score = 0; H.g = null; save(); lobby(); pushViews(true); },
     done: () => endShow(),
   });
+  if (quiet) return;
   SND.play('fanfare');
   SND.applause(3, 0.4);
   rain(260, winners.map(w => colorOf(w.color)).concat(['#ffb81c', '#fff3d1', '#ff5fa2']));
   pushViews(true);
+}
+
+// The language was switched on this screen: draw what's showing again, in the
+// new language, without replaying sounds or confetti. (Phones and watch
+// screens each keep their own language.)
+function relang() {
+  if (!H) return;
+  if (H.mirror && H.redraw && !H.screen) { H.redraw(); return; }
+  if (H.screen === 'lobby') { lobby(); return; }
+  if (H.screen === 'over') { podiumScreen(true); return; }
+  if (H.screen === 'show' && H.g) {
+    const g = H.g, q = g.qs[Math.min(Math.max(g.i, 0), g.qs.length - 1)];
+    const keepPause = !H.mirror && g.paused && $('.pause-ov', H.app);
+    buildShow();
+    if (q && g.i >= 0) renderQuestion(q);
+    if (g.buzz) { const b = byId(g.buzz); if (b) teamStyle(H.app.firstElementChild, b.color); }
+    renderShow();
+    if (keepPause) pauseMenu();
+    if (H.mirror) mirrorPaused(g.paused);
+  }
 }
 
 
@@ -958,14 +1020,14 @@ export async function startMirror(app, { code, back }) {
   H = {
     app, mirror: true, back, room: code, key: null, link: null, net: 'connecting', netSince: now(), teams: [], topics: [],
     settings: { count: 10, slap: 20, answer: 10, topics: [], voice: false },
-    g: null, loop: null, screen: null, introT: [], hostOn: true, setKey: '',
-    stop() { clearInterval(this.loop); (this.introT || []).forEach(clearTimeout); if (this.link) this.link.close(); SND.stopMusic(); SND.hush(); },
+    g: null, loop: null, screen: null, introT: [], hostOn: true, setKey: '', redraw: null, offLang: onLang(() => relang()),
+    stop() { clearInterval(this.loop); (this.introT || []).forEach(clearTimeout); if (this.link) this.link.close(); SND.stopMusic(); SND.hush(); this.offLang(); },
   };
   window.SLAP = window.SLAP || {}; window.SLAP.host = H;
   if (!isCode(code)) { watchLetters(''); return; }
   watchURL(code); // a reload (or a sleepy TV) comes straight back to the show
-  document.addEventListener('pointerup', () => SND.primeSpeech(), { once: true });
-  mirrorNote('Finding the show', code);
+  document.addEventListener('pointerup', () => SND.primeSpeech('', lang()), { once: true });
+  mirrorNote('finding', code);
   H.topics = await loadTopics();
   const id = 'w' + rid(11);
   H.link = new Link(`/room/${code}?team=${id}`, {
@@ -974,48 +1036,53 @@ export async function startMirror(app, { code, back }) {
     fatal: why => {
       H.link = null;
       watchURL('');
-      if (why === 'noroom') watchLetters(`No show is using ${code} right now. Check the letters on the big screen.`, code);
-      else if (why === 'full') watchLetters('That show is full.', code);
-      else watchLetters('Something went wrong. Try again.', code);
+      if (why === 'noroom') watchLetters(['err_noroom', { code }], code);
+      else if (why === 'full') watchLetters(['show_full'], code);
+      else watchLetters(['err_generic'], code);
     },
   });
-  H.failT = setTimeout(() => { if (H && H.mirror && H.link && !H.link.isOpen && !H.screen) watchLetters("Can't reach the show. Check that this screen is online.", code); }, 12000);
+  H.failT = setTimeout(() => { if (H && H.mirror && H.link && !H.link.isOpen && !H.screen) watchLetters(['err_offline_screen'], code); }, 12000);
   H.loop = setInterval(tick, 50);
   stayAwake();
 }
 
+// err is [key, vars] so it can be said again in another language
 function watchLetters(err, code = '') {
   if (H && H.link) { H.link.close(); H.link = null; }
   const back = H && H.back;
   H.screen = null;
+  H.redraw = () => watchLetters(err, ($('.letters', H.app) || {}).value || code);
   H.app.innerHTML = `
   <div class="screen join scroll">
     <div class="rays"></div>
+    ${langSwitch('corner')}
     <div class="inner">
-      <h2>Watch the show</h2>
-      <p class="hint">Type the four letters on the big screen</p>
-      <input class="letters" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="ABCD" value="${esc(code)}" aria-label="Room letters">
-      <p class="err">${esc(err)}</p>
-      <button class="btn big gold go" data-act="go">Watch</button>
-      <button class="btn ghost small back" data-act="back">Back</button>
+      <h2>${t('watch_title')}</h2>
+      <p class="hint">${t('type_letters')}</p>
+      <input class="letters" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="ABCD" value="${esc(code)}" aria-label="${t('room_letters')}">
+      <p class="err">${err ? esc(t(err[0], err[1])) : ''}</p>
+      <button class="btn big gold go" data-act="go">${t('watch_go')}</button>
+      <button class="btn ghost small back" data-act="back">${t('back')}</button>
     </div>
   </div>`;
   const inp = $('.letters', H.app);
   inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); });
   const go = () => {
     const c = inp.value.toUpperCase();
-    if (!isCode(c)) { $('.err', H.app).textContent = c.length < 4 ? 'The room has four letters.' : `There's no show called ${c}. Room letters never have vowels.`; return; }
-    SND.primeSpeech();
+    if (!isCode(c)) { err = c.length < 4 ? ['err_four'] : ['err_vowels', { code: c }]; $('.err', H.app).textContent = t(err[0], err[1]); return; }
+    SND.primeSpeech('', lang());
     startMirror(H.app, { code: c, back });
   };
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-  bindTaps(H.app.firstElementChild, { go, back: () => { leaveMirror(); } });
+  bindTaps(H.app.firstElementChild, { go, back: () => { leaveMirror(); }, lang: id => setLang(id) });
   setTimeout(() => { if (!code) inp.focus(); }, 60);
 }
 
-function mirrorNote(title, sub) {
+function mirrorNote(key, sub) {
   H.screen = null;
-  H.app.innerHTML = `<div class="screen join"><div class="rays"></div><div class="inner"><h2>${esc(title)}</h2><p class="hint">${esc(sub || '')}</p></div></div>`;
+  H.redraw = () => mirrorNote(key, sub);
+  H.app.innerHTML = `<div class="screen join"><div class="rays"></div>${langSwitch('corner')}<div class="inner"><h2>${t(key)}</h2><p class="hint">${esc(sub || '')}</p></div></div>`;
+  bindTaps(H.app.firstElementChild, { lang: id => setLang(id) });
 }
 
 function watchURL(code) {
@@ -1038,7 +1105,7 @@ function leaveMirror() {
 function mirrorPill() {
   if (!H || !H.mirror) return;
   let el = $('.mpill', H.app);
-  const msg = H.link && !H.link.isOpen ? 'Reconnecting' : !H.hostOn ? 'The big screen dropped out. Waiting for it' : '';
+  const msg = H.link && !H.link.isOpen ? t('reconnecting') : !H.hostOn ? t('big_dropped') : '';
   if (!msg) { if (el) el.remove(); return; }
   const scr = H.app.firstElementChild; if (!scr) return;
   if (!el) { el = document.createElement('div'); el.className = 'mpill'; scr.appendChild(el); }
@@ -1051,7 +1118,7 @@ function onMirror(m) {
     clearTimeout(H.failT);
     H.hostOn = m.host;
     H.link.send({ t: 'watch' });
-    if (!H.screen) mirrorNote(m.host ? 'Connecting to the show' : 'Waiting for the big screen', H.room);
+    if (!H.screen) mirrorNote(m.host ? 'connecting' : 'waiting_big', H.room);
     mirrorPill();
   } else if (m.t === 'host') {
     H.hostOn = m.on;
@@ -1067,8 +1134,13 @@ function onMirror(m) {
     watchURL('');
     const back = H.back;
     H.stop();
-    H.app.innerHTML = `<div class="screen join"><div class="rays"></div><div class="inner"><h2>That's a wrap!</h2><p class="hint">Thanks for playing Slap Happy</p><button class="btn big gold go" data-act="again">Watch another show</button></div></div>`;
-    bindTaps(H.app.firstElementChild, { again: () => startMirror(H.app, { code: '', back }) });
+    const app = H.app;
+    const wrap = () => {
+      app.innerHTML = `<div class="screen join"><div class="rays"></div>${langSwitch('corner')}<div class="inner"><h2>${t('wrap')}</h2><p class="hint">${t('thanks')}</p><button class="btn big gold go" data-act="again">${t('watch_another')}</button></div></div>`;
+      bindTaps(app.firstElementChild, { again: () => { off(); startMirror(app, { code: '', back }); }, lang: id => setLang(id) });
+    };
+    const off = onLang(wrap);
+    wrap();
   }
 }
 
@@ -1123,16 +1195,16 @@ function mirrorPhase(g, q, resumed) {
       SND.stopMusic();
       const step = 1000 * SPEED, el = Math.max(0, (g.dur || 0) - (g.left || 0));
       const n = Math.min(3, Math.floor(el / step));
-      splash(n < 3 ? [[String(3 - n), '']] : [['Go!', 'pink']]);
-      for (let k = n + 1; k <= 3; k++) H.introT.push(setTimeout(() => { if (!H || !H.g || H.g.phase !== 'intro') return; if (k < 3) { splash([[String(3 - k), '']]); SND.play('beep'); } else { splash([['Go!', 'pink']]); SND.play('go'); } }, k * step - el));
+      splash(n < 3 ? [[String(3 - n), '']] : [[t('go'), 'pink']]);
+      for (let k = n + 1; k <= 3; k++) H.introT.push(setTimeout(() => { if (!H || !H.g || H.g.phase !== 'intro') return; if (k < 3) { splash([[String(3 - k), '']]); SND.play('beep'); } else { splash([[t('go'), 'pink']]); SND.play('go'); } }, k * step - el));
       break;
     }
     case 'splash':
       SND.stopMusic();
-      if (q && q.bonus) { SND.play('bonus'); splash([['Bonus round!', 'pink'], ['Double points', 'small']]); if (H.settings.voice) SND.speak('Bonus round!'); }
-      else { SND.play('whoosh'); splash([[`Question ${g.i + 1}`, ''], [`of ${g.qs.length}`, 'small']]); }
+      if (q && q.bonus) { SND.play('bonus'); splash([[t('bonus'), 'pink'], [t('double_pts'), 'small']]); if (H.settings.voice) SND.speak(t('bonus'), null, lang()); }
+      else { SND.play('whoosh'); splash([[t('question_n', { n: g.i + 1 }), ''], [t('of_n', { n: g.qs.length }), 'small']]); }
       break;
-    case 'ready': splash(null); if (H.settings.voice && q && !resumed) SND.speak(q.q); break;
+    case 'ready': splash(null); if (H.settings.voice && q && !resumed) mirrorRead(g, q); break;
     case 'armed': splash(null); SND.hush(); if (!resumed) { SND.play('ding'); goFlash(); } SND.music('think'); break;
     case 'up': {
       splash(null); SND.stopMusic();
@@ -1142,7 +1214,7 @@ function mirrorPhase(g, q, resumed) {
     }
     case 'checking': if (!resumed) SND.drumroll(0.6 * SPEED); break;
     case 'miss': if (!resumed) SND.play('wrong'); break;
-    case 'steal': SND.stopMusic(); if (!resumed) { SND.play('whoosh'); splash([['Steal it!', 'pink'], ['Slap when it lights up', 'small']]); } break;
+    case 'steal': SND.stopMusic(); if (!resumed) { SND.play('whoosh'); splash([[t('steal_it'), 'pink'], [t('slap_when'), 'small']]); } break;
     case 'result': {
       const t = byId(g.buzz);
       if (resumed) break;
@@ -1153,8 +1225,20 @@ function mirrorPhase(g, q, resumed) {
     }
     case 'timeout': splash(null); SND.stopMusic(); SND.play('timeup'); break;
     case 'answer': if (!resumed) SND.play('tada'); break;
-    case 'final': SND.stopMusic(); splash([['And the winner is...', '']]); SND.drumroll(2.3 * SPEED); break;
+    case 'final': SND.stopMusic(); splash([[t('winner_is'), '']]); SND.drumroll(2.3 * SPEED); break;
   }
+}
+
+// Read the question aloud in this screen's language, then tell the big screen,
+// which keeps the buzzers locked until every screen has finished. If this
+// screen can't speak (no Croatian voice, sound off), it waits reading time.
+function mirrorRead(g, q) {
+  const seq = g.seq, t0 = now();
+  const tell = () => { if (H && H.mirror && H.link && H.g && H.g.seq === seq && H.g.phase === 'ready') H.link.send({ t: 'read', r: seq }); };
+  SND.speak(qx(q).q, ok => {
+    if (ok) tell();
+    else setTimeout(tell, Math.max(0, readTime(q) * SPEED - (now() - t0)));
+  }, lang());
 }
 
 function mirrorPaused(on) {
@@ -1163,7 +1247,7 @@ function mirrorPaused(on) {
   if (on && !ov) {
     ov = document.createElement('div');
     ov.className = 'overlay mpause';
-    ov.innerHTML = `<div class="card marquee"><h2>Paused</h2><p class="note">The host paused the show</p></div>`;
+    ov.innerHTML = `<div class="card marquee"><h2>${t('paused')}</h2><p class="note">${t('host_paused')}</p></div>`;
     scr.appendChild(ov);
     SND.stopMusic(); SND.hush();
   } else if (!on && ov) ov.remove();

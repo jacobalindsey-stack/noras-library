@@ -1,5 +1,7 @@
 // Shared bits: team colors, fun names, little helpers, and the confetti cannon.
 
+import { lang } from './i18n.js';
+
 export const COLORS = [
   { id: 'cherry', c: '#ff3d57' },
   { id: 'tangerine', c: '#ff8a1f' },
@@ -24,7 +26,18 @@ export const NAMES = [
   'Cosmic Cupcakes', 'Sneaky Sloths', 'Lightning Lemurs', 'Captain Clever', 'Thunder Snacks', 'Purrfect Storm',
   'Smarty Pants', 'Mighty Muffins', 'Turbo Turtles', 'Fuzzy Logic', 'Taco Titans', 'Jellybean Genius',
 ];
-export const randomName = (not = []) => { const pool = NAMES.filter(n => !not.includes(n)); return pool[Math.floor(Math.random() * pool.length)] || NAMES[0]; };
+// silly names for a team that joins from a phone set to Croatian
+export const NAMES_HR = [
+  'Pametne Sove', 'Brze Pande', 'Šašavi Pingvini', 'Mačji Brkovi', 'Turbo Bake', 'Hrabri Medvjedi',
+  'Vesele Žabe', 'Ludi Kolačići', 'Leteći Dupini', 'Zlatne Ribice', 'Munjeviti Puževi', 'Kvizomani',
+  'Super Srdele', 'Plesni Lavovi', 'Sretni Hrčci', 'Pjegave Krave', 'Brzi Djedovi', 'Čudesni Ježevi',
+  'Mudre Glavice', 'Nindža Mrkve', 'Gromoglasni Patkići', 'Svemirske Palačinke', 'Kraljevi Fritula', 'Pospani Lijenci',
+];
+export const randomName = (not = []) => {
+  const list = lang() === 'hr' ? NAMES_HR : NAMES;
+  const pool = list.filter(n => !not.includes(n));
+  return pool[Math.floor(Math.random() * pool.length)] || list[0];
+};
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
