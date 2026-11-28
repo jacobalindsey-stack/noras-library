@@ -213,5 +213,21 @@ window.NORA_GAMES = [
     ground: '#0e3640',
     foil: '#ffb81c',
     emblem: '<path d="M8 54h48"/><path d="M12 54l3 6h34l3-6"/><path d="M17 54a15 15 0 0 1 30 0"/><path d="M24 47a8 8 0 0 1 5-5"/><path d="M32 31v-8M19.5 35.5l-6-6M44.5 35.5l6-6M12 45H5M52 45h7"/><path d="M32 4l1.8 4.2 4.2 1.8-4.2 1.8L32 16l-1.8-4.2L26 10l4.2-1.8z" fill="currentColor" stroke="none"/>'
+  },
+  {
+    key: 'charades',
+    title: 'Charades',
+    kind: 'Forehead charades party game',
+    isNew: true,
+    platforms: ['iPhone', 'iPad', 'PC'],
+    players: '2-16 players · online',
+    blurb: "Hold the phone on your forehead while everyone else acts out the word on the screen. Nod down when you guess it, tip up to pass, and beat the clock. Eight decks, from Animals and Jobs to Fantasy & Fairy Tales, gold cards worth double, streaks, and a scorecard for every game.",
+    howto: "Press Play, type everyone's names and pick how long each turn lasts. On your turn, pick a deck and put the phone on your forehead: the countdown starts by itself. Nod down for Got it, tip up to Pass. On an iPad or computer, someone else holds it and taps Got it or Pass. Family far away? Press Play online: one person makes a room, the others type its four letters, and whoever's guessing tilts their own phone while everyone else sees the word on theirs.",
+    note: "Every card is something a 10-year-old can act out: no grown-up trivia, no famous people.",
+    shots: ['previews/charades-play.jpg', 'previews/charades-title.jpg'],
+    href: 'charades/',
+    ground: '#2b1a6e',
+    foil: '#ffc83d',
+    emblem: '<rect x="12" y="20" width="40" height="25" rx="5"/><rect x="18" y="26" width="28" height="13" rx="2"/><path d="M24 32.5h16"/><path d="M57 34c4 4 4 10 0 14"/><path d="M52.5 45.5l4.5 3 3-4.5"/><path d="M7 30c-4-4-4-10 0-14"/><path d="M11.5 18.5L7 15.5l-3 4.5"/>'
   }
 ];
