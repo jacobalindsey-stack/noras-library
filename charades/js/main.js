@@ -690,7 +690,7 @@ function vReady() {
       ${HEAD_SVG}
       <div class="legend"><span class="l ok"><i>↓</i>Got it</span><span class="l pass"><i>↑</i>Pass</span></div>
       ${R.needAsk ? (app.motion === 'denied'
-        ? `<div class="note">Tilt is switched off for this site. Close Safari all the way (swipe it up in the app switcher), open the game again and tap Allow.</div>
+        ? `<div class="note">Safari is blocking tilt in this tab. Close this tab, open the game in a new tab and tap <b>Allow</b> when it asks. Still blocked? Close Safari all the way and try again.</div>
            <div class="row" style="justify-content:center"><button class="btn big" data-a="turnontilt">Try again</button><button class="btn paper" data-a="usetap">Use taps instead</button></div>`
         : `<button class="btn big" data-a="turnontilt">Turn on tilt</button>
            <button class="btn quiet" data-a="usetap">Use taps instead</button>`)
@@ -919,7 +919,7 @@ function meterLoop() {
   const span = 90;
   zl.style.width = ((span - th.ok) / (2 * span) * 100).toFixed(1) + '%';
   zr.style.width = ((span - th.pass) / (2 * span) * 100).toFixed(1) + '%';
-  if (!hasTilt()) { say.textContent = app.motion === 'denied' ? 'Motion is blocked for this site' : 'No tilt readings yet'; return; }
+  if (!hasTilt()) { say.textContent = app.motion === 'denied' ? 'Blocked: close this tab and reopen the game' : 'No tilt readings yet'; return; }
   const p = reading().pitch;
   needle.style.left = (50 + Math.max(-span, Math.min(span, p)) / span * 50).toFixed(1) + '%';
   say.textContent = p < -th.ok ? 'Got it!' : p > th.pass ? 'Pass' : '';
