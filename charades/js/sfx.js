@@ -1,11 +1,12 @@
 // Sounds (all synthesized, no files), buzzes, and keeping the screen awake.
 
-const A = { ctx: null, on: true, buzz: true, el: null };
+const A = { ctx: null, on: true, buzz: true, el: null, stuckSince: 0 };
 
-function init() {
-  if (A.ctx) return;
+function init(fresh) {
+  if (A.ctx && !fresh) return;
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
+  if (A.ctx) { try { A.ctx.close(); } catch (e) {} A.ctx = null; }
   const c = new AC();
   A.ctx = c;
   const comp = c.createDynamicsCompressor();
@@ -17,22 +18,55 @@ function init() {
   A.noise = nb;
 }
 
-// Call on every finger lift and click: iOS only lets sound start from one,
-// and needs it again after a call, the lock screen or a trip to another app.
-export function unlockAudio() {
+// Runs at the start of every tap, click and key press. iPhone only lets
+// sound start from one, and can leave it stuck after a call, a pop-up (like
+// the motion question), the lock screen or a trip to another app.
+export function unlockAudio(e) {
+  if (e && e.isTrusted === false) return; // the hidden buzz switch's own click
   try {
     init();
-    const c = A.ctx; if (!c) return;
-    if (c.state !== 'running') { const p = c.resume(); if (p && p.catch) p.catch(() => {}); }
-    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
-    // a silent looping clip keeps the ring/silent switch from muting the game on iPhone
-    if (!A.el && /iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document) {
-      const a = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAAAA');
-      a.loop = true; a.volume = 0.01; a.setAttribute('playsinline', ''); A.el = a;
-    }
-    if (A.el && A.el.paused) A.el.play().catch(() => {});
-  } catch (e) {}
+    let c = A.ctx; if (!c) return;
+    // tell iPhone this page plays sound, so the ring/silent switch doesn't mute it
+    try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (er) {}
+    if (c.state !== 'running') {
+      // still stuck a moment after the last try: start over with a fresh one
+      if (A.stuckSince && performance.now() - A.stuckSince > 1200) { init(true); c = A.ctx; A.stuckSince = performance.now(); }
+      else if (!A.stuckSince) A.stuckSince = performance.now();
+      try { const p = c.resume(); if (p && p.then) p.then(() => { if (c.state === 'running') A.stuckSince = 0; }, () => {}); } catch (er) {}
+    } else A.stuckSince = 0;
+    // the classic iPhone unlock: one silent sample played inside the tap
+    try { const b = c.createBuffer(1, 1, 22050), src = c.createBufferSource(); src.buffer = b; src.connect(c.destination); src.start(0); } catch (er) {}
+    silentLoop();
+  } catch (er) {}
 }
+
+// Older iPhones (no audio session control): a quiet looping clip keeps the
+// silent switch from muting the game. Newer ones don't need it, and mixing it
+// with the game's sound can make iPhone cut the sound, so it is only for them.
+function silentLoop() {
+  if (A.el || navigator.audioSession || !/iP(hone|ad|od)|Macintosh/.test(navigator.userAgent) || !('ontouchend' in document)) return;
+  const sr = 8000, n = sr / 2, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+  const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
+  for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+  A.el = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+  A.el.loop = true; A.el.setAttribute('playsinline', ''); A.el.volume = 0.01;
+  A.el.play().catch(() => { A.el = null; });
+}
+
+// main.js calls this after it has set up its own tap listeners, so that the
+// motion question is asked first in a tap and the sound is woken second
+export function startUnlocking() {
+  ['touchend', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, unlockAudio, { passive: true, capture: true }));
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && A.ctx && A.ctx.state !== 'running') { try { A.ctx.resume(); } catch (e) {} }
+});
+export const audioState = () => (A.ctx ? A.ctx.state : 'none');
+// for tests: freeze the sound the way iPhone sometimes leaves it
+export const testStickAudio = () => { if (A.ctx) { A.ctx.suspend(); A.ctx.resume = () => Promise.resolve(); } };
+
 export function setSound(on) { A.on = !!on; }
 export function setBuzz(on) { A.buzz = !!on; }
 

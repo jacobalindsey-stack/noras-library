@@ -8,7 +8,7 @@
 import { freshState, reduce, currentPlayer, playerById, standings, usedWords, roundPoints, TIMES, TURNS, cleanName, LIMITS } from './rules.js';
 import { loadDecks, decks, deckById, draw, MIX } from './decks.js';
 import { load as loadStore, save, addScorecard } from './store.js';
-import { sfx, unlockAudio, buzz, setSound, setBuzz, stayAwake } from './sfx.js';
+import { sfx, unlockAudio, startUnlocking, buzz, setSound, setBuzz, stayAwake, audioState, testStickAudio } from './sfx.js';
 import { askMotion, hasTilt, reading, screenUpright, contentTurn, NodReader, NEEDS_ASK } from './tilt.js';
 import { Room, newCode, validCode, WHY } from './net.js';
 
@@ -1015,7 +1015,7 @@ const handlers = {
     if (v === 'true' || v === 'false') v = v === 'true';
     app.st.prefs[k] = v; save();
     setSound(app.st.prefs.sound); setBuzz(app.st.prefs.buzz);
-    if (k === 'sound' && v) sfx.pop();
+    if (k === 'sound' && v) { unlockAudio(); sfx.pop(); }
     if (k === 'buzz' && v) buzz('ok');
     drawSheet(); if (!meterT) meterLoop();
   },
@@ -1162,6 +1162,7 @@ document.addEventListener('keydown', e => {
 // iPhone: ask for tilt first thing in a tap (once a game is on its way), so
 // nothing else in the tap can use up the browser's permission to ask
 function tiltTap(e) {
+  if (e.isTrusted === false) return; // the hidden buzz switch's own click
   if (!app.st || app.st.prefs.controls !== 'tilt' || !TOUCH || !NEEDS_ASK) return;
   if (app.motion === 'granted' && hasTilt()) return;
   if (app.screen === 'title' && !(e.target.closest && e.target.closest('[data-a="play"],[data-a="online"],[data-a="resume"],[data-a="rejoin"]'))) return;
@@ -1170,9 +1171,8 @@ function tiltTap(e) {
 }
 document.addEventListener('touchend', tiltTap, { capture: true, passive: true });
 document.addEventListener('click', tiltTap, true);
-// iPhone: sound may only start from a finger lift; no pinch or double-tap zoom
-document.addEventListener('touchend', unlockAudio, { passive: true });
-document.addEventListener('click', unlockAudio, true);
+// then wake the sound in every tap (after the motion question above)
+startUnlocking();
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault());
 
@@ -1218,7 +1218,7 @@ async function boot() {
 
 // for tests: window.CH drives the game the way fingers and nods would
 window.CH = {
-  app, get R() { return R; }, act, handlers, decks, ST, reading, hasTilt,
+  app, get R() { return R; }, act, handlers, decks, ST, reading, hasTilt, audioState, testStickAudio,
   // pretend to be a phone on a forehead, tipped by `pitch` degrees (+ is up)
   hold(pitch) {
     this.pitch = pitch;
