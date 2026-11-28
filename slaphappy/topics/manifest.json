@@ -1,6 +1,17 @@
 {
   "about": "Topic modules for Slap Happy. Add one line per topic file in this folder. See slaphappy/TOPICS.md.",
   "topics": [
-    "cats.json"
+    "cats.json",
+    "space.json",
+    "earth.json",
+    "volcanoes.json",
+    "geology.json",
+    "ocean.json",
+    "plants.json",
+    "food.json",
+    "countries.json",
+    "art.json",
+    "music.json",
+    "fairy-tales.json"
   ]
 }

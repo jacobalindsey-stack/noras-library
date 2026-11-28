@@ -1,7 +1,12 @@
 // Slap Happy on a phone: join a show, pick a team name, colour and buzzer
-// sound, then the whole phone becomes one big slappable buzzer.
+// sound, then the whole phone becomes one big slappable buzzer. The team that
+// slaps first picks its answer here.
+//
+// Phones only make sounds for their own taps (the buzzer, a too-early honk).
+// Everything the show itself says comes from the big screen: several phones
+// echoing it a split second apart sounded like a dripping tap.
 
-import { $, esc, COLORS, colorOf, teamStyle, randomName, SPEED, stayAwake, confetti, rain, bindTaps } from './common.js';
+import { $, esc, COLORS, colorOf, teamStyle, randomName, stayAwake, confetti, rain, bindTaps } from './common.js';
 import { Link, rid, isCode } from './net.js';
 import { BUZZERS, buzzer, play, setSound, prefs } from './sound.js';
 import { haptic } from './haptics.js';
@@ -20,7 +25,7 @@ let T = null;
 export function startTeam(app, { code, back }) {
   if (T && T.link) T.link.close();
   T = { app, back, room: null, id: null, name: '', color: null, sound: null, link: null, info: null, view: null, joined: false, hostOn: true,
-    armed: false, armT: 0, slapped: false, lockUntil: 0, armTimer: null, countT: null, enteredAt: 0, lastTest: 0, lastV: null, judged: false };
+    armed: false, armT: 0, slapped: false, lockUntil: 0, countT: null, enteredAt: 0, lastTest: 0, lastV: null, ak: '', picked: null, pickT: null };
   window.SLAP = window.SLAP || {}; window.SLAP.team = T;
   if (isCode(code)) connect(code); else letters();
 }
@@ -186,22 +191,31 @@ function playScreen() {
   stage.addEventListener('touchstart', e => { if (!e.target.closest('button')) e.preventDefault(); }, { passive: false });
   bindTaps(scr, {
     mute: (a, b) => { setSound(!prefs.sound); b.innerHTML = soundIcon(prefs.sound); b.classList.toggle('off', !prefs.sound); },
-    reveal: () => { if (performance.now() - T.enteredAt < 500) return; T.link && T.link.send({ t: 'reveal', r: T.view.seq }); haptic('tap'); play('pop'); const b = $('.revealbtn', T.app); if (b) { b.disabled = true; b.textContent = 'Showing the answer'; } },
-    yes: () => judge(true),
-    no: () => judge(false),
+    pick: arg => pick(+arg),
     change: () => { T.joined = false; setup(); },
   });
   hostPill();
 }
 
-function judge(ok) {
-  if (T.judged || !T.view) return;
-  T.judged = true;
-  T.link && T.link.send({ t: 'judge', r: T.view.seq, ok });
-  // the feel-good (or oh-no) moment happens right under the thumb
-  if (ok) { play('correct'); haptic('win'); confetti({ y: innerHeight * 0.75, n: 140 }); }
-  else { play('wrong'); haptic('lose'); }
-  T.app.querySelectorAll('.judge .btn').forEach(b => { b.disabled = true; });
+// The team picks A, B, C or D. The big screen decides if it's right.
+function pick(i) {
+  const v = T.view;
+  if (!v || v.v !== 'pick' || v.locked !== undefined || T.picked !== null) return;
+  if (performance.now() - T.enteredAt < 350) return; // a slap finger still coming down
+  if (!v.choices || !(i in v.choices) || (v.gone || []).includes(i)) return;
+  T.picked = i;
+  sendPick();
+  haptic('tap'); play('pop');
+  T.app.querySelectorAll('.pk').forEach((b, k) => { b.disabled = true; b.classList.toggle('chosen', k === i); b.classList.toggle('faded', k !== i); });
+  const m = $('.pickmsg', T.app); if (m) m.textContent = 'Locked in!';
+}
+// say it again if the big screen hasn't heard (a blip in the Wi-Fi)
+function sendPick() {
+  clearTimeout(T.pickT);
+  const v = T.view;
+  if (!v || v.v !== 'pick' || v.locked !== undefined || T.picked === null) return;
+  T.link && T.link.send({ t: 'pick', r: v.seq, a: v.att, i: T.picked });
+  T.pickT = setTimeout(sendPick, 1500);
 }
 
 function slap() {
@@ -223,11 +237,11 @@ function slap() {
     setSub('Too early! Wait till it lights up.');
     return;
   }
-  if (T.armed && !T.slapped && (v.v === 'slap' || v.v === 'get')) {
+  if (T.armed && !T.slapped && v.v === 'slap') {
     if (now < T.lockUntil) { const w = $('.dome-wrap', T.app); if (w) { w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); } return; }
     T.slapped = true;
     const rt = Math.round(now - T.armT);
-    T.link && T.link.send({ t: 'slap', r: v.seq, rt });
+    T.link && T.link.send({ t: 'slap', r: v.seq, a: v.att, rt });
     buzzer(T.sound); haptic('slap'); squish(dome, true);
     const wrap = $('.dome-wrap', T.app); if (wrap) wrap.classList.remove('live');
     if (dome) { dome.classList.remove('live'); dome.classList.add('wait'); $('.dome-label', dome).textContent = '!'; }
@@ -239,13 +253,12 @@ function setSub(t) { const s = $('.tsub', T.app); if (s) s.textContent = t; }
 
 function arm() {
   if (T.armed) return;
-  clearTimeout(T.armTimer);
   T.armed = true; T.armT = performance.now();
-  play('ding'); haptic('armed');
+  haptic('armed');
   const scr = $('.screen.team', T.app);
   if (scr) { scr.classList.remove('goflash'); void scr.offsetWidth; scr.classList.add('goflash'); setTimeout(() => scr.classList.remove('goflash'), 700); }
   const dome = $('.dome', T.app), wrap = $('.dome-wrap', T.app);
-  if (dome && T.view && (T.view.v === 'get' || T.view.v === 'slap')) {
+  if (dome && T.view && T.view.v === 'slap') {
     dome.classList.remove('wait', 'dim', 'locked'); dome.classList.add('live'); wrap.classList.add('live');
     $('.dome-label', dome).textContent = 'Slap!';
     setSub('');
@@ -271,22 +284,22 @@ function render() {
   $('.tname span', scr).textContent = T.name;
   $('.tscore', scr).textContent = v.score || 0;
   $('.tround', scr).textContent = v.total ? `${v.round} of ${v.total}` : '';
-  const key = v.v + '|' + v.seq + '|' + (v.by ? v.by.name : '') + '|' + (v.answer || '') + '|' + (v.ok ?? '') + '|' + (v.revealing ? 1 : 0);
+  // each new question, and each steal, resets the buzzer
+  const ak = v.seq + ':' + (v.att || 1);
+  if (ak !== T.ak && v.v !== 'lobby') { T.ak = ak; T.armed = false; T.slapped = false; T.picked = null; clearTimeout(T.pickT); }
+  if (v.v === 'slap' && T.prevState === 'paused') T.armed = false;
+  const { ms, score, rank, ...rest } = v;
+  const key = JSON.stringify(rest);
   const changed = key !== T.lastV;
   const prev = T.prevState;
   T.lastV = key; T.prevState = v.v;
-  // arming: a new question resets the buzzer
-  if (v.v === 'next' || v.v === 'get') { if (changed && prev !== 'get') { T.armed = false; T.slapped = false; T.judged = false; } }
-  if (v.v === 'get') clearTimeout(T.armTimer); // locked until the big screen says go
-  if (v.v !== 'slap' && v.v !== 'get') clearTimeout(T.armTimer);
-  if (v.v === 'slap' && prev === 'paused') { T.armed = false; }
-  if (!changed && v.v !== 'slap') return;
-  if (!changed && v.v === 'slap') { if (!T.armed) arm(); return; }
+  if (!changed) { if (v.v === 'slap' && !T.armed) arm(); return; }
   T.enteredAt = performance.now();
   clearInterval(T.countT);
   scr.classList.remove('flood');
   const st = $('.tstage', scr);
   const dome = (label, cls = '') => `<div class="dome-wrap ${cls.includes('live') ? 'live' : ''}"><div class="dome ${cls}"><span class="dome-label">${label}</span></div></div>`;
+  const ans = a => `<span class="ans">${esc(a)}</span>`;
   let h = '';
   switch (v.v) {
     case 'lobby':
@@ -299,47 +312,61 @@ function render() {
       h = dome(LOCK, 'locked') + `<div class="tmsg">${v.bonus ? 'Bonus round!' : 'Next question'}</div><div class="tsub">${v.bonus ? 'Double points for this one' : 'Eyes on the big screen'}</div>`;
       break;
     case 'get':
-      h = dome(LOCK + '<span>Wait</span>', 'locked') + `<div class="tsub">${v.voice ? 'Listen to the question.' : 'Read the question.'}<br>Slap when it lights up!</div>`;
+      h = v.steal
+        ? dome(LOCK + '<span>Wait</span>', 'locked') + `<div class="tmsg">Steal it!</div><div class="tsub">Slap when it lights up</div>`
+        : dome(LOCK + '<span>Wait</span>', 'locked') + `<div class="tsub">${v.voice ? 'Listen to the question.' : 'Read the question.'}<br>Slap when it lights up!</div>`;
       break;
-    case 'slap': {
-      h = dome('Slap!', 'live') + `<div class="slapbar"><i></i></div><div class="tsub"></div>`;
+    case 'slap':
+      h = dome('Slap!', 'live') + `<div class="slapbar"><i></i></div><div class="tsub">${v.steal ? 'Slap to steal!' : ''}</div>`;
       break;
-    }
+    case 'sit':
+      h = dome('', 'dim') + `<div class="tmsg">Sitting out</div><div class="tsub">The other teams are trying to steal this one</div>`;
+      break;
     case 'out': {
-      const mine = T.slapped;
-      if (changed && prev === 'slap') { play('thunk'); haptic('out'); }
-      h = dome('', 'dim') + (v.answer
-        ? `<div class="tsub">${chip(v.by)} is checking their answer</div><div class="tsub">The answer is<br><span class="ans">${esc(v.answer)}</span></div>`
-        : `<div class="tmsg">${mine ? 'So close!' : 'Beaten!'}</div><div class="tsub">${chip(v.by)} slapped first</div>`);
+      if (changed && prev === 'slap') haptic('out');
+      if (v.choosing) h = dome('', 'dim') + `<div class="tmsg">${T.slapped ? 'So close!' : 'Beaten!'}</div><div class="tsub">${chip(v.by)} slapped first and is picking</div>`;
+      else if (v.missed) h = dome('', 'dim') + `<div class="tsub">${chip(v.by)} ${v.said ? `picked ${esc(v.said.slice(0, 1))}. Wrong!` : 'ran out of time'}</div>` + (v.next ? `<div class="tmsg">Get ready to steal!</div>` : '');
+      else h = dome('', 'dim') + `<div class="tsub">${chip(v.by)} picked</div><div class="tsub">${ans(v.said)}</div>`;
       break;
     }
-    case 'up':
+    case 'pick': {
       scr.classList.add('flood');
-      if (v.revealing) h = `<div class="tmsg">And the answer is...</div>`;
-      else {
-        if (changed) haptic('up');
-        h = `<div class="tmsg">You're up!</div><div class="tsub">Say your answer out loud</div><div class="bigcount">${Math.ceil((v.ms || 0) / 1000)}</div><button class="btn revealbtn" data-act="reveal">Said it? Tap to show the answer</button>`;
+      const locked = v.locked !== undefined;
+      if (changed && prev !== 'pick') haptic('up');
+      const mine = locked ? v.locked : T.picked;
+      h = `<div class="pickhead"><div class="tmsg">${locked ? 'Checking...' : "You're up!"}</div>${locked ? '' : `<div class="pickcount">${Math.ceil((v.ms || 0) / 1000)}</div>`}</div>
+        <div class="pq">${esc(v.q || '')}</div>
+        <div class="picks n${(v.choices || []).length}">${(v.choices || []).map((c, i) => {
+          const gone = (v.gone || []).includes(i);
+          const cls = gone ? ' gone' : mine === i ? ' chosen' : mine !== null && mine !== undefined ? ' faded' : '';
+          return `<button class="pk${cls}" data-act="pick" data-arg="${i}"${gone || locked || T.picked !== null ? ' disabled' : ''}><span class="ltr">${'ABCD'[i]}</span><span class="ctext">${esc(c)}</span></button>`;
+        }).join('')}</div>
+        <div class="pickmsg">${locked || T.picked !== null ? 'Locked in!' : 'Tap your answer'}</div>`;
+      if (!locked) {
         const end = performance.now() + (v.ms || 0);
-        T.countT = setInterval(() => { const c = $('.bigcount', T.app); if (!c) return; const s = Math.max(0, Math.ceil((end - performance.now()) / 1000)); c.textContent = s; }, 200);
+        T.countT = setInterval(() => { const c = $('.pickcount', T.app); if (!c) return; c.textContent = Math.max(0, Math.ceil((end - performance.now()) / 1000)); }, 200);
       }
       break;
-    case 'judge':
+    }
+    case 'miss':
       scr.classList.add('flood');
-      h = `<div class="tmsg">Did you get it?</div><div class="tsub">The answer is<br><span class="ans">${esc(v.answer)}</span></div>
-        <div class="judge"><button class="btn yes" data-act="yes"><span class="mk">✓</span>We got it right</button><button class="btn no" data-act="no"><span class="mk">✗</span>We got it wrong</button></div>`;
+      if (changed) haptic('lose');
+      clearTimeout(T.pickT);
+      h = `<div class="bigcount">✗</div><div class="tmsg">${v.late ? 'Out of time!' : 'Not that one!'}</div><div class="tsub">${v.more ? 'The other teams get a chance to steal it' : 'Better luck on the next one'}</div>`;
       break;
     case 'res':
+      clearTimeout(T.pickT);
       if (v.mine) {
         scr.classList.add('flood');
-        if (!T.judged) { if (v.ok) { play('correct'); confetti({ y: innerHeight * 0.75 }); } else play('wrong'); }
-        h = v.ok ? `<div class="tmsg pop-in">Nailed it!</div><div class="bigcount pop-in">+${v.pts}</div>` : `<div class="tmsg">So close!</div><div class="tsub">The answer was<br><span class="ans">${esc(v.answer)}</span></div><div class="tsub">Get the next one!</div>`;
+        if (changed) { haptic('win'); confetti({ y: innerHeight * 0.75, n: 140 }); }
+        h = `<div class="tmsg pop-in">${v.stolen ? 'Stolen!' : 'Nailed it!'}</div><div class="bigcount pop-in">+${v.pts}</div><div class="tsub">${ans(v.answer)}</div>`;
       } else {
-        h = dome('', 'dim') + `<div class="tsub">${chip(v.by)} ${v.ok ? 'got it!' : 'missed that one'}</div><div class="tsub">The answer was<br><span class="ans">${esc(v.answer)}</span></div>`;
+        h = dome('', 'dim') + `<div class="tsub">${chip(v.by)} ${v.stolen ? 'stole it!' : 'got it!'}</div><div class="tsub">The answer was<br>${ans(v.answer)}</div>`;
       }
       break;
     case 'timeup':
-      if (changed) haptic('out');
-      h = dome('', 'dim') + `<div class="tmsg">Time's up!</div>` + (v.answer ? `<div class="tsub">The answer was<br><span class="ans">${esc(v.answer)}</span></div>` : '');
+      if (changed && prev !== 'timeup') haptic('out');
+      h = dome('', 'dim') + `<div class="tmsg">${v.answer ? (v.tried ? 'Nobody got it' : 'Nobody slapped') : "Time's up!"}</div>` + (v.answer ? `<div class="tsub">The answer was<br>${ans(v.answer)}</div>` : '');
       break;
     case 'paused':
       h = dome('', 'dim') + `<div class="tmsg">Paused</div><div class="tsub">Hang tight</div>`;
@@ -349,8 +376,7 @@ function render() {
       break;
     case 'over': {
       const champ = v.place === 1;
-      if (champ) { scr.classList.add('flood'); if (changed) { play('fanfare'); haptic('champ'); rain(160); } }
-      else if (changed) play('tada');
+      if (champ) { scr.classList.add('flood'); if (changed) { haptic('champ'); rain(160); } }
       h = champ
         ? `<div class="bigcount pop-in">\u{1F3C6}</div><div class="tmsg pop-in">${v.tie ? 'Tied for the win!' : 'Champions!'}</div><div class="tsub">${v.score} points</div>`
         : `<div class="tmsg">${place(v.place)} place</div><div class="tsub">${v.score} points. Great playing!</div><div class="tsub">${chip(v.winner)} won the show</div>`;
@@ -358,6 +384,7 @@ function render() {
     }
   }
   st.innerHTML = h;
+  st.classList.toggle('picking', v.v === 'pick');
   if (v.v === 'slap') {
     const bar = $('.slapbar i', st);
     if (bar) { bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)'; void bar.offsetWidth; bar.style.transition = `transform ${Math.max(0, v.ms || 0)}ms linear`; bar.style.transform = 'scaleX(0)'; }

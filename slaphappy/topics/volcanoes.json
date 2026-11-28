@@ -1,0 +1,37 @@
+{
+  "id": "volcanoes",
+  "title": "Volcanoes",
+  "emoji": "🌋",
+  "blurb": "Lava, eruptions, geysers, and mountains made of fire.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://www.usgs.gov/volcanoes/mauna-loa",
+    "https://naturalhistory.si.edu/education/teaching-resources/earth-science/paricutin-birth-volcano",
+    "https://www.nationalgeographic.com/science/article/ring-of-fire",
+    "https://www.nps.gov/places/old-faithful-geyser.htm",
+    "https://www.nps.gov/havo/learn/nature/mauna-loa.htm"
+  ],
+  "questions": [
+    { "q": "What is the largest active volcano on Earth?", "choices": ["Mauna Loa", "Mount Fuji", "Mount St. Helens", "Mount Etna"], "answer": 0, "level": 2,
+      "fact": "Measured from its base on the seafloor, Mauna Loa in Hawaii is about 17 km (56,000 ft) tall.", "src": "https://www.usgs.gov/volcanoes/mauna-loa" },
+    { "q": "Which volcano started growing in a Mexican cornfield in 1943?", "choices": ["Parícutin", "Vesuvius", "Krakatoa", "Kilauea"], "answer": 0, "level": 3,
+      "fact": "Parícutin erupted for nine years. Scientists got to watch a brand-new volcano grow from the very start.", "src": "https://naturalhistory.si.edu/education/teaching-resources/earth-science/paricutin-birth-volcano" },
+    { "q": "What do we call melted rock after it pours out onto the ground?", "choices": ["Lava", "Magma", "Pumice", "Obsidian"], "answer": 0, "level": 1,
+      "fact": "While it is still underground, melted rock is called magma." },
+    { "q": "The Ring of Fire circles which ocean?", "choices": ["Pacific", "Atlantic", "Indian", "Arctic"], "answer": 0, "level": 1,
+      "fact": "The Ring of Fire is a horseshoe-shaped chain of volcanoes about 25,000 miles long.", "src": "https://www.nationalgeographic.com/science/article/ring-of-fire" },
+    { "q": "About what share of the world's volcanoes are in the Ring of Fire?", "choices": ["About 25%", "About 50%", "About 75%", "About 95%"], "answer": 2, "level": 2, "fixed": true,
+      "fact": "About three out of every four volcanoes on Earth sit along the Ring of Fire.", "src": "https://www.nationalgeographic.com/science/article/ring-of-fire" },
+    { "q": "Old Faithful geyser is in which national park?", "choices": ["Yellowstone", "Yosemite", "Grand Canyon", "Zion"], "answer": 0, "level": 1,
+      "fact": "Old Faithful got its name in 1870 because it erupted so regularly.", "src": "https://www.nps.gov/places/old-faithful-geyser.htm" },
+    { "q": "What heats the water in Yellowstone's geysers?", "choices": ["Yellowstone's volcano", "The Sun", "Lightning", "Hot rocks from space"], "answer": 0, "level": 2,
+      "fact": "Heat from the volcano deep under Yellowstone warms the water that shoots out of its geysers.", "src": "https://www.nps.gov/places/old-faithful-geyser.htm" },
+    { "q": "Which ancient Roman town was buried by ash from Mount Vesuvius?", "choices": ["Pompeii", "Athens", "Venice", "Carthage"], "answer": 0, "level": 2,
+      "fact": "The ash kept Pompeii so well that today you can walk its streets and see old shops and wall paintings." },
+    { "q": "A wide volcano with gentle slopes, like Mauna Loa, is what type?", "choices": ["Shield volcano", "Cinder cone", "Lava dome", "Stratovolcano"], "answer": 0, "level": 3,
+      "fact": "Mauna Loa means Long Mountain in Hawaiian. Its broad shape looks like a warrior's shield lying down.", "src": "https://www.nps.gov/havo/learn/nature/mauna-loa.htm" },
+    { "q": "True or false: Fresh lava can be hotter than 1,000°C.", "choices": ["True", "False"], "answer": 0, "level": 2, "fixed": true,
+      "fact": "Lava in Hawaii comes out at about 1,150°C (2,100°F), hot enough to glow orange-red." }
+  ]
+}

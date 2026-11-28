@@ -26,6 +26,7 @@ def main():
     for f in files:
         if f not in listed: warnings.append(f'{f}: is in the folder but not listed in manifest.json, so the game won\'t load it')
     ids = set()
+    every = {}
     total = 0
     for f in listed:
         p = HERE / f
@@ -53,7 +54,8 @@ def main():
             if not text: problems.append(f'{w}: no question text'); continue
             low = text.lower()
             if low in seen: problems.append(f'{w}: duplicate of an earlier question')
-            seen.add(low)
+            elif low in every: problems.append(f'{w}: same question as in {every[low]}')
+            seen.add(low); every.setdefault(low, where)
             if len(text) > 140: warnings.append(f'{w}: {len(text)} characters, long for the big screen (aim for under 110)')
             lv = q.get('level')
             if lv not in (1, 2, 3): problems.append(f'{w}: level must be 1, 2 or 3')
@@ -63,7 +65,9 @@ def main():
             elif len(fact) > 220: warnings.append(f'{w}: fact is {len(fact)} characters (aim for under 200)')
             ch = q.get('choices')
             ans = q.get('answer')
-            if ch is not None:
+            if ch is None:
+                problems.append(f'{w}: no "choices" (every question is multiple choice)'); continue
+            if True:
                 if not isinstance(ch, list) or not (2 <= len(ch) <= 4): problems.append(f'{w}: choices must be a list of 2 to 4'); continue
                 if len(set(map(str, ch))) != len(ch): problems.append(f'{w}: two choices are the same')
                 if not isinstance(ans, int) or isinstance(ans, bool) or not (0 <= ans < len(ch)): problems.append(f'{w}: answer must be the position of the right choice, counting from 0')
@@ -71,8 +75,6 @@ def main():
                     if len(str(c)) > 32: warnings.append(f'{w}: choice "{c}" is long (aim for under 26 characters)')
                 if any(re.search(r'all of the above|none of the above|both', str(c), re.I) for c in ch) and not q.get('fixed'):
                     warnings.append(f'{w}: "all/none of the above" choices need "fixed": true')
-            else:
-                if not isinstance(ans, str) or not ans.strip(): problems.append(f'{w}: a question without choices needs the answer as text')
             blob = ' '.join([text, fact, ' '.join(map(str, ch or [])), str(ans)])
             m = NOPE.search(blob)
             if m: warnings.append(f'{w}: contains "{m.group(0)}"; make sure it suits 10-year-olds')

@@ -1,0 +1,35 @@
+{
+  "id": "earth",
+  "title": "Planet Earth",
+  "emoji": "🌎",
+  "blurb": "Our home planet: its layers, air, weather, and wild places.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://www.noaa.gov/jetstream/lightning/sound-of-thunder",
+    "https://www.weather.gov/safety/lightning-science-overview",
+    "https://geology.com/records/largest-desert.shtml"
+  ],
+  "questions": [
+    { "q": "Lightning is about how many times hotter than the Sun's surface?", "choices": ["About 2 times", "About 5 times", "About 50 times", "About 500 times"], "answer": 1, "level": 3, "fixed": true,
+      "fact": "Lightning can heat the air to about 54,000°F in a split second. That fast heating makes the boom of thunder.", "src": "https://www.noaa.gov/jetstream/lightning/sound-of-thunder" },
+    { "q": "What is the largest desert on Earth?", "choices": ["Antarctica", "Sahara", "Gobi", "Arabian"], "answer": 0, "level": 2,
+      "fact": "A desert is a place with very little rain or snow. Icy Antarctica fits, covering about 5.5 million square miles.", "src": "https://geology.com/records/largest-desert.shtml" },
+    { "q": "What part of Earth is at its very center?", "choices": ["Inner core", "Mantle", "Crust", "Outer core"], "answer": 0, "level": 1,
+      "fact": "The inner core is a solid ball made mostly of iron and nickel." },
+    { "q": "Which gas makes up most of the air we breathe?", "choices": ["Nitrogen", "Oxygen", "Carbon dioxide", "Helium"], "answer": 0, "level": 2,
+      "fact": "Air is about 78 percent nitrogen and only about 21 percent oxygen." },
+    { "q": "Which is the biggest continent?", "choices": ["Asia", "Africa", "North America", "Antarctica"], "answer": 0, "level": 1,
+      "fact": "Asia is so big that it covers about 30 percent of all the land on Earth." },
+    { "q": "True or false: We have seasons because Earth is tilted.", "choices": ["True", "False"], "answer": 0, "level": 2, "fixed": true,
+      "fact": "Earth leans about 23.5 degrees. Each half gets more direct sunlight for part of the year, which makes summer." },
+    { "q": "What is it called when water vapor turns into cloud droplets?", "choices": ["Condensation", "Evaporation", "Precipitation", "Melting"], "answer": 0, "level": 2,
+      "fact": "You see condensation when a cold glass gets wet on the outside on a warm day." },
+    { "q": "What imaginary line circles Earth halfway between the poles?", "choices": ["The equator", "Prime meridian", "Arctic Circle", "Date line"], "answer": 0, "level": 1,
+      "fact": "Places near the equator get strong sunlight all year, so they stay warm in every season." },
+    { "q": "In which layer of the atmosphere does almost all weather happen?", "choices": ["Troposphere", "Stratosphere", "Mesosphere", "Thermosphere"], "answer": 0, "level": 3,
+      "fact": "The troposphere is the lowest layer. It holds nearly all the clouds, rain, and snow." },
+    { "q": "How far away can you usually hear thunder?", "choices": ["About 1 mile", "About 10 miles", "About 100 miles", "About 500 miles"], "answer": 1, "level": 3, "fixed": true,
+      "fact": "Thunder can normally be heard up to about 10 miles away. Count the seconds after a flash to judge distance.", "src": "https://www.noaa.gov/jetstream/lightning/sound-of-thunder" }
+  ]
+}

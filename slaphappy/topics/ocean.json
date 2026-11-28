@@ -1,0 +1,37 @@
+{
+  "id": "ocean",
+  "title": "Ocean",
+  "emoji": "🌊",
+  "blurb": "Deep trenches, coral reefs, tides, and giant sea creatures.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://oceanservice.noaa.gov/facts/oceandepth.html",
+    "https://www.fisheries.noaa.gov/pacific-islands/habitat-conservation/mariana-trench-marine-national-monument",
+    "https://www.esa.int/Applications/Observing_the_Earth/Earth_from_Space_Great_Barrier_Reef",
+    "https://globalocean.noaa.gov/the-ocean/",
+    "https://www.fisheries.noaa.gov/feature-story/fun-facts-about-wonderful-whales"
+  ],
+  "questions": [
+    { "q": "What is the deepest known spot in the ocean called?", "choices": ["Challenger Deep", "Puerto Rico Trench", "Java Trench", "Tonga Trench"], "answer": 0, "level": 2,
+      "fact": "Challenger Deep is about 35,876 feet deep, in the Pacific Ocean near Guam.", "src": "https://oceanservice.noaa.gov/facts/oceandepth.html" },
+    { "q": "About how deep is the ocean on average?", "choices": ["About 1,000 ft", "About 12,000 ft", "About 50,000 ft", "About 100,000 ft"], "answer": 1, "level": 3, "fixed": true,
+      "fact": "NOAA says the average ocean depth is about 12,080 feet, which is more than 2 miles.", "src": "https://oceanservice.noaa.gov/facts/oceandepth.html" },
+    { "q": "Which is the largest ocean?", "choices": ["Pacific", "Atlantic", "Indian", "Southern"], "answer": 0, "level": 1,
+      "fact": "The Pacific is home to the Mariana Trench, the deepest trench in the world." },
+    { "q": "The Great Barrier Reef is off the coast of which country?", "choices": ["Australia", "Brazil", "Mexico", "Japan"], "answer": 0, "level": 1,
+      "fact": "Despite its name, the Great Barrier Reef is made of nearly 3,000 separate reefs.", "src": "https://www.esa.int/Applications/Observing_the_Earth/Earth_from_Space_Great_Barrier_Reef" },
+    { "q": "Coral reefs are built by tiny animals called what?", "choices": ["Coral polyps", "Plankton", "Sponges", "Sea stars"], "answer": 0, "level": 2,
+      "fact": "Coral polyps are related to jellyfish. They build hard skeletons that pile up into reefs." },
+    { "q": "What mainly causes ocean tides?", "choices": ["The Moon's gravity", "Wind", "Whales swimming", "Earthquakes"], "answer": 0, "level": 1,
+      "fact": "The Sun pulls on the ocean too. Tides are biggest when the Sun and Moon line up." },
+    { "q": "True or false: Challenger Deep is deeper than Mount Everest is tall.", "choices": ["True", "False"], "answer": 0, "level": 2, "fixed": true,
+      "fact": "NOAA says Challenger Deep is about 7,000 feet deeper than Mount Everest is tall.", "src": "https://www.fisheries.noaa.gov/pacific-islands/habitat-conservation/mariana-trench-marine-national-monument" },
+    { "q": "Challenger Deep is named after what?", "choices": ["A British ship", "A submarine", "A space shuttle", "A sea monster"], "answer": 0, "level": 3,
+      "fact": "The crew of HMS Challenger first measured the trench's depth in 1875.", "src": "https://oceanservice.noaa.gov/facts/oceandepth.html" },
+    { "q": "What is the largest animal that has ever lived?", "choices": ["Blue whale", "Whale shark", "Giant squid", "Orca"], "answer": 0, "level": 1,
+      "fact": "Blue whales can grow to about 100 feet long, roughly the length of a basketball court.", "src": "https://www.fisheries.noaa.gov/feature-story/fun-facts-about-wonderful-whales" },
+    { "q": "About how much of Earth's surface is covered by ocean?", "choices": ["About 30%", "About 50%", "About 70%", "About 90%"], "answer": 2, "level": 2, "fixed": true,
+      "fact": "NOAA says the ocean covers 71 percent of Earth's surface and holds 97 percent of Earth's water.", "src": "https://globalocean.noaa.gov/the-ocean/" }
+  ]
+}

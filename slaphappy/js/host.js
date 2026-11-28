@@ -1,6 +1,6 @@
 // Slap Happy on the big screen: the lobby with the room letters and QR code,
 // the questions, the timer, the scoreboard, and every rule of the game.
-// Phones only send slaps, reveals and right/wrong; this file decides.
+// Phones only send slaps and picks (A, B, C or D); this file decides.
 
 import { $, $$, esc, COLORS, colorOf, inkOn, teamStyle, randomName, SPEED, stayAwake, confetti, rain, bindTaps, isTouch } from './common.js';
 import { Link, newCode, rid, isCode } from './net.js';
@@ -116,36 +116,44 @@ function fromTeam(id, msg) {
   if (msg.t === 'slap') {
     const g = H.g;
     if (!g || g.over) { SND.buzzer(t.sound); wiggle(t); sendFx({ k: 'buzz', id: t.id }); return; } // testing the buzzer in the lobby
-    if (g.phase === 'armed' && msg.r === g.seq && !g.paused) registerSlap(t, +msg.rt);
-  } else if (msg.t === 'reveal') {
-    if (H.g && H.g.phase === 'up' && H.g.buzz === id && msg.r === H.g.seq) reveal();
-  } else if (msg.t === 'judge') {
-    if (H.g && H.g.phase === 'judge' && H.g.buzz === id && msg.r === H.g.seq) judge(!!msg.ok);
+    if (g.phase === 'armed' && msg.r === g.seq && (msg.a || 1) === g.att && !g.paused) registerSlap(t, +msg.rt);
+  } else if (msg.t === 'pick') {
+    const g = H.g;
+    if (g && g.phase === 'up' && !g.paused && g.buzz === id && msg.r === g.seq && (msg.a || 1) === g.att) choose(msg.i);
   }
 }
 
 // ---------- what each phone should show ----------
 function rankOf(t) { return 1 + H.teams.filter(o => o.score > t.score).length; }
+const LTR = 'ABCD';
+// a team can still answer this question if it hasn't missed it already
+function canPlay(t) { const g = H.g; return !!g && !g.out.includes(t.id) && (t.local || t.online); }
 function viewFor(t) {
   const g = H.g, q = g && g.qs[g.i];
-  const v = { t: 'view', name: t.name, color: t.color, sound: t.sound, score: t.score, rank: rankOf(t), round: g ? Math.min(g.i + 1, g.qs.length) : 0, total: g ? g.qs.length : 0, bonus: !!(q && q.bonus), seq: g ? g.seq : 0 };
+  const v = { t: 'view', name: t.name, color: t.color, sound: t.sound, score: t.score, rank: rankOf(t), round: g ? Math.min(g.i + 1, g.qs.length) : 0, total: g ? g.qs.length : 0, bonus: !!(q && q.bonus), seq: g ? g.seq : 0, att: g ? g.att : 0 };
   if (!g) return { ...v, v: 'lobby' };
   if (g.paused) return { ...v, v: 'paused' };
   const left = () => Math.max(0, Math.round(g.end - now()));
   const buzzT = g.buzz && byId(g.buzz);
   const by = buzzT ? { name: buzzT.name, color: buzzT.color } : null;
-  const answer = q ? q.answerText : '';
+  const answer = q ? `${LTR[q.answer]}: ${q.answerText}` : '';
+  const said = g.pick && q ? `${LTR[g.pick.i]}: ${q.choices[g.pick.i]}` : '';
+  const mine = t.id === g.buzz, out = g.out.includes(t.id);
   switch (g.phase) {
     case 'intro': return { ...v, v: 'intro' };
     case 'splash': return { ...v, v: 'next' };
     case 'ready': return { ...v, v: 'get', voice: !!H.settings.voice };
-    case 'armed': return { ...v, v: 'slap', ms: left() };
-    case 'up': case 'revealing':
-      return t.id === g.buzz ? { ...v, v: 'up', ms: g.phase === 'up' ? left() : 0, revealing: g.phase === 'revealing' } : { ...v, v: 'out', by };
-    case 'judge': return t.id === g.buzz ? { ...v, v: 'judge', answer } : { ...v, v: 'out', by, answer };
-    case 'result': return { ...v, v: 'res', mine: t.id === g.buzz, ok: g.result.ok, pts: g.result.pts, by, answer };
+    case 'steal': return out ? { ...v, v: 'sit' } : { ...v, v: 'get', steal: true };
+    case 'armed': return out ? { ...v, v: 'sit' } : { ...v, v: 'slap', ms: left(), steal: g.att > 1 };
+    case 'up': return mine ? { ...v, v: 'pick', ms: left(), q: q.q, choices: q.choices, gone: g.gone } : { ...v, v: 'out', by, choosing: true };
+    case 'checking': return mine ? { ...v, v: 'pick', locked: g.pick.i, q: q.q, choices: q.choices, gone: g.gone.filter(i => i !== g.pick.i) } : { ...v, v: 'out', by, said };
+    case 'miss': {
+      const more = q.choices.length - g.gone.length > 1 && H.teams.some(canPlay); // a steal is coming
+      return mine ? { ...v, v: 'miss', said, late: !g.pick, more } : { ...v, v: 'out', by, said, missed: true, next: more && canPlay(t) };
+    }
+    case 'result': return { ...v, v: 'res', mine, ok: true, pts: g.result.pts, stolen: g.result.stolen, by, answer };
     case 'timeout': return { ...v, v: 'timeup' };
-    case 'answer': return { ...v, v: 'timeup', answer };
+    case 'answer': return { ...v, v: 'timeup', answer, tried: g.att > 1 || g.out.length > 0 };
     case 'final': return { ...v, v: 'final' };
     case 'over': {
       const top = [...H.teams].sort((a, b) => b.score - a.score)[0];
@@ -173,8 +181,8 @@ function snapshot() {
     settings: { count: H.settings.count, slap: H.settings.slap, answer: H.settings.answer, topics: H.settings.topics, voice: !!H.settings.voice },
     teams: H.teams.map(({ id, name, color, sound, score, local, online }) => ({ id, name, color, sound, score, local, online })),
     g: g ? {
-      i: g.i, total: g.qs.length, seq: g.seq, phase: g.phase, dur: g.dur || 0, paused: !!g.paused, buzz: g.buzz, result: g.result,
-      revealed: !!g.revealed, over: !!g.over, slapped: g.slaps.map(x => x.id),
+      i: g.i, total: g.qs.length, seq: g.seq, att: g.att, phase: g.phase, dur: g.dur || 0, paused: !!g.paused, buzz: g.buzz, result: g.result,
+      revealed: !!g.revealed, over: !!g.over, slapped: g.slaps.map(x => x.id), out: g.out, gone: g.gone, pick: g.pick,
       left: g.paused ? Math.round(g.left || 0) : (g.end ? Math.max(0, Math.round(g.end - now())) : 0),
       q: q ? { id: q.id, q: q.q, choices: q.choices, answer: q.answer, answerText: q.answerText, fact: q.fact, bonus: q.bonus } : null,
     } : null,
@@ -344,17 +352,20 @@ function wirePads(scr) {
     const t = byId(b.closest('.podium').dataset.id); if (!t) return;
     const g = H.g;
     if (b.dataset.pad === 'test') { SND.buzzer(t.sound); wiggle(t); haptic('tap'); sendFx({ k: 'buzz', id: t.id }); }
-    if (b.dataset.pad === 'reveal' && g && g.phase === 'up' && g.buzz === t.id) reveal();
-    if (b.dataset.pad === 'yes' && g && g.phase === 'judge' && g.buzz === t.id) judge(true);
-    if (b.dataset.pad === 'no' && g && g.phase === 'judge' && g.buzz === t.id) judge(false);
+  });
+  // a team on this screen answers by tapping a choice on the board
+  scr.addEventListener('pointerup', e => {
+    const c = e.target.closest('.choice.tappable'); if (H.mirror || !c) return;
+    const g = H.g;
+    if (g && g.phase === 'up' && !g.paused) { const t = byId(g.buzz); if (t && t.local) choose(+c.dataset.i); }
   });
 }
 function padSlap(t) {
   if (H.mirror) return;
   const g = H.g;
   if (!g) { SND.buzzer(t.sound); wiggle(t); sendFx({ k: 'buzz', id: t.id }); return; }
-  if (g.phase === 'armed' && !g.paused && !g.slaps.some(s => s.id === t.id)) { SND.buzzer(t.sound); haptic('slap'); registerSlap(t, now() - g.armedAt); renderPad(t, viewFor(t)); }
-  else if (g.phase === 'ready' || g.phase === 'splash') { SND.play('early'); }
+  if (g.phase === 'armed' && !g.paused && canPlay(t) && !g.slaps.some(s => s.id === t.id)) { SND.buzzer(t.sound); haptic('slap'); registerSlap(t, now() - g.armedAt); renderPad(t, viewFor(t)); }
+  else if (g.phase === 'ready' || g.phase === 'splash' || g.phase === 'steal') { SND.play('early'); }
 }
 function renderPad(t, v) {
   const p = $(`.podium[data-id="${t.id}"] .p-act`, H.app); if (!p) return;
@@ -362,10 +373,10 @@ function renderPad(t, v) {
   let h = '';
   switch (v.v) {
     case 'lobby': h = `<button class="p-tap" data-pad="test">Test</button>`; break;
-    case 'next': case 'get': case 'intro': h = `<button class="p-tap calm" data-pad="slap">Wait for it</button>`; break;
+    case 'next': case 'get': case 'intro': h = `<button class="p-tap calm" data-pad="slap">${v.steal ? 'Steal coming' : 'Wait for it'}</button>`; break;
     case 'slap': h = g && g.slaps.some(s => s.id === t.id) ? `<button class="p-tap calm" disabled>Slapped!</button>` : `<button class="p-tap live" data-pad="slap">Slap!</button>`; break;
-    case 'up': h = v.revealing ? `<button class="p-tap calm" disabled>...</button>` : `<button class="p-tap calm" data-pad="reveal">Show answer</button>`; break;
-    case 'judge': h = `<button class="p-tap yes" data-pad="yes">✓ Right</button><button class="p-tap no" data-pad="no">✗ Wrong</button>`; break;
+    case 'pick': h = v.locked === undefined ? `<span class="p-hint">Tap your answer</span>` : `<span class="p-hint">${LTR[v.locked]}!</span>`; break;
+    case 'sit': h = `<span class="p-hint">Sitting out</span>`; break;
     default: h = '';
   }
   if (p.innerHTML !== h) p.innerHTML = h;
@@ -427,13 +438,20 @@ function startGame({ resume, again } = {}) {
   if (H.settings.voice) SND.primeSpeech("Let's play Slap Happy!");
   stayAwake();
   let qs, i = -1, seq = 0;
-  if (resume) { qs = resume.qs; i = Math.max(-1, resume.i - 1); seq = resume.seq || 0; }
+  if (resume) {
+    // shows saved before every question had choices: drop the ones without
+    const ok = q => Array.isArray(q.choices) && q.choices.length >= 2 && Number.isInteger(q.answer);
+    qs = resume.qs.filter(ok);
+    i = Math.max(-1, resume.i - resume.qs.slice(0, resume.i).filter(q => !ok(q)).length - 1);
+    seq = resume.seq || 0;
+    if (!qs.length) return;
+  }
   else {
     qs = pickQuestions(H.topics, H.settings.topics, H.settings.count);
     if (!qs.length) return;
     if (!resume) for (const t of H.teams) t.score = 0;
   }
-  H.g = { qs, i, seq: seq + 1, phase: 'intro', end: 0, onEnd: null, paused: false, left: 0, buzz: null, slaps: [], decideT: null, result: null, armedAt: 0, lastTick: -1, over: false };
+  H.g = { qs, i, seq: seq + 1, att: 1, phase: 'intro', end: 0, onEnd: null, paused: false, left: 0, buzz: null, slaps: [], out: [], gone: [], pick: null, decideT: null, result: null, armedAt: 0, lastTick: -1, over: false };
   buildShow();
   setPhase('intro', ms(3.4), nextQuestion);
   splash([['3', '']]);
@@ -460,7 +478,7 @@ function nextQuestion() {
   const g = H.g;
   g.i++;
   if (g.i >= g.qs.length) { final(); return; }
-  g.seq++; g.buzz = null; g.slaps = []; g.result = null; g.revealed = false;
+  g.seq++; g.att = 1; g.buzz = null; g.slaps = []; g.out = []; g.gone = []; g.pick = null; g.result = null; g.revealed = false;
   clearTimeout(g.decideT); g.decideT = null;
   const q = g.qs[g.i];
   markSeen([q.id]);
@@ -470,7 +488,7 @@ function nextQuestion() {
   else { SND.play('whoosh'); splash([[`Question ${g.i + 1}`, ''], [`of ${g.qs.length}`, 'small']]); }
   save();
   if (q.bonus && H.settings.voice) SND.speak('Bonus round!');
-  setPhase('splash', ms(q.bonus ? 2.4 : 1.4), () => { splash(null); readQuestion(q); });
+  setPhase('splash', ms(q.bonus ? 2.2 : 1.2), () => { splash(null); readQuestion(q); });
 }
 
 // The buzzers stay locked while the question is read. With the voice on they
@@ -499,7 +517,8 @@ function arm() {
   const g = H.g;
   g.armedAt = now();
   SND.hush();
-  setPhase('armed', ms(H.settings.slap), () => { if (g.slaps.length) decide(); else timeUp(); });
+  const secs = g.att > 1 ? Math.min(H.settings.slap, 10) : H.settings.slap; // steals are quicker
+  setPhase('armed', ms(secs), () => { if (g.slaps.length) decide(); else timeUp(); });
   SND.play('ding');
   SND.music('think');
   goFlash();
@@ -517,7 +536,7 @@ function goFlash() {
 // screen waits a quarter second after the first slap to hear from the rest.
 function registerSlap(t, rt) {
   const g = H.g;
-  if (g.phase !== 'armed' || g.slaps.some(s => s.id === t.id)) return;
+  if (g.phase !== 'armed' || !canPlay(t) || g.slaps.some(s => s.id === t.id)) return;
   if (!isFinite(rt) || rt < 0) rt = now() - g.armedAt;
   g.slaps.push({ id: t.id, rt: Math.min(rt, 600000), at: now() });
   if (!g.decideT) g.decideT = setTimeout(decide, slapWindow());
@@ -533,43 +552,75 @@ function decide() {
 
 function buzzed(t) {
   const g = H.g;
-  g.buzz = t.id;
+  g.buzz = t.id; g.pick = null;
   SND.stopMusic(); SND.hush();
   SND.buzzer(t.sound);
   const scr = H.app.firstElementChild;
   teamStyle(scr, t.color);
   burst(t);
-  setPhase('up', ms(H.settings.answer), reveal);
+  setPhase('up', ms(H.settings.answer), () => missed());
 }
 
-function reveal() {
-  const g = H.g;
-  if (!g || g.phase !== 'up') return;
-  SND.drumroll(0.85 * SPEED);
-  setPhase('revealing', ms(0.95), () => { g.revealed = true; SND.play('tada'); setPhase('judge', 0, null); });
+// The team that slapped picks A, B, C or D on its phone (or on the board, for
+// a team on this screen). A short drumroll, then right or wrong.
+function choose(i) {
+  const g = H.g, q = g && g.qs[g.i];
+  if (!g || g.phase !== 'up' || !q || !Number.isInteger(i) || i < 0 || i >= q.choices.length || g.gone.includes(i)) return;
+  g.pick = { id: g.buzz, i };
+  SND.stopMusic();
+  SND.drumroll(0.6 * SPEED);
+  setPhase('checking', ms(0.75), () => i === q.answer ? right() : missed());
 }
 
-function judge(ok) {
-  const g = H.g;
-  if (!g || g.phase !== 'judge') return;
-  const t = byId(g.buzz), q = g.qs[g.i];
-  const pts = ok ? (q.bonus ? 200 : 100) : 0;
+function right() {
+  const g = H.g, t = byId(g.buzz), q = g.qs[g.i];
+  const pts = q.bonus ? 200 : 100;
   if (t) t.score += pts;
-  g.result = { ok, pts };
-  if (ok) {
-    SND.play('correct'); SND.applause(2);
-    const p = t && $(`.podium[data-id="${t.id}"]`, H.app);
-    if (p) { const r = p.getBoundingClientRect(); confetti({ x: r.left + r.width / 2, y: r.top, n: 110, colors: [colorOf(t.color), '#ffb81c', '#fff3d1'] }); }
-  } else SND.play('wrong');
+  g.result = { ok: true, pts, stolen: g.att > 1 };
+  g.revealed = true;
+  SND.play('correct'); SND.applause(1.6);
+  const p = t && $(`.podium[data-id="${t.id}"]`, H.app);
+  if (p) { const r = p.getBoundingClientRect(); confetti({ x: r.left + r.width / 2, y: r.top, n: 110, colors: [colorOf(t.color), '#ffb81c', '#fff3d1'] }); }
   save();
-  setPhase('result', ms(7), nextQuestion);
+  setPhase('result', ms(4.5), nextQuestion);
+}
+
+// A wrong pick (or no pick before the clock ran out): that choice is crossed
+// out, the team sits out the rest of this question, and the others can steal.
+function missed() {
+  const g = H.g;
+  if (g.pick) g.gone.push(g.pick.i);
+  if (g.buzz && !g.out.includes(g.buzz)) g.out.push(g.buzz);
+  SND.play('wrong');
+  setPhase('miss', ms(1.3), afterMiss);
+}
+function afterMiss() {
+  const g = H.g, q = g.qs[g.i];
+  const left = q.choices.length - g.gone.length;
+  if (left > 1 && H.teams.some(canPlay)) steal();
+  else { g.result = { ok: false, why: 'missed' }; showAnswer(); }
+}
+function steal() {
+  const g = H.g;
+  g.att++; g.buzz = null; g.pick = null; g.slaps = [];
+  clearTimeout(g.decideT); g.decideT = null;
+  SND.play('whoosh');
+  splash([['Steal it!', 'pink'], ['Slap when it lights up', 'small']]);
+  setPhase('steal', ms(1.4), () => { splash(null); arm(); });
+}
+function showAnswer() {
+  const g = H.g;
+  g.revealed = true;
+  SND.play('tada');
+  setPhase('answer', ms(4.5), nextQuestion);
 }
 
 function timeUp() {
   const g = H.g;
   SND.stopMusic(); SND.hush();
   SND.play('timeup');
-  setPhase('timeout', ms(1.2), () => { g.revealed = true; SND.play('tada'); setPhase('answer', ms(6.5), nextQuestion); });
+  g.result = { ok: false, why: g.att > 1 ? 'nosteal' : 'noslap' };
+  setPhase('timeout', ms(1), showAnswer);
 }
 
 function final() {
@@ -584,7 +635,7 @@ function skip() {
   const g = H.g; if (!g) return;
   clearTimeout(g.decideT); g.decideT = null;
   SND.hush(); SND.stopMusic();
-  if (['splash', 'ready', 'armed', 'up', 'revealing', 'judge', 'timeout'].includes(g.phase)) { g.revealed = true; setPhase('answer', ms(5), nextQuestion); }
+  if (['splash', 'ready', 'armed', 'up', 'checking', 'miss', 'steal', 'timeout'].includes(g.phase)) { g.result = { ok: false, why: 'skip' }; splash(null); g.revealed = true; setPhase('answer', ms(4.5), nextQuestion); }
   else nextQuestion();
 }
 
@@ -615,6 +666,8 @@ function onKey(e) {
   const g = H.g;
   if (e.key === ' ' && g && !g.over) { e.preventDefault(); g.paused ? resume() : pause(); }
   if (e.key === 'Enter' && g && (g.phase === 'result' || g.phase === 'answer')) nextQuestion();
+  const k = 'abcd'.indexOf(String(e.key).toLowerCase());
+  if (k >= 0 && g && g.phase === 'up' && !g.paused) { const t = byId(g.buzz); if (t && t.local) choose(k); }
   const n = parseInt(e.key, 10);
   if (n >= 1 && n <= 8) { const locals = H.teams.filter(t => t.local); if (locals[n - 1]) padSlap(locals[n - 1]); }
 }
@@ -625,7 +678,7 @@ function buildShow() {
   H.screen = 'show';
   const topicIds = H.settings.topics;
   const tp = H.topics.filter(t => topicIds.includes(t.id));
-  const chip = tp.length === 1 ? `${esc(tp[0].emoji)} ${esc(tp[0].title)}` : `${tp.map(t => esc(t.emoji)).join(' ')} Mixed bag`;
+  const chip = tp.length === 1 ? `${esc(tp[0].emoji)} ${esc(tp[0].title)}` : tp.length <= 4 ? `${tp.map(t => esc(t.emoji)).join(' ')} Mixed bag` : `Mixed bag of ${tp.length} topics`;
   H.app.innerHTML = `
   <div class="screen host show">
     <div class="rays"></div>
@@ -643,8 +696,6 @@ function buildShow() {
         <div class="timer idle"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="45"/><circle class="arc" cx="50" cy="50" r="45" stroke-dasharray="${CIRC}" stroke-dashoffset="0"/></svg><span class="tnum"></span><span class="tlbl"></span></div>
       </div>
       <div class="choices"></div>
-      <div class="say-it">Say your answer out loud</div>
-      <div class="openans"></div>
       <div class="fact"></div>
       <div class="statusline"></div>
     </main>
@@ -656,9 +707,6 @@ function buildShow() {
   bindTaps(scr, {
     pause: () => pause(),
     next: () => { const g = H.g; if (g && (g.phase === 'result' || g.phase === 'answer')) nextQuestion(); },
-    oreveal: () => reveal(),
-    oyes: () => judge(true),
-    ono: () => judge(false),
   });
   wirePads(scr);
   renderTeams();
@@ -672,14 +720,10 @@ function renderQuestion(q) {
   const L = q.q.length;
   qt.style.setProperty('--qs', L < 50 ? 4.8 : L < 80 ? 4.3 : L < 120 ? 3.8 : 3.3);
   const ch = $('.choices', scr);
-  if (q.choices) {
-    const longest = Math.max(...q.choices.map(c => c.length));
-    ch.style.display = '';
-    ch.style.fontSize = '';
-    ch.innerHTML = q.choices.map((c, i) => `<div class="choice" style="font-size:calc(${longest < 16 ? 3.3 : longest < 26 ? 2.9 : 2.5} * var(--u))"><span class="ltr">${'ABCD'[i]}</span><span>${esc(c)}</span></div>`).join('');
-  } else { ch.style.display = 'none'; ch.innerHTML = ''; }
-  $('.say-it', scr).style.display = q.choices ? 'none' : '';
-  const oa = $('.openans', scr); oa.textContent = q.answerText; oa.classList.remove('show');
+  const choices = q.choices || [];
+  const longest = Math.max(0, ...choices.map(c => c.length));
+  ch.classList.toggle('two', choices.length === 2);
+  ch.innerHTML = choices.map((c, i) => `<div class="choice" data-i="${i}" style="font-size:calc(${longest < 16 ? 3.3 : longest < 26 ? 2.9 : 2.5} * var(--u))"><span class="ltr">${LTR[i]}</span><span class="ctext">${esc(c)}</span></div>`).join('');
   $('.fact', scr).classList.remove('show');
   fitStage();
 }
@@ -690,38 +734,49 @@ function renderShow() {
   const q = g.qs[Math.min(g.i, g.qs.length - 1)] || g.qs[0];
   $('.round', scr).innerHTML = g.i >= 0 && g.i < g.qs.length ? `Question <b>${g.i + 1}</b> of ${g.qs.length}` : '';
   const buzzT = g.buzz && byId(g.buzz);
-  const showAns = g.revealed && ['judge', 'result', 'answer'].includes(g.phase);
-  scr.classList.toggle('buzzed', ['up', 'revealing', 'judge', 'result'].includes(g.phase) && !!buzzT);
+  const showAns = g.revealed && ['result', 'answer'].includes(g.phase);
+  scr.classList.toggle('buzzed', ['up', 'checking', 'miss', 'result'].includes(g.phase) && !!buzzT);
   if (buzzT) teamStyle(scr, buzzT.color);
-  // choices
-  $$('.choice', scr).forEach((c, i) => { c.classList.toggle('right', showAns && i === q.answer); c.classList.toggle('wrongout', showAns && i !== q.answer); });
-  $('.openans', scr).classList.toggle('show', showAns && !q.choices);
+  // choices: crossed out after a wrong pick, lit while a pick is checked, green when right
+  const gone = g.gone || [], pick = g.pick;
+  const localUp = g.phase === 'up' && buzzT && buzzT.local && !H.mirror && !g.paused;
+  $$('.choice', scr).forEach((c, i) => {
+    c.classList.toggle('right', showAns && i === q.answer);
+    c.classList.toggle('wrongout', showAns && i !== q.answer && !gone.includes(i));
+    c.classList.toggle('gone', gone.includes(i));
+    c.classList.toggle('picked', !!pick && pick.i === i && ['checking', 'miss'].includes(g.phase));
+    c.classList.toggle('nope', !!pick && pick.i === i && g.phase === 'miss');
+    c.classList.toggle('tappable', !!localUp && !gone.includes(i));
+  });
   const fact = $('.fact', scr);
   if (showAns && q.fact) { fact.innerHTML = `<b>Did you know?</b> ${esc(q.fact)}`; fact.classList.add('show'); } else fact.classList.remove('show');
   // timer
   const tm = $('.timer', scr);
   tm.classList.toggle('idle', !(g.phase === 'armed' || g.phase === 'up'));
-  $('.tlbl', tm).textContent = g.phase === 'up' ? 'to answer' : g.phase === 'armed' || g.phase === 'ready' ? 'to slap' : '';
+  $('.tlbl', tm).textContent = g.phase === 'up' ? 'to pick' : g.phase === 'armed' || g.phase === 'ready' ? 'to slap' : '';
   if (g.phase === 'ready') { $('.tnum', tm).textContent = H.settings.slap; $('.arc', tm).style.strokeDashoffset = '0'; }
   if (g.phase === 'up') { $('.arc', tm).style.strokeDashoffset = '0'; }
-  if (['timeout', 'answer'].includes(g.phase)) $('.tnum', tm).textContent = '0';
+  if (['timeout', 'answer', 'checking', 'miss', 'steal'].includes(g.phase)) $('.tnum', tm).textContent = '';
   // the line under the question
   const sl = $('.statusline', scr);
   const name = buzzT ? esc(buzzT.name) : '';
+  const L = pick ? LTR[pick.i] : '';
+  const why = g.result && g.result.why;
   let h = '';
   switch (g.phase) {
     case 'ready': h = `<div class="signal wait"><i></i>${H.settings.voice ? 'Listen...' : 'Read it...'}</div>`; break;
-    case 'armed': h = `<div class="signal go"><i></i>Slap now!</div>`; break;
-    case 'up': h = `<div class="call">${name}, say your answer!</div><div class="override"><button class="btn ghost small" data-act="oreveal">Show the answer</button></div>`; break;
-    case 'revealing': h = `<div class="call">And the answer is...</div>`; break;
-    case 'judge': h = `<div class="call">Did ${name} get it right?</div><div class="override"><span>Or decide here:</span> <button class="btn mint small" data-act="oyes">✓ Right</button><button class="btn tang small" data-act="ono">✗ Wrong</button></div>`; break;
-    case 'result': h = g.result.ok ? `<div class="call go">+${g.result.pts} for ${name}!</div>` : `<div class="call">Not this time, ${name}</div>`; h += nextHTML(); break;
+    case 'steal': h = `<div class="signal wait"><i></i>Steal coming...</div>`; break;
+    case 'armed': h = `<div class="signal go"><i></i>${g.att > 1 ? 'Slap to steal!' : 'Slap now!'}</div>`; break;
+    case 'up': h = `<div class="call">${name}, pick ${localUp ? 'on the board' : 'on your phone'}!</div>`; break;
+    case 'checking': h = `<div class="call">${name} says ${L}!</div>`; break;
+    case 'miss': h = `<div class="call">${pick ? `Not ${L}!` : `Out of time, ${name}!`}</div>`; break;
+    case 'result': h = `<div class="call go">${g.result.stolen ? 'Stolen! ' : ''}+${g.result.pts} for ${name}!</div>` + nextHTML(); break;
     case 'timeout': h = `<div class="call">Time's up!</div>`; break;
-    case 'answer': h = `<div class="call">Nobody slapped. Here's the answer</div>` + nextHTML(); break;
+    case 'answer': h = `<div class="call">${why === 'noslap' ? 'Nobody slapped. Here’s the answer' : why === 'nosteal' ? 'No steals. Here’s the answer' : why === 'skip' ? 'Here’s the answer' : 'Nobody got it. Here’s the answer'}</div>` + nextHTML(); break;
   }
   sl.innerHTML = h;
   scr.classList.toggle('reveal', showAns);
-  scr.classList.toggle('locked', g.phase === 'ready' || g.phase === 'splash');
+  scr.classList.toggle('locked', g.phase === 'ready' || g.phase === 'splash' || g.phase === 'steal');
   scr.classList.toggle('live', g.phase === 'armed' && !g.paused);
   renderPodiums();
   fitStage();
@@ -750,9 +805,10 @@ function renderPodiums() {
   const leaders = H.teams.filter(t => t.score === top && top > 0);
   for (const t of H.teams) {
     const p = $(`.podium[data-id="${t.id}"]`, H.app); if (!p) continue;
-    const lit = g && g.buzz === t.id && ['up', 'revealing', 'judge', 'result'].includes(g.phase);
+    const lit = g && g.buzz === t.id && ['up', 'checking', 'miss', 'result'].includes(g.phase);
     p.classList.toggle('lit', !!lit);
-    p.classList.toggle('dimmed', !!(g && g.buzz && !lit && ['up', 'revealing', 'judge'].includes(g.phase)));
+    p.classList.toggle('dimmed', !!(g && g.buzz && !lit && ['up', 'checking', 'miss'].includes(g.phase)));
+    p.classList.toggle('sitout', !!(g && g.out && g.out.includes(t.id) && ['miss', 'steal', 'armed', 'up', 'checking'].includes(g.phase) && !lit));
     p.classList.toggle('crown', leaders.includes(t));
     p.classList.toggle('offline', !t.local && !t.online);
     countScore(t, $('.p-score', p));
@@ -1038,19 +1094,20 @@ function applyShow(s) {
   const sg = s.g, q = sg.q;
   const g = prevG && prevScreen !== 'lobby' ? prevG : { qs: [], slaps: [] };
   Object.assign(g, {
-    i: sg.i, seq: sg.seq, phase: sg.phase, dur: sg.dur, paused: sg.paused, buzz: sg.buzz, result: sg.result,
-    revealed: sg.revealed, over: sg.over, onEnd: null, left: sg.left,
+    i: sg.i, seq: sg.seq, att: sg.att || 1, phase: sg.phase, dur: sg.dur, paused: sg.paused, buzz: sg.buzz, result: sg.result,
+    revealed: sg.revealed, over: sg.over, onEnd: null, left: sg.left, out: sg.out || [], gone: sg.gone || [], pick: sg.pick || null,
     end: sg.left ? now() + sg.left : 0, slaps: (sg.slapped || []).map(id => ({ id })),
   });
   if (q) g.qs = new Array(Math.max(1, sg.total)).fill(q);
-  else if (!g.qs.length) g.qs = new Array(Math.max(1, sg.total)).fill({ q: '', fact: '', answerText: '' });
+  else if (!g.qs.length) g.qs = new Array(Math.max(1, sg.total)).fill({ q: '', fact: '', answerText: '', choices: [] });
   H.g = g;
 
   if (s.screen === 'over') { if (prevScreen !== 'over') { (H.introT || []).forEach(clearTimeout); SND.stopMusic(); podiumScreen(); } return; }
 
   if (H.screen !== 'show') { buildShow(); if (q) renderQuestion(q); }
   else if (sg.seq !== prevSeq && q) renderQuestion(q);
-  if (sg.phase !== prevPhase || sg.seq !== prevSeq || (prevPaused && !sg.paused)) mirrorPhase(g, q, prevPaused && !sg.paused);
+  const prevAtt = prevG ? prevG._att : null; g._att = g.att;
+  if (sg.phase !== prevPhase || sg.seq !== prevSeq || g.att !== prevAtt || (prevPaused && !sg.paused)) mirrorPhase(g, q, prevPaused && !sg.paused);
   mirrorPaused(sg.paused);
   renderShow();
 }
@@ -1083,15 +1140,15 @@ function mirrorPhase(g, q, resumed) {
       if (t && !resumed) { SND.buzzer(t.sound); teamStyle(scr, t.color); burst(t); }
       break;
     }
-    case 'revealing': SND.drumroll(0.85 * SPEED); break;
-    case 'judge': if (!resumed) SND.play('tada'); break;
+    case 'checking': if (!resumed) SND.drumroll(0.6 * SPEED); break;
+    case 'miss': if (!resumed) SND.play('wrong'); break;
+    case 'steal': SND.stopMusic(); if (!resumed) { SND.play('whoosh'); splash([['Steal it!', 'pink'], ['Slap when it lights up', 'small']]); } break;
     case 'result': {
       const t = byId(g.buzz);
-      if (g.result && g.result.ok) {
-        SND.play('correct'); SND.applause(2);
-        const p = t && $(`.podium[data-id="${t.id}"]`, H.app);
-        if (p) { const r = p.getBoundingClientRect(); confetti({ x: r.left + r.width / 2, y: r.top, n: 110, colors: [colorOf(t.color), '#ffb81c', '#fff3d1'] }); }
-      } else SND.play('wrong');
+      if (resumed) break;
+      SND.play('correct'); SND.applause(1.6);
+      const p = t && $(`.podium[data-id="${t.id}"]`, H.app);
+      if (p) { const r = p.getBoundingClientRect(); confetti({ x: r.left + r.width / 2, y: r.top, n: 110, colors: [colorOf(t.color), '#ffb81c', '#fff3d1'] }); }
       break;
     }
     case 'timeout': splash(null); SND.stopMusic(); SND.play('timeup'); break;

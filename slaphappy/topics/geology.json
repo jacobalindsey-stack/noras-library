@@ -1,0 +1,34 @@
+{
+  "id": "geology",
+  "title": "Rocks & Geology",
+  "emoji": "🪨",
+  "blurb": "Rocks, gems, fossils, caves, and the plates that move our world.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://www.newworldencyclopedia.org/entry/Mohs_scale_of_mineral_hardness",
+    "https://sciencenotes.org/mohs-hardness-scale/"
+  ],
+  "questions": [
+    { "q": "What is the hardest mineral on the Mohs scale?", "choices": ["Diamond", "Quartz", "Topaz", "Talc"], "answer": 0, "level": 1,
+      "fact": "German scientist Friedrich Mohs created his 1-to-10 hardness scale in 1812.", "src": "https://www.newworldencyclopedia.org/entry/Mohs_scale_of_mineral_hardness" },
+    { "q": "What is the softest mineral on the Mohs scale?", "choices": ["Talc", "Gypsum", "Calcite", "Quartz"], "answer": 0, "level": 2,
+      "fact": "Talc is a 1 on the scale. It is so soft you can scratch it with your fingernail.", "src": "https://sciencenotes.org/mohs-hardness-scale/" },
+    { "q": "True or false: Each step on the Mohs scale is the same jump in hardness.", "choices": ["True", "False"], "answer": 1, "level": 3, "fixed": true,
+      "fact": "Diamond is a 10 and corundum is a 9, but diamond is several times harder.", "src": "https://www.newworldencyclopedia.org/entry/Mohs_scale_of_mineral_hardness" },
+    { "q": "Which kind of rock forms when melted rock cools and hardens?", "choices": ["Igneous", "Sedimentary", "Metamorphic", "Meteoric"], "answer": 0, "level": 2,
+      "fact": "Igneous comes from the Latin word for fire." },
+    { "q": "What are scientists who study fossils called?", "choices": ["Paleontologists", "Astronomers", "Botanists", "Meteorologists"], "answer": 0, "level": 2,
+      "fact": "Fossils include more than bones. Footprints, shells, and leaf prints in rock count too." },
+    { "q": "What are the giant moving pieces of Earth's outer shell called?", "choices": ["Tectonic plates", "Fault lines", "Craters", "Glaciers"], "answer": 0, "level": 1,
+      "fact": "Plates move only a few centimeters a year, about as fast as your fingernails grow." },
+    { "q": "In a cave, where do stalactites hang from?", "choices": ["The ceiling", "The floor", "Underwater pools", "The entrance"], "answer": 0, "level": 2,
+      "fact": "Memory trick: stalactites hold tight to the ceiling, and stalagmites grow up from the ground." },
+    { "q": "A ruby is a red form of which mineral?", "choices": ["Corundum", "Quartz", "Talc", "Mica"], "answer": 0, "level": 3,
+      "fact": "Blue corundum is called sapphire. Rubies and sapphires are both a 9 on the Mohs scale." },
+    { "q": "What tool records the shaking from earthquakes?", "choices": ["Seismograph", "Barometer", "Thermometer", "Telescope"], "answer": 0, "level": 2,
+      "fact": "Seismographs are so sensitive that they can pick up earthquakes on the other side of the world." },
+    { "q": "Purple amethyst is a type of which mineral?", "choices": ["Quartz", "Diamond", "Talc", "Gypsum"], "answer": 0, "level": 3,
+      "fact": "Quartz is a 7 on the Mohs scale, so it can scratch glass." }
+  ]
+}

@@ -6,6 +6,10 @@ file listed in `slaphappy/topics/manifest.json`, so adding a topic is two steps:
 1. Save the new file as `slaphappy/topics/<id>.json`.
 2. Add `"<id>.json"` to the `topics` list in `manifest.json`.
 
+Every question is multiple choice: the team that slaps first picks A, B, C
+or D on its own phone and the game knows straight away whether it's right.
+A wrong pick crosses that choice out and the other teams can steal.
+
 Then run the checker and push:
 
 ```
@@ -61,10 +65,12 @@ Families: adults and kids aged 10 to 12 playing together.
       "src": "https://..."
     },
     {
-      "q": "Name the grinning cat who keeps disappearing in Alice's Adventures in Wonderland.",
-      "answer": "The Cheshire Cat",
+      "q": "True or false: milk is a good drink for grown-up cats.",
+      "choices": ["True", "False"],
+      "answer": 1,
       "level": 2,
-      "fact": "Lewis Carroll's book came out in 1865."
+      "fixed": true,
+      "fact": "Most grown-up cats can't digest milk well. Fresh water is best."
     }
   ]
 }
@@ -79,8 +85,8 @@ Families: adults and kids aged 10 to 12 playing together.
 | `version`, `checked` | no | Bump `version` when you edit; `checked` is the date facts were last verified. |
 | `sources` | yes | Pages the facts were checked against. |
 | `questions[].q` | yes | The question, ideally under 110 characters (the big screen shrinks long ones). |
-| `questions[].choices` | no | 2 to 4 different answers, each ideally under 26 characters. Leave out for a say-it-out-loud question. |
-| `questions[].answer` | yes | With `choices`: the position of the right choice, **counting from 0**. Without `choices`: the answer as text. |
+| `questions[].choices` | yes | 2 to 4 different answers, each ideally under 26 characters (they appear as buttons on a phone). Four is best: a wrong pick crosses one out and the others can steal. |
+| `questions[].answer` | yes | The position of the right choice, **counting from 0**. |
 | `questions[].level` | yes | 1, 2 or 3 (see above). The show opens with easier ones and builds. |
 | `questions[].fact` | yes | One or two sentences, under 200 characters. |
 | `questions[].fixed` | no | `true` keeps the choices in the order written (use for numbers and ranges, and for True/False). Otherwise the game shuffles them each time. |
@@ -105,7 +111,8 @@ coding session along with this file:
 > Write a Slap Happy trivia topic about **<topic>** as a JSON file following
 > the format and rules in slaphappy/TOPICS.md (adults and kids 10-12 playing
 > together, nothing adult-only). 45 questions, a third each at levels 1, 2
-> and 3, mostly 4-choice, a few True/False and two or three say-it-out-loud
-> questions. Every question gets a surprising one- or two-sentence fact.
+> and 3, all multiple choice: mostly 4 choices, plus 3 to 5 True/False.
+> No question without choices. Every question gets a surprising one- or
+> two-sentence fact.
 > Check every answer and fact against reliable sources, list them in
 > `sources`, and put a `src` on anything numeric or surprising.

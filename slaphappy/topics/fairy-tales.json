@@ -1,0 +1,37 @@
+{
+  "id": "fairy-tales",
+  "title": "Fairy Tales",
+  "emoji": "🧚",
+  "blurb": "Classic tales, the people who wrote them down, and magic objects.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://www.britannica.com/today-in-history/December-20-Grimms-Fairy-Tales-Published",
+    "https://sites.pitt.edu/~dash/grimm.html",
+    "https://www.britannica.com/topic/Cinderella-folktale-heroine",
+    "https://www.britannica.com/summary/Hans-Christian-Andersen-Danish-author",
+    "https://www.visitcopenhagen.com/copenhagen/planning/the-little-mermaid-gdk586951"
+  ],
+  "questions": [
+    { "q": "In what year did the Brothers Grimm publish their first book of tales?", "choices": ["1712", "1812", "1912", "2012"], "answer": 1, "level": 2, "fixed": true,
+      "fact": "The first volume of Children's and Household Tales came out on December 20, 1812.", "src": "https://www.britannica.com/today-in-history/December-20-Grimms-Fairy-Tales-Published" },
+    { "q": "About how many tales were in the Grimms' very first volume?", "choices": ["25", "86", "150", "200"], "answer": 1, "level": 3, "fixed": true,
+      "fact": "The first volume had 86 tales. By the last edition in 1857, the collection had grown to 200 tales.", "src": "https://sites.pitt.edu/~dash/grimm.html" },
+    { "q": "Who wrote The Ugly Duckling?", "choices": ["Hans Christian Andersen", "Charles Perrault", "Brothers Grimm", "Aesop"], "answer": 0, "level": 1,
+      "fact": "Andersen was a Danish writer who also wrote The Emperor's New Clothes.", "src": "https://www.britannica.com/summary/Hans-Christian-Andersen-Danish-author" },
+    { "q": "Which writer gave Cinderella a glass slipper in 1697?", "choices": ["Charles Perrault", "Brothers Grimm", "Hans Christian Andersen", "Aesop"], "answer": 0, "level": 2,
+      "fact": "The glass slipper is special to Perrault's French version. Other versions use different shoes.", "src": "https://www.britannica.com/topic/Cinderella-folktale-heroine" },
+    { "q": "True or false: The Brothers Grimm came from Germany.", "choices": ["True", "False"], "answer": 0, "level": 1, "fixed": true,
+      "fact": "Jacob and Wilhelm Grimm were also language experts who started a giant German dictionary." },
+    { "q": "The Little Mermaid statue sits in which city?", "choices": ["Copenhagen", "Paris", "London", "Oslo"], "answer": 0, "level": 2,
+      "fact": "The statue honors Andersen's tale and was unveiled on August 23, 1913.", "src": "https://www.visitcopenhagen.com/copenhagen/planning/the-little-mermaid-gdk586951" },
+    { "q": "In Rumpelstiltskin, straw is spun into what?", "choices": ["Gold", "Silk", "Silver", "Rope"], "answer": 0, "level": 1,
+      "fact": "The tale was written down by the Brothers Grimm, and the miller's daughter wins by guessing a name." },
+    { "q": "In Hansel and Gretel, the witch's house is made of what?", "choices": ["Bread, cake and sugar", "Ice", "Seashells", "Straw"], "answer": 0, "level": 1,
+      "fact": "In the Grimms' telling the walls are bread, the roof is cake and the windows are clear sugar. Many later retellings made it gingerbread." },
+    { "q": "In The Emperor's New Clothes, who says the emperor has nothing on?", "choices": ["A child", "A tailor", "The queen", "A soldier"], "answer": 0, "level": 2,
+      "fact": "Andersen's tale is famous for showing that sometimes a child is brave enough to say what everyone sees." },
+    { "q": "In Russian folk tales, Baba Yaga's hut stands on what?", "choices": ["Chicken legs", "Tall stilts", "A turtle's back", "A cloud"], "answer": 0, "level": 3,
+      "fact": "In many tales, Baba Yaga's hut can turn around to face visitors, and she rides in a giant mortar." }
+  ]
+}

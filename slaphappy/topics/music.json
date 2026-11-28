@@ -1,0 +1,36 @@
+{
+  "id": "music",
+  "title": "Music",
+  "emoji": "🎵",
+  "blurb": "Instruments, orchestras, composers, and music around the world.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://www.metmuseum.org/art/collection/search/501788",
+    "https://www.britannica.com/art/piano",
+    "https://www.britannica.com/topic/Symphony-No-9-in-D-Minor",
+    "https://www.britannica.com/biography/At-what-age-did-Wolfgang-Amadeus-Mozart-compose-his-first-piece-of-music"
+  ],
+  "questions": [
+    { "q": "Who invented the piano?", "choices": ["Bartolomeo Cristofori", "Wolfgang Mozart", "Ludwig van Beethoven", "Johann Sebastian Bach"], "answer": 0, "level": 3,
+      "fact": "Cristofori built his first piano in Italy around 1700. One from 1720 is the oldest piano that survives today.", "src": "https://www.metmuseum.org/art/collection/search/501788" },
+    { "q": "True or false: The world's oldest surviving piano has no pedals.", "choices": ["True", "False"], "answer": 0, "level": 3, "fixed": true,
+      "fact": "Cristofori's 1720 piano at the Met in New York has no pedals, unlike modern pianos.", "src": "https://www.metmuseum.org/art/collection/search/501788" },
+    { "q": "How many keys does a standard modern piano have?", "choices": ["52", "66", "88", "100"], "answer": 2, "level": 2, "fixed": true,
+      "fact": "Those 88 keys cover a little more than seven octaves.", "src": "https://www.britannica.com/art/piano" },
+    { "q": "Which composer kept writing music after losing most of his hearing?", "choices": ["Beethoven", "Mozart", "Vivaldi", "Chopin"], "answer": 0, "level": 2,
+      "fact": "His Ninth Symphony premiered in Vienna in 1824, when he was profoundly deaf.", "src": "https://www.britannica.com/topic/Symphony-No-9-in-D-Minor" },
+    { "q": "At about what age did Mozart compose his first music?", "choices": ["About 5", "About 10", "About 15", "About 20"], "answer": 0, "level": 2, "fixed": true,
+      "fact": "Mozart wrote his first little pieces around 1761, when he was about five years old.", "src": "https://www.britannica.com/biography/At-what-age-did-Wolfgang-Amadeus-Mozart-compose-his-first-piece-of-music" },
+    { "q": "How many strings does a standard violin have?", "choices": ["3", "4", "5", "6"], "answer": 1, "level": 1, "fixed": true,
+      "fact": "The violin's four strings are tuned to the notes G, D, A, and E." },
+    { "q": "The trumpet belongs to which family of instruments?", "choices": ["Brass", "Woodwind", "String", "Percussion"], "answer": 0, "level": 1,
+      "fact": "Brass players make sound by buzzing their lips into a cup-shaped mouthpiece." },
+    { "q": "Who leads an orchestra while standing in front of it?", "choices": ["The conductor", "The composer", "The first violin", "The drummer"], "answer": 0, "level": 1,
+      "fact": "Many conductors use a thin stick called a baton to show the beat." },
+    { "q": "The sitar is a stringed instrument from which country?", "choices": ["India", "Japan", "Egypt", "Ireland"], "answer": 0, "level": 2,
+      "fact": "A sitar has extra strings that no one plucks. They ring along on their own and make its shimmering sound." },
+    { "q": "The didgeridoo comes from which country?", "choices": ["Australia", "Peru", "Norway", "Kenya"], "answer": 0, "level": 3,
+      "fact": "Aboriginal Australians traditionally make didgeridoos from tree branches hollowed out by termites." }
+  ]
+}

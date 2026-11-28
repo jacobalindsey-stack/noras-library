@@ -1,0 +1,34 @@
+{
+  "id": "food",
+  "title": "Food",
+  "emoji": "🍕",
+  "blurb": "Where our favorite foods come from and the science of cooking.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://www.britannica.com/event/Columbian-exchange",
+    "https://dcc.newberry.org/?p=14426"
+  ],
+  "questions": [
+    { "q": "Where did tomatoes first grow?", "choices": ["South America", "Italy", "India", "China"], "answer": 0, "level": 2,
+      "fact": "Tomatoes reached Europe only after Columbus's voyages. Later they became a star of Italian cooking.", "src": "https://www.britannica.com/event/Columbian-exchange" },
+    { "q": "Potatoes were first farmed in which mountains?", "choices": ["Andes", "Alps", "Himalayas", "Rockies"], "answer": 0, "level": 2,
+      "fact": "Potatoes traveled from South America to Europe, where they became a key crop in places like Ireland.", "src": "https://dcc.newberry.org/?p=14426" },
+    { "q": "True or false: Sealed honey can stay safe to eat for a very long time.", "choices": ["True", "False"], "answer": 0, "level": 2, "fixed": true,
+      "fact": "Honey is low in water and acidic, so germs have a very hard time growing in it." },
+    { "q": "Sushi comes from which country?", "choices": ["Japan", "China", "Thailand", "Peru"], "answer": 0, "level": 1,
+      "fact": "Sushi is about the vinegar rice, not raw fish. Some kinds use cooked fish or only vegetables." },
+    { "q": "What is the main ingredient in guacamole?", "choices": ["Avocado", "Pea", "Cucumber", "Lime"], "answer": 0, "level": 1,
+      "fact": "Avocados first grew in Mexico and Central America, and guacamole goes back to the Aztecs." },
+    { "q": "Chocolate is made from the seeds of which plant?", "choices": ["Cacao", "Coffee", "Vanilla", "Coconut"], "answer": 0, "level": 2,
+      "fact": "The ancient Maya and Aztecs made a bitter, spicy drink from cacao long before chocolate bars existed." },
+    { "q": "Oranges are famous for having lots of which vitamin?", "choices": ["Vitamin C", "Vitamin D", "Vitamin K", "Vitamin B12"], "answer": 0, "level": 1,
+      "fact": "Sailors once carried citrus fruit on long trips to stay healthy, because vitamin C keeps gums and skin strong." },
+    { "q": "Why does a popcorn kernel pop?", "choices": ["Water turns to steam", "Air leaks in", "The salt heats up", "Oil soaks inside"], "answer": 0, "level": 3,
+      "fact": "Steam builds pressure inside the hard shell until it bursts, and the soft starch puffs out." },
+    { "q": "Kimchi is a famous dish from which country?", "choices": ["Korea", "Mexico", "Greece", "Brazil"], "answer": 0, "level": 2,
+      "fact": "Kimchi is made of fermented vegetables, often napa cabbage with garlic and chili." },
+    { "q": "Peanuts are not true nuts. What are they?", "choices": ["Legumes", "Berries", "Grains", "Roots"], "answer": 0, "level": 3,
+      "fact": "Peanuts grow underground and belong to the same family as beans and peas." }
+  ]
+}

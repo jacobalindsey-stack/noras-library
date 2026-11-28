@@ -1,0 +1,35 @@
+{
+  "id": "countries",
+  "title": "Countries",
+  "emoji": "🌍",
+  "blurb": "Capitals, flags, landmarks, and languages around the world.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://www.crwflags.com/fotw/flags/np.html",
+    "https://kids.britannica.com/kids/article/Canberra/345881",
+    "https://www.britannica.com/place/Vatican-City"
+  ],
+  "questions": [
+    { "q": "Which country has the only national flag that is not a rectangle?", "choices": ["Nepal", "Bhutan", "Japan", "Peru"], "answer": 0, "level": 2,
+      "fact": "Nepal's flag is shaped like two stacked triangle pennants, with a moon in the top one and a sun in the bottom one.", "src": "https://www.crwflags.com/fotw/flags/np.html" },
+    { "q": "True or false: Sydney is the capital of Australia.", "choices": ["True", "False"], "answer": 1, "level": 2, "fixed": true,
+      "fact": "The capital is Canberra, which was planned and built to be the capital. It officially took the job in 1927.", "src": "https://kids.britannica.com/kids/article/Canberra/345881" },
+    { "q": "What is the smallest country in the world by area?", "choices": ["Vatican City", "Monaco", "San Marino", "Malta"], "answer": 0, "level": 2,
+      "fact": "Vatican City covers just 44 hectares, about 110 acres. It sits entirely inside the city of Rome.", "src": "https://www.britannica.com/place/Vatican-City" },
+    { "q": "The ancient city of Machu Picchu is in which country?", "choices": ["Peru", "Mexico", "Chile", "Egypt"], "answer": 0, "level": 2,
+      "fact": "The Inca built Machu Picchu high in the Andes Mountains in the 1400s." },
+    { "q": "In which city is the Eiffel Tower?", "choices": ["Paris", "London", "Rome", "Berlin"], "answer": 0, "level": 1,
+      "fact": "The Eiffel Tower was built for a world's fair in 1889. Many people back then thought it was ugly." },
+    { "q": "What is the main language spoken in Brazil?", "choices": ["Portuguese", "Spanish", "French", "English"], "answer": 0, "level": 2,
+      "fact": "Brazil has more Portuguese speakers than Portugal does, because it has far more people." },
+    { "q": "What is the capital of Japan?", "choices": ["Tokyo", "Kyoto", "Osaka", "Seoul"], "answer": 0, "level": 1,
+      "fact": "Before Tokyo, the city of Kyoto was the home of Japan's emperors for more than 1,000 years." },
+    { "q": "What is in the middle of Japan's flag?", "choices": ["A red circle", "A star", "A maple leaf", "A crescent moon"], "answer": 0, "level": 1,
+      "fact": "The red circle stands for the sun. Japan's name is often translated as land of the rising sun." },
+    { "q": "Mount Everest sits on the border of Nepal and which country?", "choices": ["China", "India", "Bhutan", "Pakistan"], "answer": 0, "level": 3,
+      "fact": "Everest's peak is the highest point above sea level on Earth." },
+    { "q": "Which leaf is on Canada's flag?", "choices": ["Maple", "Oak", "Birch", "Pine"], "answer": 0, "level": 1,
+      "fact": "Maple trees also give Canada one of its famous foods, maple syrup." }
+  ]
+}

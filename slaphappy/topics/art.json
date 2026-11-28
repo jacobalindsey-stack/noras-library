@@ -1,0 +1,35 @@
+{
+  "id": "art",
+  "title": "Art",
+  "emoji": "🎨",
+  "blurb": "Famous paintings, sculptures, artists, and how art is made.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://www.louvre.fr/en/explore/the-palace/from-the-mona-lisa-to-the-wedding-feast-at-cana",
+    "https://www.moma.org/collection/works/79802",
+    "https://www.britannica.com/topic/Sistine-Chapel"
+  ],
+  "questions": [
+    { "q": "In which museum does the Mona Lisa hang?", "choices": ["The Louvre", "The Met", "The Prado", "The Uffizi"], "answer": 0, "level": 1,
+      "fact": "Leonardo da Vinci painted the Mona Lisa. The Louvre is in Paris, France.", "src": "https://www.louvre.fr/en/explore/the-palace/from-the-mona-lisa-to-the-wedding-feast-at-cana" },
+    { "q": "True or false: The Mona Lisa is painted on canvas.", "choices": ["True", "False"], "answer": 1, "level": 3, "fixed": true,
+      "fact": "It is painted on a panel of poplar wood, which has slowly warped over the centuries.", "src": "https://www.louvre.fr/en/explore/the-palace/from-the-mona-lisa-to-the-wedding-feast-at-cana" },
+    { "q": "Who painted The Starry Night?", "choices": ["Vincent van Gogh", "Claude Monet", "Pablo Picasso", "Frida Kahlo"], "answer": 0, "level": 1,
+      "fact": "He painted it in 1889, inspired by the view from his window in Saint-Rémy, France.", "src": "https://www.moma.org/collection/works/79802" },
+    { "q": "Which museum owns The Starry Night today?", "choices": ["Museum of Modern Art", "The Louvre", "Van Gogh Museum", "British Museum"], "answer": 0, "level": 3,
+      "fact": "The Starry Night hangs at MoMA in New York City, not in the Netherlands, where Van Gogh was born.", "src": "https://www.moma.org/collection/works/79802" },
+    { "q": "Michelangelo painted the ceiling of which famous chapel?", "choices": ["Sistine Chapel", "Notre-Dame", "St. Paul's", "Westminster Abbey"], "answer": 0, "level": 2,
+      "fact": "He worked on the ceiling for four years, from 1508 to 1512.", "src": "https://www.britannica.com/topic/Sistine-Chapel" },
+    { "q": "Which is NOT one of the three primary colors for painters?", "choices": ["Green", "Red", "Yellow", "Blue"], "answer": 0, "level": 1,
+      "fact": "Mix blue and yellow paint and you get green, so green is a secondary color." },
+    { "q": "Pointillism is a painting style made from many tiny what?", "choices": ["Dots", "Squares", "Stripes", "Stickers"], "answer": 0, "level": 2,
+      "fact": "Georges Seurat used dots so small that up close they look separate. From far away, your eyes blend them." },
+    { "q": "A fresco is a painting made on what?", "choices": ["Wet plaster", "Glass", "Silk", "Tree bark"], "answer": 0, "level": 3,
+      "fact": "The paint soaks into the plaster as it dries, so the picture becomes part of the wall itself." },
+    { "q": "Who made the famous sculpture The Thinker?", "choices": ["Auguste Rodin", "Michelangelo", "Leonardo da Vinci", "Edgar Degas"], "answer": 0, "level": 2,
+      "fact": "The Thinker shows a man deep in thought, with his chin resting on his hand." },
+    { "q": "Painter Frida Kahlo came from which country?", "choices": ["Mexico", "Spain", "Brazil", "Italy"], "answer": 0, "level": 2,
+      "fact": "Kahlo is famous for colorful self-portraits, often with flowers, monkeys, or parrots." }
+  ]
+}

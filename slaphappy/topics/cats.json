@@ -104,9 +104,9 @@
       "fact": "A female cat is called a queen." },
     { "q": "True or false: milk is a good drink for grown-up cats.", "choices": ["True", "False"], "answer": 1, "level": 2, "fixed": true,
       "fact": "Most grown-up cats can't digest milk well, and it can upset their tummies. Fresh water is best." },
-    { "q": "Name the grinning cat who keeps disappearing in Alice's Adventures in Wonderland.", "answer": "The Cheshire Cat", "level": 2,
+    { "q": "Which grinning cat keeps disappearing in Alice's Adventures in Wonderland?", "choices": ["The Cheshire Cat", "Puss in Boots", "Dinah", "The March Hare"], "answer": 0, "level": 2,
       "fact": "Lewis Carroll's book came out in 1865. Sometimes the cat vanishes until only its grin is left." },
-    { "q": "What do you call the rumbling sound a happy cat makes?", "answer": "A purr", "level": 1,
+    { "q": "What do you call the rumbling sound a happy cat makes?", "choices": ["A purr", "A hiss", "A yowl", "A chirp"], "answer": 0, "level": 1,
       "fact": "Cats sometimes purr when they're nervous or hurt, too, maybe to calm themselves down." }
   ]
 }

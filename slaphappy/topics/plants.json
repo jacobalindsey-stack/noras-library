@@ -1,0 +1,36 @@
+{
+  "id": "plants",
+  "title": "Plants",
+  "emoji": "🌱",
+  "blurb": "Trees, flowers, seeds, and plants that eat bugs.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://www.ncpedia.org/carnivorous-plant-venus-flytrap",
+    "https://www.fws.gov/species/venus-fly-trap-dionaea-muscipula",
+    "https://www.kew.org/plants/rafflesia-arnoldi",
+    "https://www.guinnessworldrecords.com/world-records/66511-largest-single-flower"
+  ],
+  "questions": [
+    { "q": "Where do Venus flytraps grow wild in nature?", "choices": ["North & South Carolina", "Brazil", "Australia", "Madagascar"], "answer": 0, "level": 2,
+      "fact": "Wild flytraps grow only in a small area of the Carolinas, mostly within about 75 miles of Wilmington, NC.", "src": "https://www.ncpedia.org/carnivorous-plant-venus-flytrap" },
+    { "q": "Which plant has the largest single flower in the world?", "choices": ["Rafflesia", "Sunflower", "Lotus", "Magnolia"], "answer": 0, "level": 3,
+      "fact": "One Rafflesia flower found in Sumatra in 2020 measured 111 cm (about 3 ft 7 in) across.", "src": "https://www.guinnessworldrecords.com/world-records/66511-largest-single-flower" },
+    { "q": "Rafflesia lives as a parasite inside which kind of plant?", "choices": ["Vines", "Cactuses", "Pine trees", "Seaweed"], "answer": 0, "level": 3,
+      "fact": "Rafflesia has no leaves you can see. It lives inside jungle vines until its giant flower pops out.", "src": "https://www.kew.org/plants/rafflesia-arnoldi" },
+    { "q": "What do plants use to make food from sunlight?", "choices": ["Photosynthesis", "Digestion", "Hibernation", "Pollination"], "answer": 0, "level": 1,
+      "fact": "During photosynthesis, plants take in carbon dioxide and give off the oxygen we breathe." },
+    { "q": "What green substance in leaves captures sunlight?", "choices": ["Chlorophyll", "Melanin", "Keratin", "Hemoglobin"], "answer": 0, "level": 2,
+      "fact": "In fall, chlorophyll breaks down, so yellow and orange colors that were hiding in the leaves show through." },
+    { "q": "True or false: Mushrooms are plants.", "choices": ["True", "False"], "answer": 1, "level": 2, "fixed": true,
+      "fact": "Mushrooms are fungi, a separate group of living things. They cannot make food from sunlight." },
+    { "q": "Which part of a plant soaks up water from the soil?", "choices": ["Roots", "Petals", "Leaves", "Seeds"], "answer": 0, "level": 1,
+      "fact": "Tiny root hairs give roots far more surface for soaking up water." },
+    { "q": "Which tree grows acorns?", "choices": ["Oak", "Maple", "Pine", "Palm"], "answer": 0, "level": 1,
+      "fact": "Each acorn holds a seed that can grow into a brand-new oak tree." },
+    { "q": "What do bees carry from flower to flower to help make seeds?", "choices": ["Pollen", "Sap", "Dew", "Bark"], "answer": 0, "level": 1,
+      "fact": "Pollen sticks to a bee's fuzzy body. When it rubs off on the next flower, that flower can make seeds." },
+    { "q": "Cactus spines are actually a changed form of which plant part?", "choices": ["Leaves", "Roots", "Flowers", "Seeds"], "answer": 0, "level": 3,
+      "fact": "Spines give the cactus shade and protection. Its green stem does the photosynthesis instead." }
+  ]
+}

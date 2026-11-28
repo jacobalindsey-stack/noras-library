@@ -21,15 +21,12 @@ export function clean(t) {
     const bad = why => console.warn(`Slap Happy: topic ${t.id} question ${i + 1} skipped: ${why}`);
     if (!q || typeof q.q !== 'string' || !q.q.trim()) return bad('no question text');
     const out = { id: t.id + ':' + hash(q.q), topic: t.id, q: q.q.trim(), fact: typeof q.fact === 'string' ? q.fact.trim() : '', level: [1, 2, 3].includes(q.level) ? q.level : 2, fixed: !!q.fixed };
-    if (Array.isArray(q.choices)) {
-      const ch = q.choices.map(c => String(c).trim());
-      if (ch.length < 2 || ch.length > 4 || new Set(ch).size !== ch.length || ch.some(c => !c)) return bad('needs 2 to 4 different choices');
-      if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= ch.length) return bad('answer must be the number of the right choice, counting from 0');
-      out.choices = ch; out.answer = q.answer;
-    } else {
-      if (typeof q.answer !== 'string' || !q.answer.trim()) return bad('open questions need the answer as text');
-      out.answerText = q.answer.trim();
-    }
+    // every question is multiple choice: the team that slaps picks on its phone
+    if (!Array.isArray(q.choices)) return bad('needs choices');
+    const ch = q.choices.map(c => String(c).trim());
+    if (ch.length < 2 || ch.length > 4 || new Set(ch).size !== ch.length || ch.some(c => !c)) return bad('needs 2 to 4 different choices');
+    if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= ch.length) return bad('answer must be the number of the right choice, counting from 0');
+    out.choices = ch; out.answer = q.answer;
     qs.push(out);
   });
   if (!qs.length) return null;
@@ -56,13 +53,11 @@ export function pickQuestions(topics, ids, n) {
   chosen.sort((a, b) => (a.level + Math.random() * 1.6) - (b.level + Math.random() * 1.6));
   return chosen.map((q, i) => {
     const r = { ...q, bonus: (i + 1) % 5 === 0 };
-    if (q.choices) {
-      const order = q.choices.map((c, k) => k);
-      if (!q.fixed) shuffle(order);
-      r.choices = order.map(k => q.choices[k]);
-      r.answer = order.indexOf(q.answer);
-      r.answerText = q.choices[q.answer];
-    }
+    const order = q.choices.map((c, k) => k);
+    if (!q.fixed) shuffle(order);
+    r.choices = order.map(k => q.choices[k]);
+    r.answer = order.indexOf(q.answer);
+    r.answerText = q.choices[q.answer];
     return r;
   });
 }

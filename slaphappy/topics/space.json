@@ -1,0 +1,37 @@
+{
+  "id": "space",
+  "title": "Space",
+  "emoji": "🚀",
+  "blurb": "Planets, stars, and the people who went to explore them.",
+  "version": 1,
+  "checked": "2026-11-27",
+  "sources": [
+    "https://spaceplace.nasa.gov/all-about-venus/en/",
+    "https://science.nasa.gov/saturn/facts/",
+    "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1969-059A",
+    "https://www.nasa.gov/history/apollo-11-mission-overview/",
+    "https://www.iau.org/news/pressreleases/detail/iau0603/"
+  ],
+  "questions": [
+    { "q": "Which planet has a day that is longer than its year?", "choices": ["Venus", "Mars", "Jupiter", "Neptune"], "answer": 0, "level": 2,
+      "fact": "Venus takes 243 Earth days to spin once, but only 225 Earth days to go around the Sun.", "src": "https://spaceplace.nasa.gov/all-about-venus/en/" },
+    { "q": "Which planet could float in a giant bathtub?", "choices": ["Saturn", "Jupiter", "Earth", "Mars"], "answer": 0, "level": 2,
+      "fact": "Saturn is the only planet in our solar system that is less dense than water.", "src": "https://science.nasa.gov/saturn/facts/" },
+    { "q": "In what year did Apollo 11 land on the Moon?", "choices": ["1959", "1969", "1979", "1989"], "answer": 1, "level": 1, "fixed": true,
+      "fact": "The lander Eagle touched down on July 20, 1969, in a flat area called the Sea of Tranquility.", "src": "https://nssdc.gsfc.nasa.gov/nmc/spacecraft/display.action?id=1969-059A" },
+    { "q": "Who was the first person to walk on the Moon?", "choices": ["Neil Armstrong", "Buzz Aldrin", "Yuri Gagarin", "John Glenn"], "answer": 0, "level": 1,
+      "fact": "Buzz Aldrin joined Neil Armstrong on the Moon's surface about 20 minutes later.", "src": "https://www.nasa.gov/history/apollo-11-mission-overview/" },
+    { "q": "In 2006, Pluto was put in which new group?", "choices": ["Dwarf planets", "Comets", "Moons", "Gas giants"], "answer": 0, "level": 2,
+      "fact": "Astronomers decided Pluto is a dwarf planet, sharing that group with worlds like Ceres and Eris.", "src": "https://www.iau.org/news/pressreleases/detail/iau0603/" },
+    { "q": "What is the closest star to Earth?", "choices": ["The Sun", "Polaris", "Sirius", "Proxima Centauri"], "answer": 0, "level": 1,
+      "fact": "The Sun is a star about 93 million miles away. Sunlight takes about 8 minutes to reach us." },
+    { "q": "Which planet is known as the Red Planet?", "choices": ["Mars", "Venus", "Mercury", "Uranus"], "answer": 0, "level": 1,
+      "fact": "Mars looks red because its dust and rocks contain rusty iron." },
+    { "q": "True or false: Mercury is the planet closest to the Sun.", "choices": ["True", "False"], "answer": 0, "level": 1, "fixed": true,
+      "fact": "Mercury zips around the Sun so fast that its year lasts only 88 Earth days." },
+    { "q": "On Venus, where does the Sun rise?", "choices": ["In the west", "In the east", "In the north", "It never rises"], "answer": 0, "level": 3,
+      "fact": "Venus spins backward compared to Earth, so the Sun rises in the west and sets in the east.", "src": "https://spaceplace.nasa.gov/all-about-venus/en/" },
+    { "q": "About how often does the Sun rise on Venus?", "choices": ["Every Earth day", "Every 30 Earth days", "Every 117 Earth days", "Every 365 Earth days"], "answer": 2, "level": 3, "fixed": true,
+      "fact": "Because Venus spins so slowly, the Sun rises only twice during each Venus year.", "src": "https://spaceplace.nasa.gov/all-about-venus/en/" }
+  ]
+}
