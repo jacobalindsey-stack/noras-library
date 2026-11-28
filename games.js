@@ -206,7 +206,7 @@ window.NORA_GAMES = [
     platforms: ['iPad', 'PC', 'iPhone'],
     players: '2-8 teams · phones are buzzers',
     blurb: "Lights up, buzzers live! The iPad becomes the game show and every team's phone becomes one giant glossy buzzer. Slap first, flood the stage with your color, and shout your answer before the clock runs out.",
-    howto: "On the iPad, press Host the show. Each team scans the code (or types the four letters) on a phone and picks a name, a color and a buzzer sound. Slap at the ding, say your answer, tap to show it, then own up: right or wrong. No phones handy? Add teams on the iPad and slap their podiums.",
+    howto: "On the iPad, press Host the show. Each team scans the code (or types the four letters) on a phone and picks a name, a color and a buzzer sound. Slap at the ding, say your answer, tap to show it, then own up: right or wrong. No phones handy? Add teams on the iPad and slap their podiums. Family far away? On their TV or iPad, tap Watch on another screen and type the letters: they see the whole show live and buzz on their own phones.",
     note: "Ten buzzer sounds, from a cowbell to a duck. Every answer comes with a fun fact, and every fifth question pays double. First topic: Cats, with more on the way.",
     shots: ['previews/slaphappy-play.jpg', 'previews/slaphappy-title.jpg'],
     href: 'slaphappy/',

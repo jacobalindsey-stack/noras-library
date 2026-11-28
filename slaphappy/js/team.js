@@ -78,6 +78,7 @@ function connect(code) {
 }
 
 function onMsg(m) {
+  if (m.t === 'ping') { T.link && T.link.send({ t: 'pong', s: m.s }); return; } // lets the big screen measure the trip
   if (m.t === 'hello') {
     clearTimeout(T.failT);
     T.hostOn = m.host;

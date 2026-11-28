@@ -26,8 +26,8 @@ export async function startHost(app, { fresh }) {
   H = {
     app, room: null, key: null, link: null, net: 'connecting', netSince: now(), teams: [], topics: [],
     settings: { count: 10, slap: 20, answer: 10, topics: null, voice: false },
-    g: null, loop: null, screen: null,
-    stop() { clearInterval(this.loop); if (this.link) this.link.close(); SND.stopMusic(); SND.hush(); },
+    g: null, loop: null, screen: null, screens: new Set(), pingT: null,
+    stop() { clearInterval(this.loop); clearInterval(this.pingT); if (this.link) this.link.close(); SND.stopMusic(); SND.hush(); },
   };
   window.SLAP = window.SLAP || {}; window.SLAP.host = H;
   const s = !fresh && savedShow();
@@ -47,6 +47,7 @@ export async function startHost(app, { fresh }) {
   connect();
   lobby();
   H.loop = setInterval(tick, 50);
+  H.pingT = setInterval(pingPhones, 4000);
   stayAwake();
   addEventListener('keydown', onKey);
   if (s && s.g && s.g.qs && s.g.i < s.g.qs.length) offerResume(s.g);
@@ -76,7 +77,7 @@ function onNet(m) {
   } else if (m.t === 'peer') {
     const t = byId(m.id);
     if (m.on) { if (t) { t.online = true; sendView(t, true); } send(m.id, info()); }
-    else if (t) t.online = false;
+    else { if (t) t.online = false; H.screens.delete(m.id); }
     renderTeams();
   } else if (m.f && m.m) fromTeam(m.f, m.m);
 }
@@ -92,7 +93,9 @@ function freeColor(want, self) {
 }
 
 function fromTeam(id, msg) {
+  if (msg.t === 'watch') { H.screens.add(id); syncScreens(true); return; }
   let t = byId(id);
+  if (msg.t === 'pong') { if (t && isFinite(msg.s)) { const r = Math.max(0, now() - msg.s); t.rtt = t.rtt ? t.rtt * 0.6 + r * 0.4 : r; } return; }
   if (msg.t === 'join') {
     const sound = SND.BUZZERS.some(b => b.id === msg.sound) ? msg.sound : 'boing';
     if (!t) {
@@ -111,7 +114,7 @@ function fromTeam(id, msg) {
   if (!t) return;
   if (msg.t === 'slap') {
     const g = H.g;
-    if (!g || g.over) { SND.buzzer(t.sound); wiggle(t); return; } // testing the buzzer in the lobby
+    if (!g || g.over) { SND.buzzer(t.sound); wiggle(t); sendFx({ k: 'buzz', id: t.id }); return; } // testing the buzzer in the lobby
     if (g.phase === 'armed' && msg.r === g.seq && !g.paused) registerSlap(t, +msg.rt);
   } else if (msg.t === 'reveal') {
     if (H.g && H.g.phase === 'up' && H.g.buzz === id && msg.r === H.g.seq) reveal();
@@ -151,6 +154,7 @@ function viewFor(t) {
   return { ...v, v: 'lobby' };
 }
 function sendView(t, force) {
+  if (H.mirror) return;
   const v = viewFor(t);
   const k = JSON.stringify({ ...v, ms: 0 });
   if (!force && t._k === k) return;
@@ -158,7 +162,44 @@ function sendView(t, force) {
   if (t.local) renderPad(t, v);
   else if (t.online) send(t.id, v);
 }
-function pushViews(force) { for (const t of H.teams) sendView(t, force); }
+function pushViews(force) { if (H.mirror) return; for (const t of H.teams) sendView(t, force); syncScreens(force); }
+
+// ---------- far-away screens: a live copy of the show ----------
+function snapshot() {
+  const g = H.g, q = g && g.qs[Math.min(Math.max(g.i, 0), g.qs.length - 1)];
+  return {
+    t: 'show', screen: H.screen, room: H.room,
+    settings: { count: H.settings.count, slap: H.settings.slap, answer: H.settings.answer, topics: H.settings.topics },
+    teams: H.teams.map(({ id, name, color, sound, score, local, online }) => ({ id, name, color, sound, score, local, online })),
+    g: g ? {
+      i: g.i, total: g.qs.length, seq: g.seq, phase: g.phase, dur: g.dur || 0, paused: !!g.paused, buzz: g.buzz, result: g.result,
+      revealed: !!g.revealed, over: !!g.over, slapped: g.slaps.map(x => x.id),
+      left: g.paused ? Math.round(g.left || 0) : (g.end ? Math.max(0, Math.round(g.end - now())) : 0),
+      q: q ? { id: q.id, q: q.q, choices: q.choices, answer: q.answer, answerText: q.answerText, fact: q.fact, bonus: q.bonus } : null,
+    } : null,
+  };
+}
+function syncScreens(force) {
+  if (!H || H.mirror || !H.screens || !H.screens.size) return;
+  const s = snapshot();
+  const k = JSON.stringify({ ...s, g: s.g ? { ...s.g, left: 0 } : null });
+  if (!force && k === H._sk) return;
+  H._sk = k;
+  send([...H.screens], s);
+}
+function sendFx(fx) { if (H && !H.mirror && H.screens && H.screens.size) send([...H.screens], { t: 'fx', ...fx }); }
+
+// How long to wait after the first slap for slaps still on their way: long
+// enough for the slowest phone's connection (Croatia is a long way from home).
+function pingPhones() {
+  if (!H || H.mirror) return;
+  const s = Math.round(now());
+  for (const t of H.teams) if (!t.local && t.online) send(t.id, { t: 'ping', s });
+}
+function slapWindow() {
+  const r = H.teams.filter(t => !t.local && t.online && t.rtt).map(t => t.rtt);
+  return Math.round(Math.min(700, Math.max(260, (r.length ? Math.max(...r) : 0) + 100)));
+}
 
 // ---------- saving, so a reload or a sleepy iPad doesn't end the show ----------
 let saveT = null;
@@ -214,6 +255,7 @@ function lobby() {
           <div class="code-label">Room letters</div>
           <div class="code${H.net === 'open' ? '' : ' pending'}">${H.room}</div>
           <div class="netwarn"></div>
+          ${H.mirror ? '' : `<div class="farnote">Family far away? Open this page on their TV or iPad, tap Watch on another screen, and type the letters.</div>`}
         </div>
       </section>
       <section class="teams-card">
@@ -229,12 +271,14 @@ function lobby() {
       <div class="grow"></div>
       <button class="btn big gold start" data-act="start">Start the show</button>
     </footer>
+    ${H.mirror ? `<div class="mirror-wait">Waiting for the host to start the show</div>` : ''}
   </div>`;
   const scr = H.app.firstElementChild;
+  if (H.mirror) scr.classList.add('mirror');
   bindTaps(scr, {
     music: (a, b) => { SND.setMusic(!SND.prefs.music); b.innerHTML = ICON.music(SND.prefs.music); b.classList.toggle('off', !SND.prefs.music); if (SND.prefs.music) SND.music('lobby'); },
     sound: (a, b) => { SND.setSound(!SND.prefs.sound); b.innerHTML = ICON.sound(SND.prefs.sound); b.classList.toggle('off', !SND.prefs.sound); },
-    exit: () => confirmBox('Leave the show?', 'Phones will be sent home. The teams can join a new show later.', 'Leave', () => { endShow(); }),
+    exit: () => H.mirror ? leaveMirror() : confirmBox('Leave the show?', 'Phones will be sent home. The teams can join a new show later.', 'Leave', () => { endShow(); }),
     addlocal: () => addLocal(),
     remove: id => { const t = byId(id); if (!t) return; if (!t.local) H.link.send({ kick: id }); H.teams = H.teams.filter(x => x !== t); SND.play('pop'); save(); renderTeams(); broadcastInfo(); },
     topic: id => { const on = S.topics.includes(id); if (on && S.topics.length === 1) return; S.topics = on ? S.topics.filter(x => x !== id) : [...S.topics, id]; SND.play('pop'); save(); lobby(); },
@@ -274,13 +318,14 @@ function renderTeams() {
     const box = $('.lobby-podiums', H.app); if (!box) return;
     box.innerHTML = H.teams.length ? H.teams.map(t => podiumHTML(t, { lobbyMode: true })).join('') : `<div class="empty-teams">Scan the code or go to the address with each team's phone. Teams pop up here as they join.</div>`;
     const start = $('[data-act="start"]', H.app); if (start) start.disabled = !H.teams.length;
-    for (const t of H.teams) if (t.local) renderPad(t, viewFor(t));
+    if (!H.mirror) for (const t of H.teams) if (t.local) renderPad(t, viewFor(t));
   } else if (H.screen === 'show') {
     const foot = $('.show-foot .podiums', H.app); if (!foot) return;
     const have = $$('.podium', foot).map(p => p.dataset.id).join(',');
     if (have !== H.teams.map(t => t.id).join(',')) { foot.innerHTML = H.teams.map(t => podiumHTML(t)).join(''); foot.style.setProperty('--n', H.teams.length); foot.classList.toggle('many', H.teams.length > 5); for (const t of H.teams) { t._shown = t.score; t._k = null; } }
     renderPodiums();
   }
+  syncScreens();
 }
 
 function wiggle(t) { const p = $(`.podium[data-id="${t.id}"]`, H.app); if (!p) return; p.classList.remove('wiggle'); void p.offsetWidth; p.classList.add('wiggle'); }
@@ -294,18 +339,19 @@ function wirePads(scr) {
     padSlap(t);
   });
   scr.addEventListener('pointerup', e => {
-    const b = e.target.closest('.p-tap[data-pad]'); if (!b || b.dataset.pad === 'slap' || b.disabled) return;
+    const b = e.target.closest('.p-tap[data-pad]'); if (H.mirror || !b || b.dataset.pad === 'slap' || b.disabled) return;
     const t = byId(b.closest('.podium').dataset.id); if (!t) return;
     const g = H.g;
-    if (b.dataset.pad === 'test') { SND.buzzer(t.sound); wiggle(t); haptic('tap'); }
+    if (b.dataset.pad === 'test') { SND.buzzer(t.sound); wiggle(t); haptic('tap'); sendFx({ k: 'buzz', id: t.id }); }
     if (b.dataset.pad === 'reveal' && g && g.phase === 'up' && g.buzz === t.id) reveal();
     if (b.dataset.pad === 'yes' && g && g.phase === 'judge' && g.buzz === t.id) judge(true);
     if (b.dataset.pad === 'no' && g && g.phase === 'judge' && g.buzz === t.id) judge(false);
   });
 }
 function padSlap(t) {
+  if (H.mirror) return;
   const g = H.g;
-  if (!g) { SND.buzzer(t.sound); wiggle(t); return; }
+  if (!g) { SND.buzzer(t.sound); wiggle(t); sendFx({ k: 'buzz', id: t.id }); return; }
   if (g.phase === 'armed' && !g.paused && !g.slaps.some(s => s.id === t.id)) { SND.buzzer(t.sound); haptic('slap'); registerSlap(t, now() - g.armedAt); renderPad(t, viewFor(t)); }
   else if (g.phase === 'ready' || g.phase === 'splash') { SND.play('early'); }
 }
@@ -446,7 +492,7 @@ function registerSlap(t, rt) {
   if (g.phase !== 'armed' || g.slaps.some(s => s.id === t.id)) return;
   if (!isFinite(rt) || rt < 0) rt = now() - g.armedAt;
   g.slaps.push({ id: t.id, rt: Math.min(rt, 600000), at: now() });
-  if (!g.decideT) g.decideT = setTimeout(decide, 260);
+  if (!g.decideT) g.decideT = setTimeout(decide, slapWindow());
 }
 function decide() {
   const g = H.g;
@@ -578,6 +624,7 @@ function buildShow() {
     <div class="splash"></div>
   </div>`;
   const scr = H.app.firstElementChild;
+  if (H.mirror) scr.classList.add('mirror');
   bindTaps(scr, {
     pause: () => pause(),
     next: () => { const g = H.g; if (g && (g.phase === 'result' || g.phase === 'answer')) nextQuestion(); },
@@ -639,7 +686,7 @@ function renderShow() {
     case 'armed': h = `<div class="call go">Slap your buzzers!</div>`; break;
     case 'up': h = `<div class="call">${name}, say your answer!</div><div class="override"><button class="btn ghost small" data-act="oreveal">Show the answer</button></div>`; break;
     case 'revealing': h = `<div class="call">And the answer is...</div>`; break;
-    case 'judge': h = `<div class="call">Did ${name} get it right?</div><div class="override">Or decide here: <button class="btn mint small" data-act="oyes">✓ Right</button><button class="btn tang small" data-act="ono">✗ Wrong</button></div>`; break;
+    case 'judge': h = `<div class="call">Did ${name} get it right?</div><div class="override"><span>Or decide here:</span> <button class="btn mint small" data-act="oyes">✓ Right</button><button class="btn tang small" data-act="ono">✗ Wrong</button></div>`; break;
     case 'result': h = g.result.ok ? `<div class="call go">+${g.result.pts} for ${name}!</div>` : `<div class="call">Not this time, ${name}</div>`; h += nextHTML(); break;
     case 'timeout': h = `<div class="call">Time's up!</div>`; break;
     case 'answer': h = `<div class="call">Nobody slapped. Here's the answer</div>` + nextHTML(); break;
@@ -753,8 +800,8 @@ function pause() {
     resume: () => { ov.remove(); resume(); },
     skip: () => { ov.remove(); resume(true); skip(); },
     end: () => { ov.remove(); resume(true); g.i = g.qs.length; final(); },
-    minus: id => { const t = byId(id); if (t) { t.score = Math.max(0, t.score - 100); save(); draw(); renderPodiums(); } },
-    plus: id => { const t = byId(id); if (t) { t.score += 100; save(); draw(); renderPodiums(); } },
+    minus: id => { const t = byId(id); if (t) { t.score = Math.max(0, t.score - 100); save(); draw(); renderPodiums(); syncScreens(); } },
+    plus: id => { const t = byId(id); if (t) { t.score += 100; save(); draw(); renderPodiums(); syncScreens(); } },
     snd: () => { SND.setSound(!SND.prefs.sound); draw(); },
     mus: () => { SND.setMusic(!SND.prefs.music); draw(); },
     voice: () => { H.settings.voice = !H.settings.voice; save(); draw(); },
@@ -767,7 +814,7 @@ function resume(quiet) {
   if (g.onEnd) g.end = now() + g.left;
   if (!quiet) {
     if (g.phase === 'armed') SND.music('think');
-    if (g.phase === 'armed' && g.slaps.length) g.decideT = setTimeout(decide, 260);
+    if (g.phase === 'armed' && g.slaps.length) g.decideT = setTimeout(decide, slapWindow());
   }
   pushViews(true);
   renderShow();
@@ -798,6 +845,7 @@ function podiumScreen() {
     </div>
   </div>`;
   const scr = H.app.firstElementChild;
+  if (H.mirror) scr.classList.add('mirror');
   bindTaps(scr, {
     again: () => startGame({ again: true }),
     teams: () => { for (const t of H.teams) t.score = 0; H.g = null; save(); lobby(); pushViews(true); },
@@ -807,4 +855,226 @@ function podiumScreen() {
   SND.applause(3, 0.4);
   rain(260, winners.map(w => colorOf(w.color)).concat(['#ffb81c', '#fff3d1', '#ff5fa2']));
   pushViews(true);
+}
+
+
+// =====================================================================
+// Watch on another screen: a TV or iPad in another house (in-laws in
+// Croatia, friends in Seattle) joins with the room letters and shows the
+// same show, live, with its own sound. Everyone still buzzes on a phone.
+// It plays nothing itself: the big screen sends it a copy of the show
+// (snapshot()) whenever anything changes, and this side draws it with the
+// same screens the big screen uses.
+// =====================================================================
+export async function startMirror(app, { code, back }) {
+  if (H) H.stop();
+  H = {
+    app, mirror: true, back, room: code, key: null, link: null, net: 'connecting', netSince: now(), teams: [], topics: [],
+    settings: { count: 10, slap: 20, answer: 10, topics: [], voice: false },
+    g: null, loop: null, screen: null, introT: [], hostOn: true, setKey: '',
+    stop() { clearInterval(this.loop); (this.introT || []).forEach(clearTimeout); if (this.link) this.link.close(); SND.stopMusic(); SND.hush(); },
+  };
+  window.SLAP = window.SLAP || {}; window.SLAP.host = H;
+  if (!isCode(code)) { watchLetters(''); return; }
+  watchURL(code); // a reload (or a sleepy TV) comes straight back to the show
+  mirrorNote('Finding the show', code);
+  H.topics = await loadTopics();
+  const id = 'w' + rid(11);
+  H.link = new Link(`/room/${code}?team=${id}`, {
+    message: onMirror,
+    status: st => { H.net = st; renderNet(); mirrorPill(); },
+    fatal: why => {
+      H.link = null;
+      watchURL('');
+      if (why === 'noroom') watchLetters(`No show is using ${code} right now. Check the letters on the big screen.`, code);
+      else if (why === 'full') watchLetters('That show is full.', code);
+      else watchLetters('Something went wrong. Try again.', code);
+    },
+  });
+  H.failT = setTimeout(() => { if (H && H.mirror && H.link && !H.link.isOpen && !H.screen) watchLetters("Can't reach the show. Check that this screen is online.", code); }, 12000);
+  H.loop = setInterval(tick, 50);
+  stayAwake();
+}
+
+function watchLetters(err, code = '') {
+  if (H && H.link) { H.link.close(); H.link = null; }
+  const back = H && H.back;
+  H.screen = null;
+  H.app.innerHTML = `
+  <div class="screen join scroll">
+    <div class="rays"></div>
+    <div class="inner">
+      <h2>Watch the show</h2>
+      <p class="hint">Type the four letters on the big screen</p>
+      <input class="letters" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="ABCD" value="${esc(code)}" aria-label="Room letters">
+      <p class="err">${esc(err)}</p>
+      <button class="btn big gold go" data-act="go">Watch</button>
+      <button class="btn ghost small back" data-act="back">Back</button>
+    </div>
+  </div>`;
+  const inp = $('.letters', H.app);
+  inp.addEventListener('input', () => { inp.value = inp.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); });
+  const go = () => {
+    const c = inp.value.toUpperCase();
+    if (!isCode(c)) { $('.err', H.app).textContent = c.length < 4 ? 'The room has four letters.' : `There's no show called ${c}. Room letters never have vowels.`; return; }
+    startMirror(H.app, { code: c, back });
+  };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  bindTaps(H.app.firstElementChild, { go, back: () => { leaveMirror(); } });
+  setTimeout(() => { if (!code) inp.focus(); }, 60);
+}
+
+function mirrorNote(title, sub) {
+  H.screen = null;
+  H.app.innerHTML = `<div class="screen join"><div class="rays"></div><div class="inner"><h2>${esc(title)}</h2><p class="hint">${esc(sub || '')}</p></div></div>`;
+}
+
+function watchURL(code) {
+  try {
+    const u = new URL(location.href);
+    u.searchParams.delete('join');
+    if (code) u.searchParams.set('watch', code); else u.searchParams.delete('watch');
+    history.replaceState(null, '', u);
+  } catch (e) {}
+}
+
+function leaveMirror() {
+  watchURL('');
+  const back = H && H.back;
+  if (H) H.stop();
+  H = null;
+  if (back) back(); else window.SLAP.title();
+}
+
+function mirrorPill() {
+  if (!H || !H.mirror) return;
+  let el = $('.mpill', H.app);
+  const msg = H.link && !H.link.isOpen ? 'Reconnecting' : !H.hostOn ? 'The big screen dropped out. Waiting for it' : '';
+  if (!msg) { if (el) el.remove(); return; }
+  const scr = H.app.firstElementChild; if (!scr) return;
+  if (!el) { el = document.createElement('div'); el.className = 'mpill'; scr.appendChild(el); }
+  el.textContent = msg;
+}
+
+function onMirror(m) {
+  if (!H || !H.mirror) return;
+  if (m.t === 'hello') {
+    clearTimeout(H.failT);
+    H.hostOn = m.host;
+    H.link.send({ t: 'watch' });
+    if (!H.screen) mirrorNote(m.host ? 'Connecting to the show' : 'Waiting for the big screen', H.room);
+    mirrorPill();
+  } else if (m.t === 'host') {
+    H.hostOn = m.on;
+    if (m.on) H.link.send({ t: 'watch' });
+    mirrorPill();
+  } else if (m.t === 'show') {
+    applyShow(m);
+    mirrorPill();
+  } else if (m.t === 'fx') {
+    const t = byId(m.id);
+    if (m.k === 'buzz' && t) { SND.buzzer(t.sound); wiggle(t); }
+  } else if (m.t === 'ended') {
+    watchURL('');
+    const back = H.back;
+    H.stop();
+    H.app.innerHTML = `<div class="screen join"><div class="rays"></div><div class="inner"><h2>That's a wrap!</h2><p class="hint">Thanks for playing Slap Happy</p><button class="btn big gold go" data-act="again">Watch another show</button></div></div>`;
+    bindTaps(H.app.firstElementChild, { again: () => startMirror(H.app, { code: '', back }) });
+  }
+}
+
+function applyShow(s) {
+  const prevScreen = H.screen, prevG = H.g;
+  const prevPhase = prevG ? prevG.phase : null, prevSeq = prevG ? prevG.seq : null, prevPaused = prevG ? prevG.paused : false;
+  const prevIds = new Set(H.teams.map(t => t.id));
+  const shown = Object.fromEntries(H.teams.map(t => [t.id, t._shown]));
+  H.room = s.room;
+  Object.assign(H.settings, s.settings || {});
+  H.teams = (s.teams || []).map(t => ({ ...t, _shown: shown[t.id] }));
+  const fresh = H.teams.filter(t => !prevIds.has(t.id));
+
+  if (s.screen === 'lobby' || !s.g) {
+    H.g = null;
+    const setKey = JSON.stringify(H.settings);
+    if (prevScreen !== 'lobby' || setKey !== H.setKey) { H.setKey = setKey; lobby(); }
+    else renderTeams();
+    if (prevScreen === 'lobby') for (const t of fresh) { SND.play('join'); wiggle(t); }
+    return;
+  }
+
+  const sg = s.g, q = sg.q;
+  const g = prevG && prevScreen !== 'lobby' ? prevG : { qs: [], slaps: [] };
+  Object.assign(g, {
+    i: sg.i, seq: sg.seq, phase: sg.phase, dur: sg.dur, paused: sg.paused, buzz: sg.buzz, result: sg.result,
+    revealed: sg.revealed, over: sg.over, onEnd: null, left: sg.left,
+    end: sg.left ? now() + sg.left : 0, slaps: (sg.slapped || []).map(id => ({ id })),
+  });
+  if (q) g.qs = new Array(Math.max(1, sg.total)).fill(q);
+  else if (!g.qs.length) g.qs = new Array(Math.max(1, sg.total)).fill({ q: '', fact: '', answerText: '' });
+  H.g = g;
+
+  if (s.screen === 'over') { if (prevScreen !== 'over') { (H.introT || []).forEach(clearTimeout); SND.stopMusic(); podiumScreen(); } return; }
+
+  if (H.screen !== 'show') { buildShow(); if (q) renderQuestion(q); }
+  else if (sg.seq !== prevSeq && q) renderQuestion(q);
+  if (sg.phase !== prevPhase || sg.seq !== prevSeq || (prevPaused && !sg.paused)) mirrorPhase(g, q, prevPaused && !sg.paused);
+  mirrorPaused(sg.paused);
+  renderShow();
+}
+
+// the big screen's sounds and moments, replayed here as the show moves on
+function mirrorPhase(g, q, resumed) {
+  const scr = H.app.firstElementChild;
+  (H.introT || []).forEach(clearTimeout); H.introT = [];
+  if (g.phase !== 'up') $$('.buzzname, .burst', H.app).forEach(el => el.remove());
+  if (g.paused) { SND.stopMusic(); return; }
+  switch (g.phase) {
+    case 'intro': {
+      SND.stopMusic();
+      const step = 1000 * SPEED, el = Math.max(0, (g.dur || 0) - (g.left || 0));
+      const n = Math.min(3, Math.floor(el / step));
+      splash(n < 3 ? [[String(3 - n), '']] : [['Go!', 'pink']]);
+      for (let k = n + 1; k <= 3; k++) H.introT.push(setTimeout(() => { if (!H || !H.g || H.g.phase !== 'intro') return; if (k < 3) { splash([[String(3 - k), '']]); SND.play('beep'); } else { splash([['Go!', 'pink']]); SND.play('go'); } }, k * step - el));
+      break;
+    }
+    case 'splash':
+      SND.stopMusic();
+      if (q && q.bonus) { SND.play('bonus'); splash([['Bonus round!', 'pink'], ['Double points', 'small']]); }
+      else { SND.play('whoosh'); splash([[`Question ${g.i + 1}`, ''], [`of ${g.qs.length}`, 'small']]); }
+      break;
+    case 'ready': splash(null); break;
+    case 'armed': splash(null); if (!resumed) SND.play('ding'); SND.music('think'); break;
+    case 'up': {
+      splash(null); SND.stopMusic();
+      const t = byId(g.buzz);
+      if (t && !resumed) { SND.buzzer(t.sound); teamStyle(scr, t.color); burst(t); }
+      break;
+    }
+    case 'revealing': SND.drumroll(0.85 * SPEED); break;
+    case 'judge': if (!resumed) SND.play('tada'); break;
+    case 'result': {
+      const t = byId(g.buzz);
+      if (g.result && g.result.ok) {
+        SND.play('correct'); SND.applause(2);
+        const p = t && $(`.podium[data-id="${t.id}"]`, H.app);
+        if (p) { const r = p.getBoundingClientRect(); confetti({ x: r.left + r.width / 2, y: r.top, n: 110, colors: [colorOf(t.color), '#ffb81c', '#fff3d1'] }); }
+      } else SND.play('wrong');
+      break;
+    }
+    case 'timeout': splash(null); SND.stopMusic(); SND.play('timeup'); break;
+    case 'answer': if (!resumed) SND.play('tada'); break;
+    case 'final': SND.stopMusic(); splash([['And the winner is...', '']]); SND.drumroll(2.3 * SPEED); break;
+  }
+}
+
+function mirrorPaused(on) {
+  const scr = H.app.firstElementChild; if (!scr) return;
+  let ov = $('.mpause', scr);
+  if (on && !ov) {
+    ov = document.createElement('div');
+    ov.className = 'overlay mpause';
+    ov.innerHTML = `<div class="card marquee"><h2>Paused</h2><p class="note">The host paused the show</p></div>`;
+    scr.appendChild(ov);
+    SND.stopMusic(); SND.hush();
+  } else if (!on && ov) ov.remove();
 }
