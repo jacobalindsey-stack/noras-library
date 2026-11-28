@@ -4,7 +4,7 @@
 
 import { $, q, isPhone, blockZoom, esc, bindTaps } from './common.js';
 import { isCode } from './net.js';
-import { unlock, play } from './sound.js';
+import { unlock, play, primeSpeech } from './sound.js';
 import { startHost, savedShow, startMirror } from './host.js';
 import { startTeam, savedTeam } from './team.js';
 
@@ -31,11 +31,11 @@ function title() {
     </div>
   </div>`;
   bindTaps(app.firstElementChild, {
-    host: () => { play('pop'); startHost(app, { fresh: true }); },
-    resume: () => { play('pop'); startHost(app, { fresh: false }); },
+    host: () => { play('pop'); primeSpeech(); startHost(app, { fresh: true }); },
+    resume: () => { play('pop'); primeSpeech(); startHost(app, { fresh: false }); },
     join: () => { play('pop'); startTeam(app, { back: title }); },
     rejoin: () => { play('pop'); startTeam(app, { code: team.room, back: title }); },
-    watch: () => { play('pop'); startMirror(app, { code: '', back: title }); },
+    watch: () => { play('pop'); primeSpeech(); startMirror(app, { code: '', back: title }); },
   });
 }
 

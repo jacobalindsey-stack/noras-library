@@ -220,7 +220,7 @@ function slap() {
     T.lockUntil = now + 800;
     play('early'); haptic('out');
     const w = $('.dome-wrap', T.app); if (w) { w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); }
-    setSub('Too early! Wait for the ding.');
+    setSub('Too early! Wait till it lights up.');
     return;
   }
   if (T.armed && !T.slapped && (v.v === 'slap' || v.v === 'get')) {
@@ -242,9 +242,11 @@ function arm() {
   clearTimeout(T.armTimer);
   T.armed = true; T.armT = performance.now();
   play('ding'); haptic('armed');
+  const scr = $('.screen.team', T.app);
+  if (scr) { scr.classList.remove('goflash'); void scr.offsetWidth; scr.classList.add('goflash'); setTimeout(() => scr.classList.remove('goflash'), 700); }
   const dome = $('.dome', T.app), wrap = $('.dome-wrap', T.app);
   if (dome && T.view && (T.view.v === 'get' || T.view.v === 'slap')) {
-    dome.classList.remove('wait', 'dim'); dome.classList.add('live'); wrap.classList.add('live');
+    dome.classList.remove('wait', 'dim', 'locked'); dome.classList.add('live'); wrap.classList.add('live');
     $('.dome-label', dome).textContent = 'Slap!';
     setSub('');
   }
@@ -256,6 +258,7 @@ function hostPill() {
   else if (T.link && T.link.isOpen) el.classList.remove('show');
 }
 
+const LOCK = '<svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 const chip = by => by ? `<span class="chip" style="--c:${colorOf(by.color)};--k:${by.color && ['lemon', 'lime', 'aqua', 'tangerine'].includes(by.color) ? '#062027' : '#fff'}">${esc(by.name)}</span>` : '';
 const place = n => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 
@@ -274,7 +277,7 @@ function render() {
   T.lastV = key; T.prevState = v.v;
   // arming: a new question resets the buzzer
   if (v.v === 'next' || v.v === 'get') { if (changed && prev !== 'get') { T.armed = false; T.slapped = false; T.judged = false; } }
-  if (v.v === 'get') { clearTimeout(T.armTimer); if (!T.armed) T.armTimer = setTimeout(arm, Math.max(0, v.ms || 0)); }
+  if (v.v === 'get') clearTimeout(T.armTimer); // locked until the big screen says go
   if (v.v !== 'slap' && v.v !== 'get') clearTimeout(T.armTimer);
   if (v.v === 'slap' && prev === 'paused') { T.armed = false; }
   if (!changed && v.v !== 'slap') return;
@@ -293,10 +296,10 @@ function render() {
       h = dome('', 'wait') + `<div class="tmsg">Get ready!</div><div class="tsub">The show is starting</div>`;
       break;
     case 'next':
-      h = dome('', 'wait') + `<div class="tmsg">${v.bonus ? 'Bonus round!' : 'Next question'}</div><div class="tsub">${v.bonus ? 'Double points for this one' : 'Eyes on the big screen'}</div>`;
+      h = dome(LOCK, 'locked') + `<div class="tmsg">${v.bonus ? 'Bonus round!' : 'Next question'}</div><div class="tsub">${v.bonus ? 'Double points for this one' : 'Eyes on the big screen'}</div>`;
       break;
     case 'get':
-      h = dome('Wait', 'wait') + `<div class="tsub">Read the question. Slap at the ding!</div>`;
+      h = dome(LOCK + '<span>Wait</span>', 'locked') + `<div class="tsub">${v.voice ? 'Listen to the question.' : 'Read the question.'}<br>Slap when it lights up!</div>`;
       break;
     case 'slap': {
       h = dome('Slap!', 'live') + `<div class="slapbar"><i></i></div><div class="tsub"></div>`;

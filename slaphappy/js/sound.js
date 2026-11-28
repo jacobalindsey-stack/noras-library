@@ -345,8 +345,11 @@ function playStep(m, step, t) {
 
 // ---------- the host's voice (reads the question when switched on) ----------
 let voice = null;
-export function speak(text) {
-  if (!('speechSynthesis' in window)) return;
+// onDone(ok) runs once when the voice finishes (ok = true) or can't speak (ok = false).
+export function speak(text, onDone) {
+  let done = false;
+  const finish = ok => { if (done) return; done = true; if (onDone) onDone(ok); };
+  if (!('speechSynthesis' in window) || !prefs.sound) { finish(false); return; }
   try {
     speechSynthesis.cancel();
     if (!voice) {
@@ -356,7 +359,20 @@ export function speak(text) {
     const u = new SpeechSynthesisUtterance(text);
     if (voice) u.voice = voice;
     u.rate = 1.0; u.pitch = 1.05; u.volume = 1;
+    u.onend = () => finish(true);
+    u.onerror = () => finish(false);
+    speechSynthesis.speak(u);
+  } catch (e) { finish(false); }
+}
+// iPhone and iPad only let a page talk after it has talked during a tap.
+export function primeSpeech(text = '') {
+  if (!('speechSynthesis' in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text || ' ');
+    u.volume = text ? 1 : 0; u.rate = 1.0; u.pitch = 1.05;
+    if (voice) u.voice = voice;
     speechSynthesis.speak(u);
   } catch (e) {}
 }
+if ('speechSynthesis' in window) { try { speechSynthesis.onvoiceschanged = () => { voice = null; }; } catch (e) {} }
 export function hush() { try { speechSynthesis.cancel(); } catch (e) {} }

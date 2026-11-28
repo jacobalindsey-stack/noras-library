@@ -25,7 +25,7 @@ export async function startHost(app, { fresh }) {
   if (H) H.stop();
   H = {
     app, room: null, key: null, link: null, net: 'connecting', netSince: now(), teams: [], topics: [],
-    settings: { count: 10, slap: 20, answer: 10, topics: null, voice: false },
+    settings: { count: 10, slap: 20, answer: 10, topics: null, voice: true },
     g: null, loop: null, screen: null, screens: new Set(), pingT: null,
     stop() { clearInterval(this.loop); clearInterval(this.pingT); if (this.link) this.link.close(); SND.stopMusic(); SND.hush(); },
   };
@@ -34,6 +34,7 @@ export async function startHost(app, { fresh }) {
   if (s) {
     H.room = s.room; H.key = s.key;
     Object.assign(H.settings, s.settings || {});
+    if (!H.settings.voiceSet) H.settings.voice = true;
     H.teams = (s.teams || []).map(t => ({ ...t, online: !!t.local }));
   } else {
     H.room = newCode(); H.key = rid(16);
@@ -137,7 +138,7 @@ function viewFor(t) {
   switch (g.phase) {
     case 'intro': return { ...v, v: 'intro' };
     case 'splash': return { ...v, v: 'next' };
-    case 'ready': return { ...v, v: 'get', ms: left() };
+    case 'ready': return { ...v, v: 'get', voice: !!H.settings.voice };
     case 'armed': return { ...v, v: 'slap', ms: left() };
     case 'up': case 'revealing':
       return t.id === g.buzz ? { ...v, v: 'up', ms: g.phase === 'up' ? left() : 0, revealing: g.phase === 'revealing' } : { ...v, v: 'out', by };
@@ -169,7 +170,7 @@ function snapshot() {
   const g = H.g, q = g && g.qs[Math.min(Math.max(g.i, 0), g.qs.length - 1)];
   return {
     t: 'show', screen: H.screen, room: H.room,
-    settings: { count: H.settings.count, slap: H.settings.slap, answer: H.settings.answer, topics: H.settings.topics },
+    settings: { count: H.settings.count, slap: H.settings.slap, answer: H.settings.answer, topics: H.settings.topics, voice: !!H.settings.voice },
     teams: H.teams.map(({ id, name, color, sound, score, local, online }) => ({ id, name, color, sound, score, local, online })),
     g: g ? {
       i: g.i, total: g.qs.length, seq: g.seq, phase: g.phase, dur: g.dur || 0, paused: !!g.paused, buzz: g.buzz, result: g.result,
@@ -284,7 +285,7 @@ function lobby() {
     topic: id => { const on = S.topics.includes(id); if (on && S.topics.length === 1) return; S.topics = on ? S.topics.filter(x => x !== id) : [...S.topics, id]; SND.play('pop'); save(); lobby(); },
     count: n => { S.count = +n; SND.play('pop'); save(); lobby(); },
     slaptime: n => { S.slap = +n; SND.play('pop'); save(); lobby(); },
-    voice: n => { S.voice = n === '1'; SND.play('pop'); save(); lobby(); if (S.voice) SND.speak('Welcome to Slap Happy!'); },
+    voice: n => { S.voice = n === '1'; S.voiceSet = true; SND.play('pop'); save(); lobby(); if (S.voice) SND.primeSpeech('Welcome to Slap Happy!'); },
     start: () => startGame(),
   });
   wirePads(scr);
@@ -423,6 +424,7 @@ function offerResume(sg) {
 function startGame({ resume, again } = {}) {
   if (!H.teams.length) return;
   SND.unlock();
+  if (H.settings.voice) SND.primeSpeech("Let's play Slap Happy!");
   stayAwake();
   let qs, i = -1, seq = 0;
   if (resume) { qs = resume.qs; i = Math.max(-1, resume.i - 1); seq = resume.seq || 0; }
@@ -467,21 +469,47 @@ function nextQuestion() {
   if (q.bonus) { SND.play('bonus'); splash([['Bonus round!', 'pink'], ['Double points', 'small']]); }
   else { SND.play('whoosh'); splash([[`Question ${g.i + 1}`, ''], [`of ${g.qs.length}`, 'small']]); }
   save();
-  setPhase('splash', ms(q.bonus ? 2.4 : 1.4), () => {
-    splash(null);
-    const len = q.q.length + (q.choices ? q.choices.join('').length * 0.6 : 0);
-    let read = Math.min(5600, Math.max(2000, 1100 + 30 * len));
-    if (H.settings.voice) { SND.speak(q.q); read *= 1.35; }
-    setPhase('ready', read * SPEED, arm);
+  if (q.bonus && H.settings.voice) SND.speak('Bonus round!');
+  setPhase('splash', ms(q.bonus ? 2.4 : 1.4), () => { splash(null); readQuestion(q); });
+}
+
+// The buzzers stay locked while the question is read. With the voice on they
+// unlock a beat after it finishes (never sooner than 2.5 s, and if the voice
+// stalls, after a generous guess). With it off, after time to read it.
+function readTime(q) {
+  const len = q.q.length + (q.choices ? q.choices.join('').length * 0.6 : 0);
+  return Math.min(6000, Math.max(2500, 1200 + 32 * len));
+}
+function readQuestion(q) {
+  const g = H.g, seq = g.seq, started = now();
+  if (!H.settings.voice) { setPhase('ready', readTime(q) * SPEED, arm); return; }
+  const guess = 900 + 70 * q.q.length;                     // how long the voice should take
+  const fallback = Math.min(14000, Math.max(4000, guess * 1.5 + 1500));
+  setPhase('ready', fallback * SPEED, arm);
+  SND.speak(q.q, ok => {
+    if (!H || H.g !== g || g.seq !== seq || g.phase !== 'ready' || g.paused) return;
+    const took = now() - started;
+    // a voice that "finished" far too fast didn't really speak: give reading time instead
+    const at = ok && took > guess * 0.4 ? Math.max(started + 2500 * SPEED, now() + 350 * SPEED) : started + readTime(q) * SPEED;
+    g.end = Math.min(g.end, at);
   });
 }
 
 function arm() {
   const g = H.g;
   g.armedAt = now();
+  SND.hush();
   setPhase('armed', ms(H.settings.slap), () => { if (g.slaps.length) decide(); else timeUp(); });
   SND.play('ding');
   SND.music('think');
+  goFlash();
+}
+function goFlash() {
+  const scr = H.app.firstElementChild; if (!scr) return;
+  const f = document.createElement('div');
+  f.className = 'goflash';
+  scr.appendChild(f);
+  setTimeout(() => f.remove(), 900);
 }
 
 // Slaps are judged by reaction time (from when each buzzer lit up to the
@@ -682,8 +710,8 @@ function renderShow() {
   const name = buzzT ? esc(buzzT.name) : '';
   let h = '';
   switch (g.phase) {
-    case 'ready': h = `<div class="call">Get ready...</div>`; break;
-    case 'armed': h = `<div class="call go">Slap your buzzers!</div>`; break;
+    case 'ready': h = `<div class="signal wait"><i></i>${H.settings.voice ? 'Listen...' : 'Read it...'}</div>`; break;
+    case 'armed': h = `<div class="signal go"><i></i>Slap now!</div>`; break;
     case 'up': h = `<div class="call">${name}, say your answer!</div><div class="override"><button class="btn ghost small" data-act="oreveal">Show the answer</button></div>`; break;
     case 'revealing': h = `<div class="call">And the answer is...</div>`; break;
     case 'judge': h = `<div class="call">Did ${name} get it right?</div><div class="override"><span>Or decide here:</span> <button class="btn mint small" data-act="oyes">✓ Right</button><button class="btn tang small" data-act="ono">✗ Wrong</button></div>`; break;
@@ -693,6 +721,8 @@ function renderShow() {
   }
   sl.innerHTML = h;
   scr.classList.toggle('reveal', showAns);
+  scr.classList.toggle('locked', g.phase === 'ready' || g.phase === 'splash');
+  scr.classList.toggle('live', g.phase === 'armed' && !g.paused);
   renderPodiums();
   fitStage();
 }
@@ -804,13 +834,14 @@ function pause() {
     plus: id => { const t = byId(id); if (t) { t.score += 100; save(); draw(); renderPodiums(); syncScreens(); } },
     snd: () => { SND.setSound(!SND.prefs.sound); draw(); },
     mus: () => { SND.setMusic(!SND.prefs.music); draw(); },
-    voice: () => { H.settings.voice = !H.settings.voice; save(); draw(); },
+    voice: () => { H.settings.voice = !H.settings.voice; H.settings.voiceSet = true; save(); draw(); if (H.settings.voice) SND.primeSpeech(' '); else SND.hush(); },
   });
 }
 function resume(quiet) {
   const g = H.g; if (!g || !g.paused) return;
   g.paused = false;
   $$('.pause-ov', H.app).forEach(o => o.remove());
+  if (g.phase === 'ready') g.left = Math.min(g.left, 1500 * SPEED); // the voice was cut off by the pause: unlock soon after
   if (g.onEnd) g.end = now() + g.left;
   if (!quiet) {
     if (g.phase === 'armed') SND.music('think');
@@ -877,6 +908,7 @@ export async function startMirror(app, { code, back }) {
   window.SLAP = window.SLAP || {}; window.SLAP.host = H;
   if (!isCode(code)) { watchLetters(''); return; }
   watchURL(code); // a reload (or a sleepy TV) comes straight back to the show
+  document.addEventListener('pointerup', () => SND.primeSpeech(), { once: true });
   mirrorNote('Finding the show', code);
   H.topics = await loadTopics();
   const id = 'w' + rid(11);
@@ -917,6 +949,7 @@ function watchLetters(err, code = '') {
   const go = () => {
     const c = inp.value.toUpperCase();
     if (!isCode(c)) { $('.err', H.app).textContent = c.length < 4 ? 'The room has four letters.' : `There's no show called ${c}. Room letters never have vowels.`; return; }
+    SND.primeSpeech();
     startMirror(H.app, { code: c, back });
   };
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
@@ -1039,11 +1072,11 @@ function mirrorPhase(g, q, resumed) {
     }
     case 'splash':
       SND.stopMusic();
-      if (q && q.bonus) { SND.play('bonus'); splash([['Bonus round!', 'pink'], ['Double points', 'small']]); }
+      if (q && q.bonus) { SND.play('bonus'); splash([['Bonus round!', 'pink'], ['Double points', 'small']]); if (H.settings.voice) SND.speak('Bonus round!'); }
       else { SND.play('whoosh'); splash([[`Question ${g.i + 1}`, ''], [`of ${g.qs.length}`, 'small']]); }
       break;
-    case 'ready': splash(null); break;
-    case 'armed': splash(null); if (!resumed) SND.play('ding'); SND.music('think'); break;
+    case 'ready': splash(null); if (H.settings.voice && q && !resumed) SND.speak(q.q); break;
+    case 'armed': splash(null); SND.hush(); if (!resumed) { SND.play('ding'); goFlash(); } SND.music('think'); break;
     case 'up': {
       splash(null); SND.stopMusic();
       const t = byId(g.buzz);

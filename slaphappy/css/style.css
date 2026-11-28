@@ -459,3 +459,33 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--bulb); outl
 @media (prefers-reduced-motion: no-preference) { .mirror-wait { animation: throb 2.4s ease-in-out infinite; } }
 .farnote { max-width: 24em; margin-top: .6vmin; font-size: clamp(13px, 1.6vmin, 17px); font-weight: 500; line-height: 1.3; opacity: .7; }
 .mpill { position: absolute; z-index: 45; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 8px 18px 9px; border-radius: 999px; background: rgba(0,0,0,.65); color: var(--cream); font-size: 17px; font-weight: 600; white-space: nowrap; }
+
+/* ---------- the slap window: locked (red) while the question is read, then GO (green) ---------- */
+.signal { display: inline-flex; align-items: center; gap: calc(1.4 * var(--u)); padding: calc(.9 * var(--u)) calc(3.2 * var(--u)) calc(1.2 * var(--u)); border-radius: 999px; font-family: var(--f-show); font-size: calc(4.2 * var(--u)); line-height: 1; }
+.signal i { width: calc(2.6 * var(--u)); height: calc(2.6 * var(--u)); border-radius: 50%; flex: none; }
+.signal.wait { background: #3a0f16; color: #ffb8bf; box-shadow: inset 0 0 0 3px #ff4d5e; }
+.signal.wait i { background: #ff4d5e; box-shadow: 0 0 14px 3px rgba(255,77,94,.7); }
+.signal.go { background: #2fd36a; color: #03230f; box-shadow: 0 0 0 4px #c9ffd9, 0 0 40px 10px rgba(47,211,106,.6); font-size: calc(5 * var(--u)); }
+.signal.go i { background: #fff; box-shadow: 0 0 16px 4px #fff; }
+@media (prefers-reduced-motion: no-preference) {
+  .signal.wait i { animation: blinkred 1s steps(1) infinite; }
+  .signal.go { animation: gopulse .7s ease-in-out infinite; }
+  .show.live .board::before { animation: chaseA .45s steps(1) infinite; }
+  .show.live .board::after { animation: chaseB .45s steps(1) infinite; }
+}
+@keyframes blinkred { 50% { opacity: .25; } }
+@keyframes gopulse { 50% { transform: scale(1.06); } }
+/* question board bulbs: red and steady while locked, gold and chasing when live */
+.show.locked .board { --bulb: #ffc2c7; --marigold: #ff4d5e; box-shadow: 0 0 0 3px #8c1d29, 0 0 0 7px #3a0a10, 0 18px 40px rgba(0,0,0,.45); }
+.show.live .board { box-shadow: 0 0 0 3px #f0b020, 0 0 0 7px #3c2a06, 0 0 50px 8px rgba(255,184,28,.45), 0 18px 40px rgba(0,0,0,.45); }
+.show.locked .timer .tnum { opacity: .35; }
+/* the moment the buzzers unlock: a green flash around the edge of the screen */
+.goflash { position: absolute; inset: 0; z-index: 25; pointer-events: none; box-shadow: inset 0 0 0 0 rgba(47,211,106,0); animation: goflash .8s ease-out forwards; }
+@keyframes goflash { 0% { box-shadow: inset 0 0 0 0 rgba(47,211,106,0); background: rgba(47,211,106,.0); } 15% { box-shadow: inset 0 0 120px 40px rgba(47,211,106,.85); background: rgba(47,211,106,.18); } 100% { box-shadow: inset 0 0 0 0 rgba(47,211,106,0); background: rgba(47,211,106,0); } }
+
+/* the phone while locked: a dark dome with a padlock; then the whole screen flashes its colour */
+.dome.locked { filter: none; background: radial-gradient(60% 45% at 38% 26%, rgba(255,255,255,.28), rgba(255,255,255,0) 60%), radial-gradient(circle at 50% 62%, #4d474b 0%, #2f2a2d 55%, #19151a 100%); box-shadow: inset 0 -14px 26px rgba(0,0,0,.45), inset 0 6px 10px rgba(255,255,255,.12), 0 10px 0 #110e12; }
+.dome.locked .dome-label { display: flex; flex-direction: column; align-items: center; gap: .1em; color: #fff; text-shadow: none; font-size: min(11vw, 7vh, 60px); transform: none; }
+.dome .lock { width: min(26vw, 16vh, 130px); height: auto; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.team.goflash { animation: phoneflash .7s ease-out; }
+@keyframes phoneflash { 0% { background: var(--stage-deep); } 12% { background: var(--tc); } 100% { background: var(--stage-deep); } }
